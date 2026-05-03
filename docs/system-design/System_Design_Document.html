@@ -370,24 +370,24 @@ blockquote {
 <p>The MCP plane is available throughout the run for ad-hoc queries. An agent may inject a <code>MEAS:VOLT:DC?</code> request mid-sweep without disturbing the pytest state machine, because both control paths address the same module under the per-node concurrency rules described in section 9.</p>
 <p><strong>Figure 4-2: Representative Control Flow</strong></p>
 <div class="mermaid">sequenceDiagram
-    participant U as User or Agent
-    participant P as Pi 5 (Orchestrator)
-    participant SMU as Module 1D (SMU)
-    participant V as Module 1B (Voltmeter)
+    participant U as "User or Agent"
+    participant P as "Pi 5 (Orchestrator)"
+    participant SMU as "Module 1D (SMU)"
+    participant V as "Module 1B (Voltmeter)"
     participant DB as InfluxDB
     participant G as Grafana
-    U->>P: pytest invocation OR MCP tool call
-    P->>SMU: SCPI: OUTP ON; SOUR:VOLT 0.0
+    U->>P: pytest invocation or MCP tool call
+    P->>SMU: SCPI OUTP ON, SOUR:VOLT 0.0
     SMU-->>P: OK
-    loop Sweep / Integration
-        P->>V: SCPI: MEAS:VOLT:DC?
+    loop Sweep or Integration
+        P->>V: SCPI MEAS:VOLT:DC?
         V-->>P: voltage reading
-        P->>DB: write point (instrument, channel, DUT, run_id, value)
+        P->>DB: write point with run tags
         DB-->>G: live dashboard update
     end
-    P->>P: pytest pass/fail evaluation
+    P->>P: pytest pass-fail evaluation
     P->>DB: query by run_id
-    P->>U: PDF / HTML report</div>
+    P->>U: PDF or HTML report</div>
 <h2 id="module-catalog">5. Module Catalog</h2>
 <p>The platform’s instrument modules are organized into three tiers by physical layer cost and complexity. Each module is identified by a two-character ID combining tier number and module letter within tier. The catalog below summarizes the planned module set; full per-module specifications appear in section 7.</p>
 <p><strong>Table 5-1: Module Catalog</strong></p>
