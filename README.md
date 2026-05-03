@@ -4,13 +4,7 @@ A modular SCPI instrument platform that mirrors NI PXIe rack-and-module test arc
 
 ## Documentation
 
-<<<<<<< HEAD
 - **[System Design Document](https://pike1950.github.io/poor-mans-validation-bench/docs/system-design/System_Design_Document.html)** — full v1.0 SDD covering architecture, module catalog, specifications, software stack, build phases, and verification strategy. Rendered via GitHub Pages.
-=======
-The full v1.0 System Design Document covers architecture, module catalog, specifications, software stack, build phases, and verification strategy.
-
-- **Rendered HTML (recommended):** [System Design Document](https://pike1950.github.io/poor-mans-validation-bench/docs/system-design/System_Design_Document.html)
->>>>>>> 8598fc3a166f03e39bb1c7a1589395833bf687bd
 
 ## Module Catalog
 
