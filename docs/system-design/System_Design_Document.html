@@ -229,6 +229,7 @@ blockquote {
 <li><a href="#module-1e-function-generator-arbitrary-waveform-generator">7.5.5 Module 1E: Function Generator / Arbitrary Waveform Generator</a></li>
 <li><a href="#module-1f-high-voltage-differential-probe">7.5.6 Module 1F: High-Voltage Differential Probe</a></li>
 <li><a href="#module-1g-ir-capture-and-transmit">7.5.7 Module 1G: IR Capture and Transmit</a></li>
+<li><a href="#module-1h-multi-function-dmm">7.5.8 Module 1H: Multi-Function DMM</a></li>
 </ul></li>
 <li><a href="#module-tier-2-fpga-based-modules">7.6 Module Tier 2: FPGA-Based Modules</a>
 <ul>
@@ -291,12 +292,14 @@ blockquote {
 <li><a href="#phase-0-orchestration-bring-up">13.1 Phase 0: Orchestration Bring-Up</a></li>
 <li><a href="#phase-1-tier-1-core-modules">13.2 Phase 1: Tier 1 Core Modules</a></li>
 <li><a href="#phase-1.5-module-1c-and-tier-2-bridge-bring-up">13.3 Phase 1.5: Module 1C and Tier 2 Bridge Bring-Up</a></li>
+<li><a href="#phase-1.7-module-1h-multi-function-dmm">13.3.5 Phase 1.7: Module 1H (Multi-Function DMM)</a></li>
 <li><a href="#phase-2-tier-2-core-modules">13.4 Phase 2: Tier 2 Core Modules</a></li>
 <li><a href="#phase-2.5-module-2e-mixed-signal-digitizer">13.5 Phase 2.5: Module 2E (Mixed-Signal Digitizer)</a></li>
 <li><a href="#phase-3-v1.1-additions">13.6 Phase 3: v1.1 Additions</a></li>
 <li><a href="#phase-4-tier-3-deferred">13.7 Phase 4: Tier 3 (Deferred)</a></li>
 <li><a href="#total-investment-summary">13.8 Total Investment Summary</a></li>
 <li><a href="#upgrade-gates">13.9 Upgrade Gates</a></li>
+<li><a href="#future-modules-and-coverage-gaps">13.10 Future Modules and Coverage Gaps</a></li>
 </ul></li>
 <li><a href="#revision-history">14. Revision History</a></li>
 <li><a href="#references-and-further-reading">15. References and Further Reading</a></li>
@@ -466,6 +469,7 @@ blockquote {
 <td>USB-TMC (primary) + LAN (admin)</td>
 <td>Planned (v1.1)</td>
 </tr>
+<tr><td>1H</td><td>1</td><td>Multi-Function DMM</td><td>Pico 2 W + ADS1256 + AD636 + Pi Zero 2 W</td><td>USB-TMC (primary) + LAN (admin)</td><td>Planned (v1.0)</td></tr>
 <tr class="even">
 <td>2A</td>
 <td>2</td>
@@ -878,6 +882,27 @@ blockquote {
 <p>Each Tier 1 module also includes a Pi Zero 2 W sidecar matching the Tier 2 architecture. The Pi Zero provides per-module Linux storage, ssh debug access, optional Wi-Fi or wired LAN connectivity, and a place to host module-level configuration and calibration data. The Pico 2 W remains the canonical USB-TMC bridge to the orchestration layer; the Pi Zero is parallel to that path, not in series with it. The architectural uniformity (every module has the same Pico-and-Pi-Zero pair) makes module bring-up and debug workflows consistent across the catalog at the cost of approximately $30 per module relative to a Pico-only baseline.</p>
 <h4 id="module-1a-digital-io-controller">7.5.1 Module 1A: Digital I/O Controller</h4>
 <p>Module 1A provides programmable digital I/O, PWM generation, and frequency measurement on a Pico 2 W with no external peripherals. The eight GPIO lines are independently configurable as inputs or outputs at 3.3 V CMOS levels, and are 5 V tolerant via the chassis-supplied bidirectional level shifter when 5 V interfacing is required. Two PWM outputs are driven by the RP2350’s PWM peripheral; one dedicated frequency-counter input uses a PIO state machine implementing reciprocal counting with a 32-bit accumulator.</p>
+<p><strong>Block Diagram, Module 1A</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W<br/>USB-TMC + SCPI parser]
+    PiZero[Pi Zero 2 W<br/>admin sidecar]
+    Switch[Chassis LAN switch]
+    GPIO[8 GPIO<br/>3.3V CMOS]
+    PWM[2 PWM<br/>RP2350 peripheral]
+    FreqIn[1 Freq input<br/>PIO state machine]
+    LS[Bidirectional level shifter<br/>3.3V to 5V]
+    DUT[DUT headers]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico --> GPIO
+    Pico --> PWM
+    Pico --> FreqIn
+    GPIO --> LS
+    PWM --> LS
+    FreqIn --> LS
+    LS --> DUT
+</div>
 <p><strong>Table 7-1: Module 1A Specifications</strong></p>
 <table>
 <colgroup>
@@ -929,6 +954,8 @@ blockquote {
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> <a href="https://www.ni.com/en/shop/hardware/digital-io-instruments/model-pxie-6570">NI PXIe-6570 Digital Pattern Instrument</a> at hobbyist scale. The 6570 has 32 channels with programmable VOH/VOL and per-channel timing engines; Module 1A has 8 channels, fixed 3.3 V CMOS levels (5 V tolerant via the chassis level shifter), and host-paced timing.</p>
+
 <p><strong>SCPI Command Set, Module 1A</strong></p>
 <ul>
 <li><code>*IDN?</code> returns identification string</li>
@@ -940,6 +967,16 @@ blockquote {
 <li><code>PWM:STAT &lt;chan&gt;, &lt;ON|OFF&gt;</code> enables or disables a channel</li>
 <li><code>FREQ:MEAS? &lt;gate_ms&gt;</code> measures frequency on dedicated input</li>
 </ul>
+<p><strong>Sample Test, Module 1A</strong></p>
+<pre><code class="language-python">def test_dut_reset_pulse(dio):
+    """Pulse the DUT reset line and verify the DUT echoes back at 1 kHz on input pin 1."""
+    dio.write('DIGI:DIR 0, OUT')
+    dio.write('DIGI:OUTP 0, 1')
+    time.sleep(0.001)
+    dio.write('DIGI:OUTP 0, 0')
+    freq = float(dio.query('FREQ:MEAS? 1000'))
+    assert 990 &lt;= freq &lt;= 1010, f'Echo freq {freq} Hz outside 1 kHz +/- 1%'
+</code></pre>
 <p><strong>Table 7-2: Module 1A BOM</strong></p>
 <table>
 <thead>
@@ -978,6 +1015,25 @@ blockquote {
 <h4 id="module-1b-voltage-measurement-unit">7.5.2 Module 1B: Voltage Measurement Unit</h4>
 <p>Module 1B is a four-channel single-ended (or two-channel differential) voltmeter using a Texas Instruments ADS1115 16-bit Σ-Δ ADC on a SparkFun-style breakout connected to the Pico 2 W over I²C. The PGA-selectable range covers ±0.256 V to ±6.144 V; the noise floor at the most sensitive range is approximately 76 µV per LSB with a roughly 25 µV RMS noise floor after averaging. Calibration constants for offset and gain are stored in the Pico’s external flash and applied by firmware before SCPI return values.</p>
 <p>A precision variant of Module 1B substitutes the ADS1115 for an ADS1256 (24-bit Σ-Δ, 30 kSPS, sub-microvolt resolution) on an SPI bus. Firmware and SCPI command surface are identical except for the sample rate and resolution metadata returned by <code>MEAS:VOLT:DC?</code> queries.</p>
+<p><strong>Block Diagram, Module 1B</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    ADC[ADS1115<br/>16-bit Sigma-Delta]
+    PGA[Programmable Gain Amplifier<br/>0.256V to 6.144V]
+    Mux[4:1 input mux<br/>SE or differential]
+    Inputs[4 input pins<br/>SE or 2 differential pairs]
+    CalFlash[Calibration constants<br/>in Pico external flash]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|I2C| ADC
+    Pico --> CalFlash
+    ADC --> PGA
+    PGA --> Mux
+    Mux --> Inputs
+</div>
 <p><strong>Table 7-3: Module 1B Specifications (Standard Variant)</strong></p>
 <table>
 <thead>
@@ -1017,6 +1073,8 @@ blockquote {
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> <a href="https://www.ni.com/en/shop/hardware/digital-multimeters/model-pxie-4081">NI PXIe-4081 DMM</a> at hobbyist scale. The 4081 is 7½-digit and supports V/I/R/AC/DC; Module 1B is 16-bit DC voltage only, intended for parallel rail monitoring. The DMM-class equivalent in PMVB is Module 1H.</p>
+
 <p><strong>SCPI Command Set, Module 1B</strong></p>
 <ul>
 <li><code>*IDN?</code> identification</li>
@@ -1027,6 +1085,13 @@ blockquote {
 <li><code>CALC:CAL:OFFS &lt;chan&gt;, &lt;volts&gt;</code> sets offset calibration</li>
 <li><code>CALC:CAL:GAIN &lt;chan&gt;, &lt;factor&gt;</code> sets gain calibration</li>
 </ul>
+<p><strong>Sample Test, Module 1B</strong></p>
+<pre><code class="language-python">def test_3v3_rail_within_tolerance(volt):
+    """Verify a known 3.3 V regulator output is within 5%."""
+    volt.write('CONF:VOLT:DC:RANG 0, 6.144')
+    reading = float(volt.query('MEAS:VOLT:DC:AVER? 0, 16'))
+    assert 3.135 &lt;= reading &lt;= 3.465, f'3.3 V rail measured at {reading:.3f} V'
+</code></pre>
 <p><strong>Table 7-4: Module 1B BOM (Standard Variant)</strong></p>
 <table>
 <thead>
@@ -1071,6 +1136,21 @@ blockquote {
 <h4 id="module-1c-usb-hid-protocol-analyzer">7.5.3 Module 1C: USB HID Protocol Analyzer</h4>
 <p>Module 1C captures USB Human Interface Device traffic from a device under test and decodes HID descriptors and reports for inspection. The module pairs two Pico 2 W boards. The first (chassis-facing) Pico presents as the USB-TMC instrument over the chassis powered USB hub. The second (DUT-facing) Pico runs TinyUSB in host mode and enumerates the device under test. The two Picos communicate over a UART link at 1 Mbps. This split avoids the dual-role USB complexity that would arise from trying to use a single Pico as both USB-TMC device (uplink) and USB host (downlink) simultaneously, since the RP2350’s USB controller supports either role but not both on the same port.</p>
 <p>The DUT-facing Pico captures full HID descriptors, parses report descriptors, and forwards either decoded reports or raw bytes back to the chassis-facing Pico for SCPI response. Capture buffer is approximately 32 KB on the DUT-facing Pico; longer captures stream live to the chassis side over UART.</p>
+<p><strong>Block Diagram, Module 1C</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    ChassisPico[Pico 2 W<br/>chassis-facing<br/>USB-TMC instrument]
+    DUTPico[Pico 2 W<br/>DUT-facing<br/>TinyUSB host]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    USB_DUT[USB-A receptacle]
+    HIDDevice[HID DUT<br/>mouse · keyboard · gamepad · etc]
+    Host -->|USB-TMC| ChassisPico
+    Switch <-->|admin| PiZero
+    ChassisPico <-->|UART 1 Mbps| DUTPico
+    DUTPico --> USB_DUT
+    USB_DUT <-->|USB 2.0 full-speed| HIDDevice
+</div>
 <p><strong>Table 7-5: Module 1C Specifications</strong></p>
 <table>
 <thead>
@@ -1102,6 +1182,8 @@ blockquote {
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> dedicated USB protocol analyzers (Beagle USB 12, Total Phase USB Power Delivery Analyzer); not a standard NI PXIe instrument. Module 1C provides hobbyist-scale HID-class capture using TinyUSB host on a Pico 2 W.</p>
+
 <p><strong>SCPI Command Set, Module 1C</strong></p>
 <ul>
 <li><code>*IDN?</code> identification</li>
@@ -1111,6 +1193,16 @@ blockquote {
 <li><code>USB:HID:REPORT:STOP</code> stops report capture</li>
 <li><code>USB:HID:REPORT:DATA?</code> returns captured reports as decoded JSON</li>
 </ul>
+<p><strong>Sample Test, Module 1C</strong></p>
+<pre><code class="language-python">import json
+
+def test_mouse_enumeration(hid):
+    """Verify a Logitech HID mouse enumerates with the expected VID and HID class."""
+    devices = json.loads(hid.query('USB:HID:ENUM?'))
+    mouse = next((d for d in devices if d['vid'] == 0x046D), None)
+    assert mouse is not None, 'No Logitech device found on DUT port'
+    assert mouse['interface_class'] == 0x03, 'DUT does not advertise as HID class'
+</code></pre>
 <p><strong>Table 7-6: Module 1C BOM</strong></p>
 <table>
 <thead>
@@ -1159,6 +1251,29 @@ blockquote {
 <h4 id="module-1d-source-measure-unit-lite">7.5.4 Module 1D: Source-Measure Unit Lite</h4>
 <p>Module 1D provides synchronized voltage sourcing and voltage/current measurement for IV-curve generation, low-power source-measure characterization, and transient response capture. The module pairs a Pico 2 W with a Microchip MCP4922 dual 12-bit DAC (SPI) and an ADS1115 ADC (I²C). Two source channels, each with an op-amp output stage providing 0 to 5 V with software-selectable gain to ±10 V, drive the DUT. Two voltage measurement channels and two current measurement channels (via 1 Ω shunt and differential ADC reading) close the loop on the DUT response.</p>
 <p>The “Lite” qualifier differentiates the module from a full bench SMU; current capability is bounded at ±30 mA by the op-amp output stage and shunt heat dissipation. A higher-current variant (replacing the op-amp output with an LM317-based regulator) extends capability to roughly ±500 mA but reduces voltage range and accuracy.</p>
+<p><strong>Block Diagram, Module 1D</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    DAC[MCP4922<br/>dual 12-bit DAC]
+    OpAmp[MCP6232 op-amp<br/>output buffer 10V]
+    Shunt[1 Ω current shunts]
+    ADC[ADS1115<br/>16-bit ADC]
+    Out1[CH0 source/measure jack]
+    Out2[CH1 source/measure jack]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|SPI| DAC
+    Pico -->|I2C| ADC
+    DAC --> OpAmp
+    OpAmp --> Shunt
+    Shunt --> Out1
+    Shunt --> Out2
+    Shunt -->|differential current sense| ADC
+    Out1 -->|voltage sense| ADC
+</div>
 <p><strong>Table 7-7: Module 1D Specifications</strong></p>
 <table>
 <thead>
@@ -1210,6 +1325,8 @@ blockquote {
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> <a href="https://www.ni.com/en/shop/hardware/source-measure-units/model-pxie-4137">NI PXIe-4137 SMU</a> (single-channel ±200 V / ±1 A) at hobbyist scale. Module 1D is two channels at ±10 V / ±30 mA, intended for small-signal IV characterization (diodes, LEDs, low-power transistors), not power-electronics work. The four-channel <a href="https://www.ni.com/en/shop/hardware/source-measure-units/model-pxie-4143">NI PXIe-4143 SMU</a> at ±24 V / ±0.5 A is a closer architectural match in channel count, but still 15× higher current capability.</p>
+
 <p><strong>SCPI Command Set, Module 1D</strong></p>
 <ul>
 <li><code>*IDN?</code> identification</li>
@@ -1221,6 +1338,37 @@ blockquote {
 <li><code>MEAS:VOLT:SWEEP? &lt;chan&gt;</code> returns sweep voltage results</li>
 <li><code>MEAS:CURR:SWEEP? &lt;chan&gt;</code> returns sweep current results</li>
 </ul>
+<p><strong>Timing Diagram, Module 1D Sweep</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant P as Pico
+    participant DAC as DAC
+    participant ADC as ADC
+    H->>P: SOUR:VOLT:SWEEP 0, 0, 0.8, 41, 10
+    H->>P: SOUR:VOLT:SWEEP:STAR 0
+    loop 41 sweep points
+        P->>DAC: write voltage step
+        P->>P: settle delay 10 ms
+        P->>ADC: read voltage and current
+        ADC-->>P: V, I samples
+    end
+    H->>P: MEAS:VOLT:SWEEP? 0
+    P-->>H: array of 41 voltage samples
+    H->>P: MEAS:CURR:SWEEP? 0
+    P-->>H: array of 41 current samples
+</div>
+<p><strong>Sample Test, Module 1D</strong></p>
+<pre><code class="language-python">import json
+
+def test_diode_iv_curve(smu):
+    """Capture an IV curve on a Si diode and verify forward voltage between 0.55 V and 0.75 V."""
+    smu.write('SOUR:VOLT:SWEEP 0, 0.0, 0.8, 41, 10')
+    smu.write('SOUR:VOLT:SWEEP:STAR 0')
+    voltages = json.loads(smu.query('MEAS:VOLT:SWEEP? 0'))
+    currents = json.loads(smu.query('MEAS:CURR:SWEEP? 0'))
+    threshold = next(v for v, i in zip(voltages, currents) if i &gt; 1e-3)
+    assert 0.55 &lt;= threshold &lt;= 0.75, f'Si diode Vf {threshold:.3f} V outside expected range'
+</code></pre>
 <p><strong>Table 7-8: Module 1D BOM</strong></p>
 <table>
 <thead>
@@ -1279,6 +1427,23 @@ blockquote {
 <h4 id="module-1e-function-generator-arbitrary-waveform-generator">7.5.5 Module 1E: Function Generator / Arbitrary Waveform Generator</h4>
 <p>Module 1E is an audio-band programmable function generator and arbitrary waveform generator. The module pairs a Pico 2 W with a Microchip MCP4922 dual 12-bit DAC clocked at the Pico SDK’s maximum DMA-driven SPI rate (approximately 1 MSPS sustained per channel). One DAC channel drives a single-ended output through an op-amp buffer providing approximately ±10 V into a 600 Ω load; the other channel is reserved for a sync/trigger output or a second waveform output. Standard waveforms (sine, square, triangle, ramp, noise, multitone) are generated from a precomputed lookup table; arbitrary waveforms are uploaded as 16-bit sample arrays up to 32 K samples deep.</p>
 <p>The audio-band ceiling is approximately 50 kHz, sufficient for clean sine generation through the output filter (about 20 samples per cycle at 1 MSPS DAC update). Frequency accuracy is bounded by the Pico’s onboard crystal at ±20 ppm, improvable to ±2 ppm by chaining the trigger bus to Module 2C’s TCXO reference. Module 1E pairs with Module 2E to enable the worked-example audio characterization recipes documented in section 10 (swept-sine THD, frequency response, intermodulation distortion).</p>
+<p><strong>Block Diagram, Module 1E</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W<br/>+ DMA SPI driver]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    DAC[MCP4922<br/>dual 12-bit DAC<br/>1 MSPS via DMA]
+    OpAmp[MCP6232 op-amp<br/>output buffer ±10V]
+    OutZ[Switchable output Z<br/>50Ω or 600Ω]
+    Out[BNC output]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|DMA SPI| DAC
+    DAC --> OpAmp
+    OpAmp --> OutZ
+    OutZ --> Out
+</div>
 <p><strong>Table 7-27: Module 1E Specifications</strong></p>
 <table>
 <colgroup>
@@ -1334,6 +1499,8 @@ blockquote {
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> <a href="https://www.ni.com/en/shop/hardware/waveform-generators.html">NI PXIe-5413 Waveform Generator</a> at hobbyist scale. The 5413 covers DC to 10 MHz with 16-bit resolution and arbitrary waveform memory in the millions of samples; Module 1E covers DC to 50 kHz at 12-bit, sufficient for audio-band stimulus and pairing with Module 2E for FFT-based audio analysis recipes.</p>
+
 <p><strong>SCPI Command Set, Module 1E</strong></p>
 <ul>
 <li><code>*IDN?</code> identification</li>
@@ -1348,6 +1515,38 @@ blockquote {
 <li><code>SOUR:SWEEP:STAR</code> starts sweep</li>
 <li><code>SOUR:MULT:UPLD &lt;freqs&gt;, &lt;amps&gt;</code> uploads multitone definition</li>
 </ul>
+<p><strong>Timing Diagram, Module 1E Swept Sine</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant P as Pico
+    participant DMA as DMA engine
+    participant DAC as DAC
+    participant Out as Output
+    H->>P: SOUR:SWEEP:CONF 100, 10000, 1.0, LOG
+    H->>P: SOUR:SWEEP:STAR
+    Note over P,DMA: Generate sine lookup table for current frequency
+    loop sweep duration 1.0 s
+        P->>DMA: enqueue waveform chunk
+        DMA->>DAC: stream samples at 1 MSPS
+        DAC->>Out: analog output continues uninterrupted
+    end
+    P-->>H: sweep complete
+</div>
+<p><strong>Sample Test, Module 1E</strong></p>
+<pre><code class="language-python">import numpy as np
+
+def test_awg_sine_amplitude(awg, scope):
+    """Verify the AWG generates a 1 kHz sine at the requested amplitude (within 5%)."""
+    awg.write('SOUR:FUNC SIN')
+    awg.write('SOUR:FREQ 1000')
+    awg.write('SOUR:VOLT 2.0')
+    awg.write('OUTP ON')
+    samples = scope.query_binary_values('DIG:DATA? 0', datatype='f')
+    rms = np.sqrt(np.mean(np.array(samples) ** 2))
+    expected_rms = 2.0 / (2 * np.sqrt(2))
+    assert abs(rms - expected_rms) &lt; 0.05, f'RMS {rms:.3f} V, expected {expected_rms:.3f} V'
+    awg.write('OUTP OFF')
+</code></pre>
 <p><strong>Table 7-28: Module 1E BOM</strong></p>
 <table>
 <thead>
@@ -1407,6 +1606,23 @@ blockquote {
 <p>Module 1F is a v1.1 addition that adapts the Module 1B voltmeter for high-voltage differential measurement. The module presents a differential input pair (insulated banana jacks) buffered by a precision instrumentation amplifier (Analog Devices AD8421 or Texas Instruments INA128) with a 100:1 input attenuator network providing ±300 V differential range. The attenuator divides the input by 100 before the instrumentation amp; the amp drives an ADS1115 ADC for digitization.</p>
 <p>Isolation between the high-voltage input and the chassis-side electronics is provided by the attenuator network alone in v1.1; full galvanic isolation (optical signal coupling and transformer-isolated DC-DC for the front-end power) is reserved for a future v1.2 variant. The v1.1 form is suitable for tube amp B+ rail measurement, line-voltage measurement, and any DUT where the common-mode voltage exceeds Module 1B’s ±6.144 V range. The v1.1 form must not be used to measure voltages above 300 V DC or 212 V RMS, and must not be used where galvanic isolation from chassis ground is required for safety; the v1.2 isolated variant is the correct path for those cases.</p>
 <p>Status: Planned, v1.1.</p>
+<p><strong>Block Diagram, Module 1F</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    Inputs[2 banana jacks<br/>±300V differential]
+    Atten[100:1 precision<br/>attenuator network]
+    InAmp[AD8421 instrumentation<br/>amplifier]
+    ADC[ADS1115 16-bit]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|I2C| ADC
+    Inputs -->|HV differential| Atten
+    Atten -->|±3V max| InAmp
+    InAmp -->|±3V single-ended| ADC
+</div>
 <p><strong>Table 7-29: Module 1F Specifications</strong></p>
 <table>
 <thead>
@@ -1450,6 +1666,8 @@ blockquote {
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> high-voltage differential probes (Tektronix TMDP0200, Pico Technology TA044) used with general-purpose digitizers. Not a standalone NI PXIe instrument. Module 1F provides up to ±300 V at 16-bit, suitable for tube amp B+ rails and line-voltage measurement; commercial probes typically reach ±1000 V or higher.</p>
+
 <p><strong>SCPI Command Set, Module 1F</strong></p>
 <ul>
 <li><code>*IDN?</code> identification</li>
@@ -1457,6 +1675,13 @@ blockquote {
 <li><code>CONF:VOLT:HV:RANG &lt;range&gt;</code> sets ADC PGA range</li>
 <li><code>MEAS:VOLT:HV:AVER? &lt;n&gt;</code> averaged measurement of n samples</li>
 </ul>
+<p><strong>Sample Test, Module 1F</strong></p>
+<pre><code class="language-python">def test_psu_b_plus_rail(hv_probe):
+    """Verify B+ rail on a tube amp is in the expected 230 to 270 V band."""
+    hv_probe.write('CONF:VOLT:HV:RANG 6.144')
+    reading = float(hv_probe.query('MEAS:VOLT:HV:AVER? 16'))
+    assert 230 &lt;= reading &lt;= 270, f'B+ rail at {reading:.1f} V, expected ~250 V +/- 20 V'
+</code></pre>
 <p><strong>Table 7-30: Module 1F BOM</strong></p>
 <table>
 <thead>
@@ -1516,6 +1741,19 @@ blockquote {
 <p>Module 1G is a v1.1 addition that captures and transmits infrared remote-control signals, supporting decoded-protocol identification and raw-timing capture. The module pairs a Pico 2 W with a Vishay TSOP4838 IR receiver (38 kHz carrier, the dominant consumer IR frequency), an IR LED with current-limited transmit driver, and a PIO state machine that samples received signals at 1 MHz and drives transmitted signals with sub-microsecond accuracy. Standard protocols supported in firmware include NEC, Sony SIRC, RC5, RC6, JVC, and Samsung; a raw mode captures arbitrary IR timing for protocols not explicitly supported.</p>
 <p>The intended use cases are consumer electronics debug (capturing remote codes from a Firestick or TV remote, injecting control commands during boot scripting, characterizing IR receiver sensitivity at varying distances). Carrier frequencies other than 38 kHz are supported in firmware via the PIO state machine but require the appropriate TSOP variant (TSOP4840 for 40 kHz, TSOP4856 for 56 kHz) on the receive side.</p>
 <p>Status: Planned, v1.1.</p>
+<p><strong>Block Diagram, Module 1G</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W<br/>+ PIO state machines<br/>RX 1 MHz · TX 38 kHz gated]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    RX[TSOP4838<br/>38 kHz IR receiver]
+    TX[IR LED<br/>+ 2N3904 driver]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico --> RX
+    Pico --> TX
+</div>
 <p><strong>Table 7-31: Module 1G Specifications</strong></p>
 <table>
 <colgroup>
@@ -1559,6 +1797,8 @@ blockquote {
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> not a standard NI PXIe instrument; closest analogs are universal remote programmers (Logitech Harmony Hub) or laboratory IR analyzers used in consumer electronics test. Module 1G targets consumer electronics debug at hobbyist scale.</p>
+
 <p><strong>SCPI Command Set, Module 1G</strong></p>
 <ul>
 <li><code>*IDN?</code> identification</li>
@@ -1568,6 +1808,30 @@ blockquote {
 <li><code>IR:TX:RAW &lt;timing_array&gt;</code> sends raw timing sequence</li>
 <li><code>IR:CAR:FREQ &lt;hz&gt;</code> sets carrier frequency for transmit</li>
 </ul>
+<p><strong>Timing Diagram, Module 1G NEC Decode</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant Remote as IR Remote
+    participant TSOP as TSOP4838
+    participant PIO as Pico PIO
+    participant Pico as Pico core
+    participant Host as Host
+    Remote->>TSOP: 38 kHz modulated bursts
+    TSOP-->>PIO: demodulated logic edges
+    Note over PIO: 1 MHz sample, capture edge timestamps to FIFO
+    PIO->>Pico: edge timestamp array
+    Note over Pico: Decode NEC framing (9 ms AGC, 4.5 ms space, 32 data bits)
+    Host->>Pico: IR:RX:DEC?
+    Pico-->>Host: { protocol: NEC, addr: 0xBF, cmd: 0x12 }
+</div>
+<p><strong>Sample Test, Module 1G</strong></p>
+<pre><code class="language-python">import json
+
+def test_firestick_remote_codes(ir):
+    """Capture button presses from a Firestick remote and verify NEC protocol with expected address."""
+    msg = json.loads(ir.query('IR:RX:DEC?'))
+    assert msg['protocol'] == 'NEC', f"Expected NEC, got {msg['protocol']}"
+    assert msg['address'] == 0xBF, f"Unexpected address {hex(msg['address'])}"
+</code></pre>
 <p><strong>Table 7-32: Module 1G BOM</strong></p>
 <table>
 <thead>
@@ -1616,6 +1880,95 @@ blockquote {
 <td><strong>~$42</strong></td>
 <td></td>
 </tr>
+</tbody>
+</table>
+<h4 id="module-1h-multi-function-dmm">7.5.8 Module 1H: Multi-Function DMM</h4>
+<p>Module 1H is a multi-function digital multimeter combining DC voltage (extending Module 1B's range and resolution), AC voltage (true-RMS, audio band), DC current (multi-range via shunts), resistance (2-wire and 4-wire), and frequency measurement into a single instrument. The module pairs a Pico 2 W bridge and Pi Zero 2 W sidecar with a Texas Instruments ADS1256 24-bit Σ-Δ ADC for low-noise voltage and current measurement, an Analog Devices AD636 true-RMS-to-DC converter for AC voltage, and a relay-switched precision divider/shunt network for ranging. Four banana jacks (V/Ω-Hi, V/Ω-Lo, A-Hi, A-Lo) provide DUT connection; 4-wire (Kelvin) resistance routes through the V/Ω jacks for sense and the A jacks for source.</p>
+<p>Module 1H is intentionally complementary to Module 1B. Module 1B remains the simple multi-channel DC voltmeter on a slow ADS1115 ADC suitable for parallel rail monitoring; Module 1H is the DMM-class instrument for one-at-a-time precision measurements across all common DMM modes. Both modules can be installed in the chassis concurrently.</p>
+<p><strong>Block Diagram, Module 1H</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W<br/>controls relays + reads ADC]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    InAmp[AD8421 instrumentation amplifier]
+    DivNet[Voltage divider network<br/>0.1V/1V/10V/20V ranges<br/>relay-switched]
+    ShuntNet[Current shunts<br/>0.1Ω · 1Ω · 10Ω<br/>relay-switched]
+    RMS[AD636 true-RMS<br/>to DC converter]
+    ADC[ADS1256<br/>24-bit Σ-Δ]
+    VJacks[V/Ω banana jacks<br/>Hi and Lo]
+    AJacks[A banana jacks<br/>Hi and Lo]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|relay control| DivNet
+    Pico -->|relay control| ShuntNet
+    Pico -->|SPI| ADC
+    VJacks --> DivNet
+    DivNet --> InAmp
+    InAmp --> ADC
+    InAmp --> RMS
+    RMS --> ADC
+    AJacks --> ShuntNet
+    ShuntNet --> InAmp
+</div>
+<p><strong>Table 7-36: Module 1H Specifications</strong></p>
+<table>
+<thead><tr class="header"><th>Parameter</th><th>Value</th></tr></thead>
+<tbody>
+<tr class="odd"><td>ADC</td><td>ADS1256, 24-bit Σ-Δ</td></tr>
+<tr class="even"><td>DC voltage range</td><td>±0.1 V, ±1 V, ±10 V, ±20 V (4 ranges, relay-switched)</td></tr>
+<tr class="odd"><td>DC voltage resolution</td><td>~1 µV at most-sensitive range</td></tr>
+<tr class="even"><td>AC voltage range</td><td>100 mV to 20 V RMS, 20 Hz to 100 kHz</td></tr>
+<tr class="odd"><td>AC RMS converter</td><td>AD636</td></tr>
+<tr class="even"><td>DC current range</td><td>±10 mA, ±100 mA, ±1 A (3 ranges via shunts)</td></tr>
+<tr class="odd"><td>Resistance range</td><td>1 Ω to 1 MΩ (4 ranges, 2-wire or 4-wire)</td></tr>
+<tr class="even"><td>Frequency input</td><td>1 Hz to 100 kHz audio band (use Module 2C for higher)</td></tr>
+<tr class="odd"><td>DC accuracy</td><td>±0.05% typical with calibration</td></tr>
+<tr class="even"><td>Sample rate</td><td>up to 30 kSPS (ADS1256 limit)</td></tr>
+</tbody>
+</table>
+<p><strong>Closest commercial equivalent:</strong> <a href="https://www.ni.com/en/shop/hardware/digital-multimeters/model-pxie-4081">NI PXIe-4081 DMM</a> at hobbyist scale. The 4081 is 7½-digit (~23-bit equivalent), 1.8 MS/s digitizer-mode-capable, and covers all modes; Module 1H is 24-bit on the slow ADC, audio-band on AC RMS, with 4 voltage ranges, 3 current ranges, and 4 resistance ranges. A useful "lab notebook" DMM that closes the multi-function-measurement gap left by the ±6 V single-mode Module 1B.</p>
+
+<p><strong>SCPI Command Set, Module 1H</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>MEAS:VOLT:DC?</code> DC voltage on V/Ω jacks (auto-range)</li>
+<li><code>MEAS:VOLT:AC?</code> AC voltage RMS (audio band)</li>
+<li><code>MEAS:CURR:DC?</code> DC current on A jacks</li>
+<li><code>MEAS:CURR:AC?</code> AC current RMS</li>
+<li><code>MEAS:RES?</code> 2-wire resistance</li>
+<li><code>CONF:RES:WIRE &lt;2|4&gt;</code> select 2-wire or 4-wire resistance</li>
+<li><code>MEAS:FREQ?</code> frequency on V/Ω jacks (audio band only)</li>
+<li><code>CONF:VOLT:DC:RANG &lt;range&gt;</code> set DC voltage range</li>
+<li><code>CONF:CURR:DC:RANG &lt;range&gt;</code> set DC current range</li>
+<li><code>CONF:RES:RANG &lt;range&gt;</code> set resistance range</li>
+</ul>
+<p><strong>Sample Test, Module 1H</strong></p>
+<pre><code class="language-python">def test_reference_resistor_4wire(dmm):
+    """Verify a 1 kΩ +/- 1% reference resistor reads correctly in 4-wire mode."""
+    dmm.write('CONF:RES:RANG 10000')
+    dmm.write('CONF:RES:WIRE 4')
+    reading = float(dmm.query('MEAS:RES?'))
+    assert 990 &lt;= reading &lt;= 1010, f'Resistor measured {reading:.1f} ohm, expected 1 kohm +/- 1%'
+</code></pre>
+<p><strong>Table 7-37: Module 1H BOM</strong></p>
+<table>
+<thead><tr class="header"><th>Item</th><th>Approximate Cost</th><th>Notes</th></tr></thead>
+<tbody>
+<tr class="odd"><td>Raspberry Pi Pico 2 W</td><td>$7</td><td></td></tr>
+<tr class="even"><td>Raspberry Pi Zero 2 W</td><td>$15</td><td>Admin sidecar</td></tr>
+<tr class="odd"><td>MicroSD card (16 GB)</td><td>$5</td><td>Pi Zero boot and storage</td></tr>
+<tr class="even"><td>USB-Ethernet adapter (optional)</td><td>$10</td><td>Wired LAN to chassis switch</td></tr>
+<tr class="odd"><td>ADS1256 breakout</td><td>$10</td><td>24-bit Σ-Δ ADC</td></tr>
+<tr class="even"><td>AD636 true-RMS converter</td><td>$5</td><td>AC RMS path</td></tr>
+<tr class="odd"><td>AD8421 instrumentation amplifier</td><td>$5</td><td>Differential input buffer</td></tr>
+<tr class="even"><td>Precision divider resistors (0.1%)</td><td>$4</td><td>Voltage range network</td></tr>
+<tr class="odd"><td>Range-switching reed relays (qty 4)</td><td>$6</td><td>Voltage and current range selection</td></tr>
+<tr class="even"><td>Current shunt resistors (0.1 Ω, 1 Ω, 10 Ω, 0.05%)</td><td>$3</td><td>DC and AC current path</td></tr>
+<tr class="odd"><td>Banana jacks insulated, 600 V (qty 4)</td><td>$8</td><td>V/Ω-Hi, V/Ω-Lo, A-Hi, A-Lo</td></tr>
+<tr class="even"><td>Hookup wire, headers, perfboard</td><td>$3</td><td></td></tr>
+<tr class="odd"><td>3D-printed enclosure</td><td>$2</td><td></td></tr>
+<tr class="even"><td><strong>Total</strong></td><td><strong>~$83</strong></td><td></td></tr>
 </tbody>
 </table>
 <h3 id="module-tier-2-fpga-based-modules">7.6 Module Tier 2: FPGA-Based Modules</h3>
@@ -3049,6 +3402,17 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tbody>
 </table>
 <p>Phase 1.5 verification milestone: the bridge stack accepts a SCPI <code>*IDN?</code> query and returns a placeholder identification string. No instrument logic; this is a transport-and-protocol verification.</p>
+<h3 id="phase-1.7-module-1h-multi-function-dmm">13.3.5 Phase 1.7: Module 1H (Multi-Function DMM)</h3>
+<p>Phase 1.7 adds the Multi-Function DMM. This phase is intentionally separated from Phase 1 because 1H requires custom relay-switched analog front-end work and per-range calibration that take more bring-up time than the simpler Tier 1 modules.</p>
+<p><strong>Table 13-3.5: Phase 1.7 BOM</strong></p>
+<table>
+<thead><tr class="header"><th>Item</th><th>Cost</th></tr></thead>
+<tbody>
+<tr class="odd"><td>Module 1H</td><td>$83</td></tr>
+<tr class="even"><td><strong>Phase 1.7 total</strong></td><td><strong>~$83</strong></td></tr>
+</tbody>
+</table>
+<p>Phase 1.7 verification milestone: 1H reads a 9 V battery, a 1 kΩ ±1% reference resistor, and a 1 kHz sine from Module 1E with all values within stated module accuracy.</p>
 <h3 id="phase-2-tier-2-core-modules">13.4 Phase 2: Tier 2 Core Modules</h3>
 <p>Phase 2 adds Modules 2A, 2B, 2C, and 2D, building on the Phase 1.5 bridge stack.</p>
 <p><strong>Table 13-4: Phase 2 BOM</strong></p>
@@ -3181,6 +3545,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <td>Phase 1.5 (HID + bridge)</td>
 <td>~$111</td>
 </tr>
+<tr><td>Phase 1.7 (Module 1H DMM)</td><td>~$83</td></tr>
 <tr class="even">
 <td>Phase 2 (Tier 2 core)</td>
 <td>~$349</td>
@@ -3195,7 +3560,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>v1.0 + v1.1 subtotal</strong></td>
-<td><strong>~$1,059</strong></td>
+<td><strong>~$1,142</strong></td>
 </tr>
 <tr class="even">
 <td>Phase 4 (Tier 3, optional)</td>
@@ -3203,7 +3568,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>All phases total</strong></td>
-<td><strong>~$1,511</strong></td>
+<td><strong>~$1,594</strong></td>
 </tr>
 </tbody>
 </table>

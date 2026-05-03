@@ -19,6 +19,7 @@ Every module pairs a Pico 2 W bridge (USB-TMC primary instrument transport) with
 | 1E | 1 | Function Generator / AWG | Planned (v1.0) |
 | 1F | 1 | High-Voltage Differential Probe | Planned (v1.1) |
 | 1G | 1 | IR Capture and Transmit | Planned (v1.1) |
+| 1H | 1 | Multi-Function DMM | Planned (v1.0) |
 | 2A | 2 | Logic Analyzer | Planned (v1.0) |
 | 2B | 2 | Protocol Exerciser / Analyzer | Planned (v1.0) |
 | 2C | 2 | Frequency Counter | Planned (v1.0) |
