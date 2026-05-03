@@ -32,11 +32,11 @@ Two control planes per module: a VISA/SCPI plane for headless test sequencing (p
 
 Tier 1 modules use a Raspberry Pi Pico 2 W as their host platform and present as USB-TMC instruments. Tier 2 modules add a Sipeed Tang Primer 25K FPGA (instrument logic), a Pi Zero 2 W sidecar (per-module Linux storage and admin), and the same Pico 2 W bridge architecture for the canonical USB-TMC SCPI path. Tier 3 modules use a larger FPGA (Tang Mega 138K Pro or Alinx AX7325B) for high-speed interface analysis.
 
-See section 4 of the [System Design Document](https://pike1950.github.io/poor-mans-validation-bench/docs/system-design/System_Design_Document.html#4-functional-block-diagram) for the full architecture diagram.
+See section 4 of the [System Design Document](https://pike1950.github.io/poor-mans-validation-bench/docs/system-design/System_Design_Document.html#functional-block-diagram) for the full architecture diagram.
 
 ## Status
 
-This repository is currently a design document. Hardware implementation has not started. See [section 13 of the SDD](https://pike1950.github.io/poor-mans-validation-bench/docs/system-design/System_Design_Document.html#13-build-phases-and-investment-roadmap) for the build phases and investment roadmap.
+This repository is currently a design document. Hardware implementation has not started. See [section 13 of the SDD](https://pike1950.github.io/poor-mans-validation-bench/docs/system-design/System_Design_Document.html#build-phases-and-investment-roadmap) for the build phases and investment roadmap.
 
 ## License
 
