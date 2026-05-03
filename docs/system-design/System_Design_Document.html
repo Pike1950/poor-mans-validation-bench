@@ -186,6 +186,15 @@ blockquote {
     }
   });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/wavedrom@3/wavedrom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/wavedrom@3/skins/default.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.WaveDrom) {
+      WaveDrom.ProcessAll();
+    }
+  });
+</script>
 </head>
 <body>
 <div class="width-control">
@@ -977,6 +986,18 @@ blockquote {
     freq = float(dio.query('FREQ:MEAS? 1000'))
     assert 990 &lt;= freq &lt;= 1010, f'Echo freq {freq} Hz outside 1 kHz +/- 1%'
 </code></pre>
+<p><strong>Connector Pinout, Module 1A DUT Header</strong></p>
+<table>
+<thead><tr class="header"><th>Pin</th><th>Signal</th><th>Direction</th><th>Notes</th></tr></thead>
+<tbody>
+<tr class="odd"><td>1, 16</td><td>GND</td><td>—</td><td>reference ground (shared with chassis)</td></tr>
+<tr class="even"><td>2</td><td>+3V3</td><td>Output</td><td>for DUT pull-ups, 100 mA max</td></tr>
+<tr class="odd"><td>3-10</td><td>GPIO 0-7</td><td>Bidir</td><td>3.3 V CMOS, 5 V tolerant via chassis level shifter</td></tr>
+<tr class="even"><td>11, 12</td><td>PWM 0, PWM 1</td><td>Output</td><td>100 kHz to 50 MHz, 8-bit duty</td></tr>
+<tr class="odd"><td>13</td><td>FREQ_IN</td><td>Input</td><td>1 Hz to 100 MHz, 3.3 V CMOS</td></tr>
+<tr class="even"><td>14, 15</td><td>TRIG_OUT, TRIG_IN</td><td>Bidir</td><td>chassis trigger bus (optional)</td></tr>
+</tbody>
+</table>
 <p><strong>Table 7-2: Module 1A BOM</strong></p>
 <table>
 <thead>
@@ -1682,6 +1703,16 @@ def test_awg_sine_amplitude(awg, scope):
     reading = float(hv_probe.query('MEAS:VOLT:HV:AVER? 16'))
     assert 230 &lt;= reading &lt;= 270, f'B+ rail at {reading:.1f} V, expected ~250 V +/- 20 V'
 </code></pre>
+<p><strong>Connector Pinout, Module 1F</strong></p>
+<table>
+<thead><tr class="header"><th>Jack</th><th>Signal</th><th>Voltage Range</th><th>Notes</th></tr></thead>
+<tbody>
+<tr class="odd"><td>HV+</td><td>Differential High</td><td>±300 V relative to HV−</td><td>safety-rated insulated banana, sleeved (4 mm shrouded)</td></tr>
+<tr class="even"><td>HV−</td><td>Differential Low</td><td>±300 V relative to HV+</td><td>same physical spec as HV+</td></tr>
+<tr class="odd"><td>GND</td><td>Chassis ground</td><td>—</td><td>tie to chassis if measurement requires single-ended reference; do not tie if DUT is hot-chassis</td></tr>
+</tbody>
+</table>
+<p><strong>Safety:</strong> Module 1F v1.1 does not provide galvanic isolation between the HV input pair and the chassis-side electronics; the 100:1 attenuator network is the only barrier. Maximum input is ±300 V DC or 212 V RMS. For voltages above this, or for hot-chassis DUTs, use the v1.2 isolated variant when available.</p>
 <p><strong>Table 7-30: Module 1F BOM</strong></p>
 <table>
 <thead>
@@ -1823,6 +1854,15 @@ def test_awg_sine_amplitude(awg, scope):
     Host->>Pico: IR:RX:DEC?
     Pico-->>Host: { protocol: NEC, addr: 0xBF, cmd: 0x12 }
 </div>
+<p><strong>Signal-Level Timing, NEC IR Protocol</strong></p>
+<script type="WaveDrom">
+{ signal: [
+  { name: "TSOP4838 demod (active-low)", wave: "1......0......1.0.1.0.1.0.1.0" },
+  { name: "Bit decode", wave: "x......=......=.=.=.=.=.=.=", data: ["9 ms AGC pulse", "4.5 ms space", "0", "1", "0", "1", "0", "1"] }
+],
+  config: { hscale: 2 }
+}
+</script>
 <p><strong>Sample Test, Module 1G</strong></p>
 <pre><code class="language-python">import json
 
@@ -2097,6 +2137,29 @@ def test_firestick_remote_codes(ir):
     P->>F: read BSRAM via SPI (~85 ms full buffer)
     P-->>H: array of samples
 </div>
+<p><strong>Trigger State Machine, Module 2A</strong></p>
+<div class="mermaid">stateDiagram-v2
+    [*] --> idle
+    idle --> armed: TRAC:ARM
+    armed --> pre_trigger: capture started
+    pre_trigger --> triggered: trigger condition met
+    pre_trigger --> idle: TRAC:STOP or timeout
+    triggered --> post_trigger: filling remaining buffer
+    post_trigger --> ready: buffer full
+    ready --> idle: TRAC:DATA returned
+    ready --> idle: TRAC:STOP
+</div>
+<p><strong>Signal-Level Timing, Example SPI Capture (what 2A samples)</strong></p>
+<script type="WaveDrom">
+{ signal: [
+  { name: "CS#",  wave: "1.0.........1" },
+  { name: "SCK",  wave: "0...p.p.p.p.p.p.p.p.0" },
+  { name: "MOSI", wave: "x...=.=.=.=.=.=.=.=.x", data: ["b7","b6","b5","b4","b3","b2","b1","b0"] },
+  { name: "MISO", wave: "x...=.=.=.=.=.=.=.=.x", data: ["r7","r6","r5","r4","r3","r2","r1","r0"] }
+],
+  config: { hscale: 1 }
+}
+</script>
 <p><strong>Sample Test, Module 2A</strong></p>
 <pre><code class="language-python">import json
 
@@ -2109,6 +2172,15 @@ def test_capture_arm_and_readout(la):
     assert len(samples) == 8192
     assert any(s != 0 for s in samples), 'Capture buffer all zeros - check input wiring'
 </code></pre>
+<p><strong>Connector Pinout, Module 2A 18-pin Header</strong></p>
+<table>
+<thead><tr class="header"><th>Pin</th><th>Signal</th><th>Notes</th></tr></thead>
+<tbody>
+<tr class="odd"><td>1, 18</td><td>GND</td><td>reference ground</td></tr>
+<tr class="even"><td>2-17</td><td>LA0-LA15</td><td>16 channels, 3.3 V CMOS, 5 V tolerant via chassis level shifter; 1 MΩ input impedance</td></tr>
+</tbody>
+</table>
+<p><em>An additional 2-pin sub-connector carries the chassis trigger bus; pin assignment is defined at the chassis level, not at the module connector.</em></p>
 <p><strong>Table 7-11: Module 2A BOM</strong></p>
 <table>
 <thead>
@@ -2283,6 +2355,16 @@ def test_capture_arm_and_readout(la):
     F-->>P: complete
     P-->>H: OK
 </div>
+<p><strong>Signal-Level Timing, I&#178;C Master Write (addr 0x50, data 0xAA)</strong></p>
+<script type="WaveDrom">
+{ signal: [
+  { name: "SCL", wave: "1...P.P.P.P.P.P.P.P.P.0.P.P.P.P.P.P.P.P.P.0..1" },
+  { name: "SDA", wave: "10..=.=.=.=.=.=.=.=.0..=.=.=.=.=.=.=.=.0...1", data: ["A6","A5","A4","A3","A2","A1","A0","R/W","ACK","D7","D6","D5","D4","D3","D2","D1","D0","ACK"] }
+],
+  config: { hscale: 1 }
+}
+</script>
+<p><em>Master pulls SDA low while SCL is high to issue START; releases SDA high while SCL is high to issue STOP.</em></p>
 <p><strong>Sample Test, Module 2B</strong></p>
 <pre><code class="language-python">import json
 
@@ -2447,11 +2529,11 @@ def test_i2c_eeprom_write_read(prot):
     participant Sig as Input signal
     H->>P: FREQ:MEAS? 1000
     P->>F: open gate for 1000 ms
-    Note over F: count input edges and reference ticks simultaneously
-    Sig->>F: edges (N count)
-    Ref->>F: 10 MHz reference (M count)
-    Note over F: gate closes; measured freq = N × 10MHz / M
-    F-->>P: result
+    Note over F: count input edges and reference ticks
+    Sig->>F: input edges N
+    Ref->>F: reference ticks M
+    Note over F: gate closes after 1000 ms
+    F-->>P: frequency result
     P-->>H: 1000.0023 Hz
 </div>
 <p><strong>Sample Test, Module 2C</strong></p>
@@ -2646,6 +2728,16 @@ def test_capture_arp_traffic(eth):
     arps = [f for f in frames if f['ethertype'] == 0x0806]
     assert len(arps) &gt; 0, 'No ARP frames captured in 5 s - check LAN connection'
 </code></pre>
+<p><strong>Connector Pinout, Module 2D Ethernet</strong></p>
+<table>
+<thead><tr class="header"><th>Connector</th><th>Pin</th><th>Signal</th><th>Notes</th></tr></thead>
+<tbody>
+<tr class="odd"><td>RJ45</td><td>1, 2</td><td>TX+, TX−</td><td>transmit pair (100/1000 BASE-TX)</td></tr>
+<tr class="even"><td>RJ45</td><td>3, 6</td><td>RX+, RX−</td><td>receive pair</td></tr>
+<tr class="odd"><td>RJ45</td><td>4, 5, 7, 8</td><td>BI_C, BI_D pairs</td><td>used for 1000BASE-T only</td></tr>
+<tr class="even"><td>PHY headers</td><td>various</td><td>MDIO, MDC, RX_CLK, TX_CLK, MII data</td><td>connection to FPGA via MII or RMII; pinout per PHY breakout vendor</td></tr>
+</tbody>
+</table>
 <p><strong>Table 7-20: Module 2D BOM</strong></p>
 <table>
 <thead>
@@ -2846,6 +2938,18 @@ def test_capture_arp_traffic(eth):
     H->>P: DIG:DATA? 0
     Note over P,F: transfer over USB-TMC ~80 ms full buffer
     P-->>H: array of samples in volts
+</div>
+<p><strong>Trigger State Machine, Module 2E</strong></p>
+<div class="mermaid">stateDiagram-v2
+    [*] --> idle
+    idle --> configured: DIG:CONF / DIG:RATE / DIG:DEPTH
+    configured --> armed: DIG:ARM
+    armed --> pre_trigger: streaming to circular buffer
+    pre_trigger --> triggered: level, edge, or external trigger fires
+    pre_trigger --> idle: timeout or stop
+    triggered --> capturing: collect post-trigger samples
+    capturing --> ready: buffer full and stats computed
+    ready --> idle: DIG:DATA returned
 </div>
 <p><strong>Sample Test, Module 2E</strong></p>
 <pre><code class="language-python">import numpy as np
@@ -3177,6 +3281,16 @@ def test_dut_enumeration_packets(usb):
     F-->>P: EDID bytes
     P-->>H: hex-encoded EDID
 </div>
+<p><strong>Signal-Level Timing, HDMI DDC EDID Read</strong></p>
+<script type="WaveDrom">
+{ signal: [
+  { name: "DDC SCL", wave: "1.P.P.P.P.P.P.P.P.P.0.P.P.P.P.P.P.P.P.P.0.1" },
+  { name: "DDC SDA", wave: "10=.=.=.=.=.=.=.=.0.=.=.=.=.=.=.=.=.0.1", data: ["A6","A5","A4","A3","A2","A1","A0","W","ACK","D7","D6","D5","D4","D3","D2","D1","D0","ACK"] }
+],
+  config: { hscale: 1 }
+}
+</script>
+<p><em>Sink address 0x50 writes pointer 0x00, then repeated START with read flag, sink returns EDID byte. Subsequent reads continue until master NAKs and sends STOP after 128 bytes per EDID block.</em></p>
 <p><strong>Sample Test, Module 3B</strong></p>
 <pre><code class="language-python">def test_read_tv_edid(hdmi):
     """Read EDID from an attached HDMI sink and verify a valid EDID 1.4 header."""
@@ -3325,6 +3439,16 @@ def test_dut_enumeration_packets(usb):
     H->>P: USBC:CC:DATA?
     P-->>H: array of decoded PD messages
 </div>
+<p><strong>Signal-Level Timing, USB-C PD BMC Frame</strong></p>
+<script type="WaveDrom">
+{ signal: [
+  { name: "CC line (BMC)", wave: "PPPPPPPPPPPPPPPPPPPPPPPP" },
+  { name: "Decoded field", wave: "x.=.=.=.=.=.=...=", data: ["Preamble", "SOP*", "Header", "PDO 1", "PDO 2", "...", "CRC"] }
+],
+  config: { hscale: 2 }
+}
+</script>
+<p><em>BMC (Biphase Mark Coding) at 300 kHz. Each &quot;1&quot; data bit has a mid-bit transition; each &quot;0&quot; does not. K-codes start each SOP frame and identify message direction. Module 3C decodes the BMC line into structured PD message fields.</em></p>
 <p><strong>Sample Test, Module 3C</strong></p>
 <pre><code class="language-python">import json
 import time
@@ -3638,6 +3762,31 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </ul>
 <p>The trigger bus is wired only on modules that need it (Module 2A Logic Analyzer, Module 2E Digitizer for sub-microsecond capture sync, Module 1E AWG for synchronized stimulus). Modules without trigger-bus connections fall back to software arming.</p>
 <h3 id="power-architecture">11.5 Power Architecture</h3>
+<p><strong>Figure 11-1: Chassis Power Tree (v1.0 + v1.1, fully populated)</strong></p>
+<div class="mermaid">flowchart TB
+    AC["120 V AC outlets · 14 wall warts"]
+    Pi5PSU["Pi 5 PSU<br/>5.1 V / 5 A USB-PD"]
+    HubPSU["USB hub PSU<br/>12 V / 5 A barrel"]
+    ZPSUs["12× Pi Zero PSUs<br/>5 V / 2.5 A each"]
+    Pi5["Raspberry Pi 5<br/>orchestration head"]
+    Hub["Powered USB hub<br/>5 V / 2.4 A per port"]
+    Picos["12× Pico 2 W bridges<br/>USB-bus-powered"]
+    Zeros["12× Pi Zero 2 W sidecars<br/>wall-powered"]
+    Tangs["5× Tang Primer 25K FPGAs<br/>5 V from Pi Zero GPIO header"]
+    AFEs["Per-module analog or digital front ends<br/>powered from Pico 3.3 V or Pi Zero rails"]
+    AC --> Pi5PSU
+    AC --> HubPSU
+    AC --> ZPSUs
+    Pi5PSU --> Pi5
+    HubPSU --> Hub
+    Hub --> Picos
+    ZPSUs --> Zeros
+    Zeros --> Tangs
+    Picos --> AFEs
+    Zeros --> AFEs
+</div>
+<p><em>Note: 14 wall-wart count comes from 1 Pi 5 + 1 USB hub + 12 per-module Pi Zeros (7 Tier 1 + 5 Tier 2). The v2.0 chassis design consolidates this into a single 12 V chassis input with onboard buck regulators feeding per-module 5 V rails.</em></p>
+
 <p>The chassis power architecture is per-module local power, not a shared rail. Each Pico 2 W draws power from its USB-TMC connection (approximately 100 mA at 5 V). Each Pi Zero 2 W has its own 5 V/2.5 A wall power supply or USB-PD adapter; the Pi Zero is not USB-powered from the chassis hub because the Pi Zero’s peak current (2 A during Wi-Fi association and SD writes) exceeds typical USB hub per-port limits.</p>
 <p>Tier 2 modules that include a Tang Primer 25K source the Tang Primer’s 5 V from the Pi Zero’s GPIO header (the Tang Primer draws under 500 mA in instrument-class workloads). This avoids a separate wall wart per Tang Primer.</p>
 <p>Total chassis wall-power footprint:</p>
@@ -3687,6 +3836,30 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <h3 id="traceability-and-calibration-records">12.4 Traceability and Calibration Records</h3>
 <p>Every calibration event is recorded in InfluxDB as a measurement with <code>measurement_type=calibration</code> and tags identifying the module, channel, calibration source, and result (offset and gain values). A pytest fixture <code>assert_calibration_current(module_id)</code> checks that the most recent calibration record is within the configured interval and fails the test if not. This prevents the platform from silently drifting into uncalibrated operation.</p>
 <h3 id="acceptance-criteria-for-v1.0">12.5 Acceptance Criteria for v1.0</h3>
+<p><strong>Figure 12-1: Firestick Boot Debug Recipe (multi-module collaboration)</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host pytest
+    participant Mod1H as Module 1H DMM
+    participant Mod1B as Module 1B Voltmeter
+    participant Mod2E as Module 2E Digitizer
+    participant Mod1G as Module 1G IR
+    participant DUT as Firestick
+    H->>Mod1B: arm rail monitoring on 5V and 3.3V
+    H->>Mod2E: arm transient capture, level trigger on 5V edge
+    H->>Mod1H: configure DC current measurement on 5V supply
+    H->>Mod1G: send NEC power-button code
+    Mod1G->>DUT: power-button IR signal
+    Note over DUT: Firestick begins boot transient
+    DUT-->>Mod2E: 5V rail voltage waveform
+    DUT-->>Mod1B: 3.3V steady reading
+    DUT-->>Mod1H: current draw
+    Mod2E-->>H: capture buffer
+    Mod1B-->>H: rail readings sequence
+    Mod1H-->>H: peak inrush current
+    Note over H: pytest evaluates all assertions and writes report
+</div>
+<p><em>This recipe demonstrates how four PMVB modules collaborate to characterize a single boot transient on a consumer DUT. The orchestration layer arms each module with its own trigger condition, fires the IR power-button via Module 1G, and collects results across modules into a single pytest run. Reports correlating rail voltage, supply current, and IR injection time produce a complete boot-transient profile.</em></p>
+
 <p>The v1.0 release is considered complete when:</p>
 <ul>
 <li>All v1.0 modules in the catalog (Tier 1 1A through 1E, Tier 2 2A through 2E) are designed, built, and individually verified against their bring-up suites.</li>
