@@ -3761,40 +3761,33 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </ul>
 <p>The trigger bus is wired only on modules that need it (Module 2A Logic Analyzer, Module 2E Digitizer for sub-microsecond capture sync, Module 1E AWG for synchronized stimulus). Modules without trigger-bus connections fall back to software arming.</p>
 <h3 id="power-architecture">11.5 Power Architecture</h3>
-<p><strong>Figure 11-1: Chassis Power Tree (v1.0 + v1.1, fully populated)</strong></p>
+<p><strong>Figure 11-1: Chassis Power Tree (v1.0 + v1.1, fully populated, TX300-based)</strong></p>
 <div class="mermaid">flowchart TB
-    AC["120 V AC outlets · 14 wall warts"]
-    Pi5PSU["Pi 5 PSU<br/>5.1 V / 5 A USB-PD"]
-    HubPSU["USB hub PSU<br/>12 V / 5 A barrel"]
-    ZPSUs["12× Pi Zero PSUs<br/>5 V / 2.5 A each"]
-    Pi5["Raspberry Pi 5<br/>orchestration head"]
-    Hub["Powered USB hub<br/>5 V / 2.4 A per port"]
-    Picos["12× Pico 2 W bridges<br/>USB-bus-powered"]
-    Zeros["12× Pi Zero 2 W sidecars<br/>wall-powered"]
-    Tangs["5× Tang Primer 25K FPGAs<br/>5 V from Pi Zero GPIO header"]
-    AFEs["Per-module analog or digital front ends<br/>powered from Pico 3.3 V or Pi Zero rails"]
-    AC --> Pi5PSU
-    AC --> HubPSU
-    AC --> ZPSUs
-    Pi5PSU --> Pi5
-    HubPSU --> Hub
-    Hub --> Picos
-    ZPSUs --> Zeros
-    Zeros --> Tangs
-    Picos --> AFEs
-    Zeros --> AFEs
+    AC["120 V AC outlet (single)"]
+    PSU["Silverstone TX300<br/>300 W TFX, 80+ Bronze<br/>+12 V at 22 A and +5 V at 14 A"]
+    AC --> PSU
+    PSU --> Rail12["+12 V rail"]
+    PSU --> Rail5["+5 V rail"]
+    Rail12 --> Hub["Powered USB hub<br/>12 V input, 5 V at 2.4 A per port"]
+    Rail5 --> Distro["5 V terminal block<br/>+ per-module USB-C breakouts"]
+    Distro --> Pi5["Raspberry Pi 5"]
+    Distro --> Zeros["12 Pi Zero 2 W sidecars"]
+    Hub --> Picos["12 Pico 2 W bridges<br/>USB-bus-powered at 5 V"]
+    Zeros -->|GPIO header 5 V| Tangs["5 Tang Primer 25K FPGAs"]
+    Picos --> AFETier1["Tier 1 front ends<br/>3.3 V from Pico onboard LDO"]
+    Tangs --> AFETier2["Tier 2 instrument logic<br/>powered from Tang Primer 3.3 V LDO"]
 </div>
-<p><em>Note: 14 wall-wart count comes from 1 Pi 5 + 1 USB hub + 12 per-module Pi Zeros (7 Tier 1 + 5 Tier 2). The v2.0 chassis design consolidates this into a single 12 V chassis input with onboard buck regulators feeding per-module 5 V rails.</em></p>
+<p><em>Single AC input replaces the prior 14-wall-wart architecture. Estimated peak loads at full population: ~11 A on +5 V (Pi 5 + 12 Pi Zeros + 5 Tang Primers via GPIO) and ~1 A on +12 V (USB hub serving 12 Picos at modest current). TX300 rated capacity (14 A and 22 A respectively) provides comfortable margin.</em></p>
 
-<p>The chassis power architecture is per-module local power, not a shared rail. Each Pico 2 W draws power from its USB-TMC connection (approximately 100 mA at 5 V). Each Pi Zero 2 W has its own 5 V/2.5 A wall power supply or USB-PD adapter; the Pi Zero is not USB-powered from the chassis hub because the Pi Zero’s peak current (2 A during Wi-Fi association and SD writes) exceeds typical USB hub per-port limits.</p>
-<p>Tier 2 modules that include a Tang Primer 25K source the Tang Primer’s 5 V from the Pi Zero’s GPIO header (the Tang Primer draws under 500 mA in instrument-class workloads). This avoids a separate wall wart per Tang Primer.</p>
+
+<p>The chassis power architecture uses a single Silverstone TX300 300 W TFX-form-factor ATX power supply (80+ Bronze rated) as the chassis-wide DC source. The TX300's +5 V rail (14 A available) feeds the Raspberry Pi 5 and all per-module Pi Zero 2 W sidecars through a chassis-mounted terminal block and per-module USB-C power breakouts. The +12 V rail (22 A available) feeds the powered USB hub via its barrel jack, which redistributes 5 V at 2.4 A per port to the per-module Pico 2 W bridges. The Pi Zero is not USB-powered from the hub because its peak current (2 A during Wi-Fi association and SD writes) exceeds typical USB hub per-port limits, so each Pi Zero is fed directly from the chassis 5 V rail.</p>
+<p>Tier 2 modules that include a Tang Primer 25K continue to source the Tang Primer's 5 V from the Pi Zero's GPIO header (the Tang Primer draws under 500 mA in instrument-class workloads), which keeps the per-module wiring simple and avoids a separate distribution path for the FPGAs.</p>
 <p>Total chassis wall-power footprint:</p>
 <ul>
-<li>1 supply for the Pi 5 (Raspberry Pi official 5.1 V/5 A)</li>
-<li>1 supply for the powered USB hub (12 V/5 A)</li>
-<li>1 supply per Pi Zero 2 W (5 V/2.5 A; one per Tier 2 module)</li>
+<li>1 AC mains input to the Silverstone TX300 PSU</li>
+<li>(optional) 1 standalone supply for the powered USB hub if the hub cannot accept external 12 V input via barrel jack; most powered USB hubs in this class do accept external 12 V, in which case the hub is fed from the TX300 12 V rail and the chassis has only the single AC input</li>
 </ul>
-<p>A typical 4-module Tier 2 build needs 6 wall warts. This is acknowledged as a downside of the loose-on-bench form factor; v2.0 should consolidate to a single 12 V chassis input with onboard step-down to per-module rails.</p>
+<p>The architecture replaces the prior loose-on-bench design (which would have required up to 14 individual wall warts at full v1.0+v1.1 population) with a single chassis AC input and an internal DC distribution network. The TX300 sits inside the chassis enclosure in v2.0; for v1.0 it can sit on the bench surface alongside the modules during initial bring-up. Per-rail load estimates for the fully-populated v1.0+v1.1 chassis are approximately 11 A on +5 V and 1 A on +12 V, both well within the TX300's rated capacity (14 A and 22 A respectively).</p>
 <h3 id="thermal">11.6 Thermal</h3>
 <p>The chassis has no active cooling beyond the Pi 5’s stock heatsink and fan. Per-module thermal dissipation budgets:</p>
 <ul>
@@ -3907,11 +3900,28 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <td>$15</td>
 </tr>
 <tr class="even">
+<td>Silverstone TX300 PSU</td>
+<td>$0</td>
+</tr>
+<tr class="odd">
+<td>ATX 24-pin breakout / terminal block</td>
+<td>$15</td>
+</tr>
+<tr class="even">
+<td>12× USB-C power breakout boards</td>
+<td>$24</td>
+</tr>
+<tr class="odd">
+<td>5 V distribution cabling</td>
+<td>$10</td>
+</tr>
+<tr class="even">
 <td><strong>Phase 0 total</strong></td>
-<td><strong>~$185</strong></td>
+<td><strong>~$234</strong></td>
 </tr>
 </tbody>
 </table>
+<p><em>The Silverstone TX300 PSU is listed at $0 because Brad has one on hand from prior projects. If purchasing new, a comparable 300 W TFX 80+ Bronze PSU costs approximately $50 to $70.</em></p>
 <h3 id="phase-1-tier-1-core-modules">13.2 Phase 1: Tier 1 Core Modules</h3>
 <p>Phase 1 adds Modules 1A, 1B, 1D, and 1E. Module 1C is deferred to Phase 1.5 because the dual-Pico architecture is more involved and not on the critical path for the audio analyzer recipe.</p>
 <p><strong>Table 13-2: Phase 1 BOM</strong></p>
@@ -4104,8 +4114,8 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </thead>
 <tbody>
 <tr class="odd">
-<td>Phase 0 (orchestration)</td>
-<td>~$185</td>
+<td>Phase 0 (orchestration + PSU)</td>
+<td>~$234</td>
 </tr>
 <tr class="even">
 <td>Phase 1 (Tier 1 core)</td>
@@ -4130,7 +4140,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>v1.0 + v1.1 subtotal</strong></td>
-<td><strong>~$1,142</strong></td>
+<td><strong>~$1,191</strong></td>
 </tr>
 <tr class="even">
 <td>Phase 4 (Tier 3, optional)</td>
@@ -4138,7 +4148,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>All phases total</strong></td>
-<td><strong>~$1,594</strong></td>
+<td><strong>~$1,643</strong></td>
 </tr>
 </tbody>
 </table>
