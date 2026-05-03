@@ -54,8 +54,10 @@ docs/_build/
 # Local config
 .env
 *.local
+*.tmp
 
 # Internal / superseded artifacts
 INSTRUCTIONS.md
+MCP_and_AI_Tooling_Notes.md
 *.docx
 ~$*.docx

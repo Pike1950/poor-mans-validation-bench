@@ -1,0 +1,3238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poor Man's Validation Bench</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --card: #16213e;
+  --accent: #0f3460;
+  --highlight: #e94560;
+  --text: #d4d4d4;
+  --heading: #f0f0f0;
+  --dim: #888;
+  --green: #4ade80;
+  --amber: #fbbf24;
+  --blue: #60a5fa;
+  --red: #f87171;
+  --teal: #2dd4bf;
+  --code-bg: #0d1117;
+  --border: #333;
+  --doc-width: 1400px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  max-width: var(--doc-width);
+  margin: 0 auto;
+  padding: 2rem;
+}
+h1 {
+  color: var(--heading);
+  font-size: 2rem;
+  margin: 2rem 0 0.5rem;
+  border-bottom: 2px solid var(--highlight);
+  padding-bottom: 0.5rem;
+}
+h2 {
+  color: var(--heading);
+  font-size: 1.5rem;
+  margin: 2.5rem 0 0.5rem;
+  border-left: 4px solid var(--highlight);
+  padding-left: 0.75rem;
+}
+h3 {
+  color: var(--blue);
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.5rem;
+}
+h4 {
+  color: var(--teal);
+  font-size: 1rem;
+  margin: 1.2rem 0 0.3rem;
+}
+p { margin: 0.5rem 0; }
+ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+li { margin: 0.2rem 0; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--accent);
+  color: var(--heading);
+  font-weight: 600;
+}
+td { background: var(--card); }
+code {
+  font-family: 'Consolas', 'Fira Code', 'Cascadia Code', monospace;
+  background: var(--code-bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: var(--amber);
+}
+pre {
+  background: var(--code-bg);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  border-left: 3px solid var(--blue);
+}
+pre code {
+  padding: 0;
+  background: none;
+  color: var(--text);
+}
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+strong, b { color: var(--heading); }
+em, i { color: var(--text); }
+blockquote {
+  border-left: 3px solid var(--amber);
+  background: var(--card);
+  padding: 0.5rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0 6px 6px 0;
+}
+/* Inline TOC styling */
+#TOC, .toc {
+  background: var(--card);
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  border-left: 4px solid var(--blue);
+}
+#TOC ul, .toc ul {
+  list-style: none;
+  padding-left: 1.2rem;
+  margin: 0.25rem 0;
+}
+#TOC li, .toc li { margin: 0.15rem 0; }
+#TOC > ul, .toc > ul { padding-left: 0; }
+/* Mermaid container */
+.mermaid {
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: center;
+  overflow-x: auto;
+}
+/* Width slider control (mirrors FMCW pattern) */
+.width-control {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  background: var(--card);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--dim);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.width-control input[type="range"] { width: 120px; }
+/* Document metadata block */
+.meta {
+  color: var(--dim);
+  font-size: 0.9rem;
+  margin: 1rem 0 2rem;
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#16213e',
+          primaryColor: '#0f3460',
+          primaryTextColor: '#f0f0f0',
+          primaryBorderColor: '#60a5fa',
+          lineColor: '#d4d4d4',
+          secondaryColor: '#16213e',
+          tertiaryColor: '#1a1a2e'
+        }
+      });
+    }
+  });
+</script>
+</head>
+<body>
+<div class="width-control">
+  Width <input type="range" min="900" max="2200" value="1400"
+    oninput="document.documentElement.style.setProperty('--doc-width', this.value + 'px')">
+</div>
+<h1 id="poor-mans-validation-bench">Poor Man’s Validation Bench</h1>
+<h2 id="system-design-document">System Design Document</h2>
+<p><strong>Version:</strong> 1.0 (May 2026) <strong>Author:</strong> Bradley Ward</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#1-features">1. Features</a></li>
+<li><a href="#2-applications">2. Applications</a></li>
+<li><a href="#3-description">3. Description</a></li>
+<li><a href="#4-functional-block-diagram">4. Functional Block Diagram</a>
+<ul>
+<li><a href="#41-top-level-architecture">4.1 Top-Level Architecture</a></li>
+<li><a href="#42-representative-control-flow">4.2 Representative Control Flow</a></li>
+</ul></li>
+<li><a href="#5-module-catalog">5. Module Catalog</a></li>
+<li><a href="#6-specifications">6. Specifications</a>
+<ul>
+<li><a href="#61-system-level-specifications">6.1 System-Level Specifications</a></li>
+<li><a href="#62-per-tier-specifications">6.2 Per-Tier Specifications</a></li>
+<li><a href="#63-adc-and-dac-scaling-path">6.3 ADC and DAC Scaling Path</a></li>
+<li><a href="#64-software-stack-version-pins">6.4 Software Stack Version Pins</a></li>
+</ul></li>
+<li><a href="#7-detailed-description">7. Detailed Description</a>
+<ul>
+<li><a href="#71-design-philosophy">7.1 Design Philosophy</a></li>
+<li><a href="#72-fundamental-constraints">7.2 Fundamental Constraints</a></li>
+<li><a href="#73-two-plane-architecture">7.3 Two-Plane Architecture</a></li>
+<li><a href="#74-orchestration-layer">7.4 Orchestration Layer</a></li>
+<li><a href="#75-module-tier-1-microcontroller-based-modules">7.5 Module Tier 1: Microcontroller-Based Modules</a>
+<ul>
+<li><a href="#751-module-1a-digital-io-controller">7.5.1 Module 1A: Digital I/O Controller</a></li>
+<li><a href="#752-module-1b-voltage-measurement-unit">7.5.2 Module 1B: Voltage Measurement Unit</a></li>
+<li><a href="#753-module-1c-usb-hid-protocol-analyzer">7.5.3 Module 1C: USB HID Protocol Analyzer</a></li>
+<li><a href="#754-module-1d-source-measure-unit-lite">7.5.4 Module 1D: Source-Measure Unit Lite</a></li>
+<li><a href="#755-module-1e-function-generator--arbitrary-waveform-generator">7.5.5 Module 1E: Function Generator / Arbitrary Waveform Generator</a></li>
+<li><a href="#756-module-1f-high-voltage-differential-probe">7.5.6 Module 1F: High-Voltage Differential Probe</a></li>
+<li><a href="#757-module-1g-ir-capture-and-transmit">7.5.7 Module 1G: IR Capture and Transmit</a></li>
+</ul></li>
+<li><a href="#76-module-tier-2-fpga-based-modules">7.6 Module Tier 2: FPGA-Based Modules</a>
+<ul>
+<li><a href="#761-module-2a-logic-analyzer">7.6.1 Module 2A: Logic Analyzer</a></li>
+<li><a href="#762-module-2b-protocol-exerciseranalyzer">7.6.2 Module 2B: Protocol Exerciser/Analyzer</a></li>
+<li><a href="#763-module-2c-frequency-counter">7.6.3 Module 2C: Frequency Counter</a></li>
+<li><a href="#764-module-2d-ethernet-mac-and-network-analyzer">7.6.4 Module 2D: Ethernet MAC and Network Analyzer</a></li>
+<li><a href="#765-module-2e-mixed-signal-digitizer--oscilloscope">7.6.5 Module 2E: Mixed-Signal Digitizer / Oscilloscope</a></li>
+</ul></li>
+<li><a href="#77-module-tier-3-high-speed-interfaces">7.7 Module Tier 3: High-Speed Interfaces</a>
+<ul>
+<li><a href="#771-module-3a-usb-20-protocol-analyzer">7.7.1 Module 3A: USB 2.0 Protocol Analyzer</a></li>
+<li><a href="#772-module-3b-hdmi-sideband-analyzer">7.7.2 Module 3B: HDMI Sideband Analyzer</a></li>
+<li><a href="#773-module-3c-usb-c-configuration-channel-analyzer">7.7.3 Module 3C: USB-C Configuration Channel Analyzer</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#8-scpi-command-schema-and-auto-generation">8. SCPI Command Schema and Auto-Generation</a>
+<ul>
+<li><a href="#81-yaml-schema-structure">8.1 YAML Schema Structure</a></li>
+<li><a href="#82-ieee-4882-mandatory-commands">8.2 IEEE 488.2 Mandatory Commands</a></li>
+<li><a href="#83-code-generation-pipeline">8.3 Code Generation Pipeline</a></li>
+</ul></li>
+<li><a href="#9-mcp-tool-surface">9. MCP Tool Surface</a>
+<ul>
+<li><a href="#91-tool-naming-convention">9.1 Tool Naming Convention</a></li>
+<li><a href="#92-parameter-convention">9.2 Parameter Convention</a></li>
+<li><a href="#93-return-shape-convention">9.3 Return Shape Convention</a></li>
+<li><a href="#94-big-data-handling-rule">9.4 Big-Data Handling Rule</a></li>
+<li><a href="#95-per-node-concurrency-rule">9.5 Per-Node Concurrency Rule</a></li>
+<li><a href="#96-synchronization-rule">9.6 Synchronization Rule</a></li>
+<li><a href="#97-transport-and-authentication">9.7 Transport and Authentication</a></li>
+</ul></li>
+<li><a href="#10-software-stack-and-data-flow">10. Software Stack and Data Flow</a>
+<ul>
+<li><a href="#101-software-stack">10.1 Software Stack</a></li>
+<li><a href="#102-influxdb-schema-and-tag-taxonomy">10.2 InfluxDB Schema and Tag Taxonomy</a></li>
+<li><a href="#103-pytest-fixture-pattern">10.3 pytest Fixture Pattern</a></li>
+<li><a href="#104-worked-example-audio-analyzer-recipe-module-1e--module-2e">10.4 Worked Example: Audio Analyzer Recipe (Module 1E + Module 2E)</a></li>
+<li><a href="#105-report-generation">10.5 Report Generation</a></li>
+</ul></li>
+<li><a href="#11-chassis-and-mechanical-design-rationale">11. Chassis and Mechanical Design Rationale</a>
+<ul>
+<li><a href="#111-form-factor">11.1 Form Factor</a></li>
+<li><a href="#112-powered-usb-hub">11.2 Powered USB Hub</a></li>
+<li><a href="#113-gigabit-lan-switch">11.3 Gigabit LAN Switch</a></li>
+<li><a href="#114-shared-trigger-bus">11.4 Shared Trigger Bus</a></li>
+<li><a href="#115-power-architecture">11.5 Power Architecture</a></li>
+<li><a href="#116-thermal">11.6 Thermal</a></li>
+</ul></li>
+<li><a href="#12-verification-and-calibration-strategy">12. Verification and Calibration Strategy</a>
+<ul>
+<li><a href="#121-verification-layers">12.1 Verification Layers</a></li>
+<li><a href="#122-calibration-sources">12.2 Calibration Sources</a></li>
+<li><a href="#123-calibration-constants">12.3 Calibration Constants</a></li>
+<li><a href="#124-traceability-and-calibration-records">12.4 Traceability and Calibration Records</a></li>
+<li><a href="#125-acceptance-criteria-for-v10">12.5 Acceptance Criteria for v1.0</a></li>
+</ul></li>
+<li><a href="#13-build-phases-and-investment-roadmap">13. Build Phases and Investment Roadmap</a>
+<ul>
+<li><a href="#131-phase-0-orchestration-bring-up">13.1 Phase 0: Orchestration Bring-Up</a></li>
+<li><a href="#132-phase-1-tier-1-core-modules">13.2 Phase 1: Tier 1 Core Modules</a></li>
+<li><a href="#133-phase-15-module-1c-and-tier-2-bridge-bring-up">13.3 Phase 1.5: Module 1C and Tier 2 Bridge Bring-Up</a></li>
+<li><a href="#134-phase-2-tier-2-core-modules">13.4 Phase 2: Tier 2 Core Modules</a></li>
+<li><a href="#135-phase-25-module-2e-mixed-signal-digitizer">13.5 Phase 2.5: Module 2E (Mixed-Signal Digitizer)</a></li>
+<li><a href="#136-phase-3-v11-additions">13.6 Phase 3: v1.1 Additions</a></li>
+<li><a href="#137-phase-4-tier-3-deferred">13.7 Phase 4: Tier 3 (Deferred)</a></li>
+<li><a href="#138-total-investment-summary">13.8 Total Investment Summary</a></li>
+<li><a href="#139-upgrade-gates">13.9 Upgrade Gates</a></li>
+</ul></li>
+<li><a href="#14-revision-history">14. Revision History</a></li>
+<li><a href="#15-references-and-further-reading">15. References and Further Reading</a></li>
+<li><a href="#acknowledgments">Acknowledgments</a></li>
+</ul>
+<hr />
+<h2 id="features">1. Features</h2>
+<ul>
+<li>Modular SCPI instrument bench supporting up to six concurrent instrument modules per chassis.</li>
+<li>Transport-agnostic instrument layer: USB-TMC for direct-attached microcontroller modules; raw SCPI over TCP port 5025 for LAN-attached modules.</li>
+<li>Auto-discoverable instrumentation via standard PyVISA <code>*IDN?</code> queries with no hand-coded driver registration.</li>
+<li>Two control planes per module: a VISA/SCPI plane for headless, deterministic, vendor-portable test sequencing, and an MCP plane that exposes the same surface as LLM-callable tools for agent-orchestrated bench sessions.</li>
+<li>Single YAML source of truth per module generates both the firmware SCPI parser and the PyVISA-sim simulation backend, eliminating drift between live and simulated module behavior.</li>
+<li>Time-series measurement storage in InfluxDB with a standardized tag taxonomy across instrument, channel, measurement type, DUT identity, and timestamp.</li>
+<li>Real-time Grafana dashboards with template variables that adapt to the modules currently connected.</li>
+<li>Test sequences authored in pytest with parametric fixtures, programmatic pass/fail gating, and structured result logging.</li>
+<li>Automated PDF and HTML reports generated from InfluxDB queries via Jinja2 templates with embedded Matplotlib plots.</li>
+<li>Hot-swappable instrument modules: the orchestration layer tolerates module attach and detach without re-initialization.</li>
+<li>Per-tier BOM discipline: Tier 1 modules target $7 to $15, Tier 2 modules target $50 to $80, Tier 3 modules budgeted separately when acquired.</li>
+</ul>
+<h2 id="applications">2. Applications</h2>
+<ul>
+<li>USB peripheral debugging and characterization. Module 1C captures HID descriptors and reports in real time, supporting bring-up of mice, keyboards, gamepads, and arbitrary HID-class devices.</li>
+<li>HDMI sideband analysis. Module 3B reads EDID, monitors DDC negotiation at 100 kHz, and captures CEC traffic, addressing the protocol-level failures that account for the majority of consumer HDMI issues.</li>
+<li>USB-C Power Delivery characterization. Module 3C captures BMC-encoded PD negotiation at 300 kHz, decodes source capability messages, and monitors alternate-mode entry.</li>
+<li>Audio chain measurement. The combination of Module 1B (precision voltage measurement) and Module 1D (source-measure) supports swept-sine and noise-floor characterization through audio-frequency signal chains.</li>
+<li>General mixed-signal DUT bring-up. The Tier 1 module set provides GPIO, frequency measurement, voltage measurement, and source-measure capabilities for digital and analog I/O verification on user-designed boards.</li>
+</ul>
+<h2 id="description">3. Description</h2>
+<p>The Poor Man’s Validation Bench (PMVB) is a modular SCPI instrument platform that mirrors the architectural conventions of PXIe rack-and-module test systems at hobbyist budget. A Raspberry Pi 5 serves as the orchestration head, running PyVISA, pytest, and a time-series stack (InfluxDB, Grafana). Hot-swappable instrument modules attach over USB or Ethernet and present as independent SCPI-addressable instruments. Each module is purpose-built around a single function (digital I/O, voltage measurement, logic analysis, protocol exercise, and so on) using either a low-cost microcontroller (Raspberry Pi Pico 2 W) or a small FPGA (Sipeed Tang Primer 25K) as its physical layer.</p>
+<p>PMVB is designed around two collaborating control planes. The VISA/SCPI plane is the authoritative instrument protocol and supports headless, vendor-portable test sequences driven from pytest. The MCP plane is an overlay that exposes the same instrument surface as LLM-callable tools, allowing agent-orchestrated bench sessions in which a human or AI assistant arms instruments, captures traces, and reasons about results in natural language. Both planes consume the same per-module command schema, so adding a new module exposes it through both surfaces with no double-implementation.</p>
+<p>PMVB is a framework for building instruments rather than a single instrument. Each new module expands the platform’s capabilities without requiring changes to the orchestration layer or the host software stack. Module designs are kept clear of commercial-grade analog front ends by per-tier cost and complexity discipline rather than by a chassis-wide spending ceiling. The architectural priorities, in order, are: pedagogical clarity (the fewest moving parts that still expose the relevant engineering tradeoffs); end-to-end reproducibility (every measurement run produces a logged dataset and an automated report); and graceful upgrade paths (the orchestration layer, transport stack, and software stack are independent of any specific module’s implementation).</p>
+<h2 id="functional-block-diagram">4. Functional Block Diagram</h2>
+<h3 id="top-level-architecture">4.1 Top-Level Architecture</h3>
+<p>The platform decomposes into three physical layers.</p>
+<p>The orchestration layer is a single Raspberry Pi 5 hosting the test framework (PyVISA, pytest), the time-series database (InfluxDB), the dashboard server (Grafana), the report generator (Jinja2 with Matplotlib), and the MCP gateway. The Pi 5 carries no instrument hardware of its own; it is a pure software orchestrator and data sink.</p>
+<p>The transport layer connects the orchestration layer to the modules through two parallel buses. A powered USB hub (4 to 8 ports, 5 V at 2.4 A per port) hosts USB-TMC instrument bridges built on Raspberry Pi Pico 2 W; the SCPI command and measurement-data path runs over USB-TMC for every module in the chassis. A gigabit Ethernet switch (5 to 8 ports) connects per-module Pi Zero 2 W admin sidecars to the orchestration layer; this network carries module configuration, calibration data, archived captures, and ssh debug traffic, but not the canonical SCPI traffic. An optional shared trigger bus, implemented as one or two GPIO lines daisy-chained between modules that require it, provides sub-microsecond synchronization for measurements that cannot tolerate software-arming jitter.</p>
+<p>The module layer attaches to the transport layer in three tiers. Tier 1 is microcontroller-based modules built on Pico 2 W that present as USB-TMC instruments. Tier 2 is FPGA-based modules built on the Sipeed Tang Primer 25K, bridged to the chassis through both a Pico 2 W (USB-TMC, primary instrument transport) and a Pi Zero 2 W (per-module Linux sidecar, storage, Wi-Fi or wired LAN access). Tier 3 is high-speed interface modules deferred until a larger FPGA is acquired; the bridge pattern matches Tier 2.</p>
+<p><strong>Figure 4-1: Top-Level System Block Diagram</strong></p>
+<div class="mermaid">flowchart TB
+    Pi5["Raspberry Pi 5<br/>(Orchestration Head)<br/>PyVISA · pytest · InfluxDB · Grafana · MCP Gateway"]
+    Pi5 --> Hub["Powered USB Hub<br/>5V / 2.4A · 4–8 ports"]
+    Pi5 --> Switch["Gigabit LAN Switch<br/>5–8 ports"]
+    Hub -->|USB-TMC| T1A["1A: Digital I/O<br/>Pico 2 W"]
+    Hub -->|USB-TMC| T1B["1B: Voltage Meas<br/>Pico + ADS1115"]
+    Hub -->|USB-TMC| T1C["1C: USB HID Analyzer<br/>Pico 2 W ×2"]
+    Hub -->|USB-TMC| T1D["1D: SMU Lite<br/>Pico + DAC + ADC"]
+    Hub -->|USB-TMC| T1E["1E: Function Gen / AWG<br/>Pico + DAC"]
+    Hub -.->|USB-TMC v1.1| T1F["1F: HV Differential Probe<br/>Pico + INA + attenuator"]
+    Hub -.->|USB-TMC v1.1| T1G["1G: IR Capture / TX<br/>Pico + IR"]
+    subgraph T2["Tier 2 Module (instances: 2A · 2B · 2C · 2D · 2E)"]
+        direction TB
+        P["Pico 2 W<br/>USB-TMC bridge"]
+        F["Tang Primer 25K<br/>FPGA"]
+        Z["Pi Zero 2 W<br/>admin sidecar"]
+        P ---|SPI primary| F
+        Z -.optional SPI.- F
+    end
+    Hub -->|USB-TMC<br/>SCPI command + data| P
+    Switch -->|admin · storage · web UI| Z
+    Trig{{"Shared Trigger Bus<br/>(optional GPIO line)"}}
+    T1A -.-> Trig
+    T1B -.-> Trig
+    T1E -.-> Trig
+    F -.-> Trig</div>
+<p><em>Tier 3 modules (3A, 3B, 3C) are deferred and follow the same Pico + Pi Zero + FPGA pattern with a larger FPGA; they are documented in section 7.7 and omitted from this diagram for clarity.</em></p>
+<h3 id="representative-control-flow">4.2 Representative Control Flow</h3>
+<p>The control flow for a representative measurement, “characterize the noise floor of an external preamplifier,” exercises every architectural layer.</p>
+<p>A pytest test, or equivalently an MCP-connected agent session, initiates the measurement. Both paths converge on the same per-module SCPI command set, so the orchestration logic is independent of the initiator. PyVISA dispatches <code>OUTP ON</code> and <code>SOUR:VOLT 0.0</code> to Module 1D (Source-Measure Unit Lite) and a sweep of <code>MEAS:VOLT:DC?</code> queries to Module 1B (Voltage Measurement Unit), with optional parameter sweeps under pytest fixture control. Each measurement returns through the SCPI plane to the orchestration layer, which writes a row to InfluxDB tagged by instrument, channel, DUT identifier, run identifier, and timestamp.</p>
+<p>The Grafana dashboard, keyed off the same tag taxonomy, updates in real time without further configuration. The pytest test produces a structured pass-fail outcome based on programmatic thresholds (for example, RMS noise less than 100 µV across the integration window). After the run completes, the report generator queries InfluxDB by run identifier and produces a PDF and HTML report containing measurement summaries, plots, and pass-fail records.</p>
+<p>The MCP plane is available throughout the run for ad-hoc queries. An agent may inject a <code>MEAS:VOLT:DC?</code> request mid-sweep without disturbing the pytest state machine, because both control paths address the same module under the per-node concurrency rules described in section 9.</p>
+<p><strong>Figure 4-2: Representative Control Flow</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant U as User or Agent
+    participant P as Pi 5 (Orchestrator)
+    participant SMU as Module 1D (SMU)
+    participant V as Module 1B (Voltmeter)
+    participant DB as InfluxDB
+    participant G as Grafana
+    U->>P: pytest invocation OR MCP tool call
+    P->>SMU: SCPI: OUTP ON; SOUR:VOLT 0.0
+    SMU-->>P: OK
+    loop Sweep / Integration
+        P->>V: SCPI: MEAS:VOLT:DC?
+        V-->>P: voltage reading
+        P->>DB: write point (instrument, channel, DUT, run_id, value)
+        DB-->>G: live dashboard update
+    end
+    P->>P: pytest pass/fail evaluation
+    P->>DB: query by run_id
+    P->>U: PDF / HTML report</div>
+<h2 id="module-catalog">5. Module Catalog</h2>
+<p>The platform’s instrument modules are organized into three tiers by physical layer cost and complexity. Each module is identified by a two-character ID combining tier number and module letter within tier. The catalog below summarizes the planned module set; full per-module specifications appear in section 7.</p>
+<p><strong>Table 5-1: Module Catalog</strong></p>
+<table>
+<colgroup>
+<col style="width: 6%" />
+<col style="width: 10%" />
+<col style="width: 16%" />
+<col style="width: 25%" />
+<col style="width: 18%" />
+<col style="width: 23%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Tier</th>
+<th>Function</th>
+<th>Host Platform</th>
+<th>Transport</th>
+<th>Build Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1A</td>
+<td>1</td>
+<td>Digital I/O Controller</td>
+<td>Pico 2 W</td>
+<td>USB-TMC</td>
+<td>Planned (v1.0)</td>
+</tr>
+<tr class="even">
+<td>1B</td>
+<td>1</td>
+<td>Voltage Measurement Unit</td>
+<td>Pico 2 W + ADS1115</td>
+<td>USB-TMC</td>
+<td>Planned (v1.0)</td>
+</tr>
+<tr class="odd">
+<td>1C</td>
+<td>1</td>
+<td>USB HID Protocol Analyzer</td>
+<td>Pico 2 W (×2)</td>
+<td>USB-TMC</td>
+<td>Planned (v1.0)</td>
+</tr>
+<tr class="even">
+<td>1D</td>
+<td>1</td>
+<td>Source-Measure Unit Lite</td>
+<td>Pico 2 W + MCP4922 + ADS1115</td>
+<td>USB-TMC</td>
+<td>Planned (v1.0)</td>
+</tr>
+<tr class="odd">
+<td>1E</td>
+<td>1</td>
+<td>Function Generator / AWG</td>
+<td>Pico 2 W + MCP4922</td>
+<td>USB-TMC</td>
+<td>Planned (v1.0)</td>
+</tr>
+<tr class="even">
+<td>1F</td>
+<td>1</td>
+<td>HV Differential Probe</td>
+<td>Pico 2 W + AD8421 + ADS1115</td>
+<td>USB-TMC</td>
+<td>Planned (v1.1)</td>
+</tr>
+<tr class="odd">
+<td>1G</td>
+<td>1</td>
+<td>IR Capture and Transmit</td>
+<td>Pico 2 W + TSOP4838 + IR LED</td>
+<td>USB-TMC</td>
+<td>Planned (v1.1)</td>
+</tr>
+<tr class="even">
+<td>2A</td>
+<td>2</td>
+<td>Logic Analyzer</td>
+<td>Tang Primer 25K + Pico 2 W + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
+<td>Planned (v1.0)</td>
+</tr>
+<tr class="odd">
+<td>2B</td>
+<td>2</td>
+<td>Protocol Exerciser / Analyzer</td>
+<td>Tang Primer 25K + Pico 2 W + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
+<td>Planned (v1.0)</td>
+</tr>
+<tr class="even">
+<td>2C</td>
+<td>2</td>
+<td>Frequency Counter</td>
+<td>Tang Primer 25K + Pico 2 W + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
+<td>Planned (v1.0)</td>
+</tr>
+<tr class="odd">
+<td>2D</td>
+<td>2</td>
+<td>Ethernet MAC and Network Analyzer</td>
+<td>Tang Primer 25K + PHY + Pico 2 W + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
+<td>Planned (v1.0)</td>
+</tr>
+<tr class="even">
+<td>2E</td>
+<td>2</td>
+<td>Mixed-Signal Digitizer / Oscilloscope</td>
+<td>Tang Primer 25K + AD9226 AFE + Pico 2 W + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
+<td>Planned (v1.0)</td>
+</tr>
+<tr class="odd">
+<td>3A</td>
+<td>3</td>
+<td>USB 2.0 Protocol Analyzer</td>
+<td>Tang Mega 138K Pro / AX7325B + Pico 2 W + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
+<td>Deferred</td>
+</tr>
+<tr class="even">
+<td>3B</td>
+<td>3</td>
+<td>HDMI Sideband Analyzer</td>
+<td>FPGA + breakout + Pico 2 W + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
+<td>Deferred</td>
+</tr>
+<tr class="odd">
+<td>3C</td>
+<td>3</td>
+<td>USB-C CC Analyzer</td>
+<td>FPGA + Pico 2 W + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
+<td>Deferred</td>
+</tr>
+</tbody>
+</table>
+<p>Build status legend: <strong>Planned</strong> means designed but not yet started; <strong>In Design</strong> means RTL or firmware in progress; <strong>Built</strong> means hardware assembled and basic bring-up complete; <strong>Verified</strong> means full module test suite passing in simulation and on hardware; <strong>Deferred</strong> means gated on a hardware purchase outside the chassis budget.</p>
+<h2 id="specifications">6. Specifications</h2>
+<h3 id="system-level-specifications">6.1 System-Level Specifications</h3>
+<p><strong>Table 6-1: System-Level Specifications</strong></p>
+<table>
+<colgroup>
+<col style="width: 44%" />
+<col style="width: 28%" />
+<col style="width: 28%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Maximum concurrent modules</td>
+<td>6</td>
+<td>Bounded by USB hub port count and LAN switch capacity</td>
+</tr>
+<tr class="even">
+<td>Transport, Tier 1 (instrument)</td>
+<td>USB-TMC, USB 2.0 full-speed (12 Mbps)</td>
+<td>Pico 2 W native USB</td>
+</tr>
+<tr class="odd">
+<td>Transport, Tier 2 and 3 (instrument)</td>
+<td>USB-TMC, USB 2.0 full-speed (12 Mbps)</td>
+<td>Pico 2 W bridge to Tang Primer 25K (or larger FPGA at Tier 3)</td>
+</tr>
+<tr class="even">
+<td>Transport, Tier 2 and 3 (admin / storage)</td>
+<td>Gigabit Ethernet or 2.4 GHz Wi-Fi to per-module Pi Zero 2 W</td>
+<td>Carries config files, archived captures, ssh access; not the SCPI path</td>
+</tr>
+<tr class="odd">
+<td>Synchronization, v1.0</td>
+<td>Software arming</td>
+<td>Inter-module arm jitter approximately 10 to 50 ms</td>
+</tr>
+<tr class="even">
+<td>Synchronization, v1.1 (planned)</td>
+<td>Shared FPGA trigger line</td>
+<td>Sub-microsecond hardware sync between modules wired to the bus</td>
+</tr>
+<tr class="odd">
+<td>Chassis power budget</td>
+<td>50 W maximum</td>
+<td>5 V at 12 W from powered USB hub for Tier 1; per-module wall power for Tier 2</td>
+</tr>
+<tr class="even">
+<td>SCPI command latency, USB</td>
+<td>&lt; 50 ms round trip (target)</td>
+<td>USB-TMC overhead estimate</td>
+</tr>
+<tr class="odd">
+<td>SCPI command latency, LAN</td>
+<td>&lt; 10 ms round trip (target)</td>
+<td>Low-latency LAN estimate</td>
+</tr>
+<tr class="even">
+<td>Sustainable aggregate measurement rate</td>
+<td>~ 10 kSPS</td>
+<td>Beyond which InfluxDB write buffering must be tuned</td>
+</tr>
+</tbody>
+</table>
+<h3 id="per-tier-specifications">6.2 Per-Tier Specifications</h3>
+<p><strong>Table 6-2: Tier 1 (Microcontroller-Based Module) Specifications</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ADC resolution</td>
+<td>16-bit (ADS1115)</td>
+</tr>
+<tr class="even">
+<td>ADC sample rate</td>
+<td>up to 860 SPS</td>
+</tr>
+<tr class="odd">
+<td>ADC voltage range</td>
+<td>±6.144 V differential, PGA-selectable</td>
+</tr>
+<tr class="even">
+<td>DAC resolution</td>
+<td>12-bit (MCP4922)</td>
+</tr>
+<tr class="odd">
+<td>DAC voltage range</td>
+<td>0 to 4.096 V (internal Vref)</td>
+</tr>
+<tr class="even">
+<td>DC accuracy</td>
+<td>±0.2% typical, ±0.05% achievable with calibration constants</td>
+</tr>
+<tr class="odd">
+<td>Channel count</td>
+<td>4 single-ended or 2 differential per ADC</td>
+</tr>
+<tr class="even">
+<td>Throughput to host</td>
+<td>~50 ms per host-paced measurement</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 6-3: Tier 2 (FPGA-Based Module) Specifications</strong></p>
+<table>
+<colgroup>
+<col style="width: 61%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>FPGA part</td>
+<td>Sipeed Tang Primer 25K (Gowin GW5A-LV25MG121)</td>
+</tr>
+<tr class="even">
+<td>LUT4 capacity</td>
+<td>~23,040</td>
+</tr>
+<tr class="odd">
+<td>BSRAM capacity</td>
+<td>~1,008 Kbit (~126 KB)</td>
+</tr>
+<tr class="even">
+<td>Maximum capture sample rate</td>
+<td>100 MHz logic, channel-count dependent</td>
+</tr>
+<tr class="odd">
+<td>Logic analyzer memory depth</td>
+<td>~63 K samples at 16-channel width</td>
+</tr>
+<tr class="even">
+<td>Frequency measurement range</td>
+<td>1 Hz to 100 MHz, sub-Hz resolution</td>
+</tr>
+<tr class="odd">
+<td>Protocol coverage</td>
+<td>I²C up to 1 MHz, SPI up to 50 MHz, UART up to 12 Mbps, CEC 400 bps</td>
+</tr>
+<tr class="even">
+<td>Throughput to host, SCPI path</td>
+<td>12 Mbps (USB-TMC over Pico 2 W bridge)</td>
+</tr>
+<tr class="odd">
+<td>Throughput to host, admin path</td>
+<td>~50 Mbps via Pi Zero 2 W on-board Wi-Fi (2.4 GHz); up to ~200 Mbps via USB-Ethernet adapter on the Pi Zero (wired LAN required for the higher rate)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 6-4: Tier 3 (High-Speed Interface) Specifications, Deferred</strong></p>
+<table>
+<colgroup>
+<col style="width: 61%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Target FPGA</td>
+<td>Sipeed Tang Mega 138K Pro or Alinx AX7325B (Kintex-7 325T)</td>
+</tr>
+<tr class="even">
+<td>USB 2.0 capture rate</td>
+<td>480 Mbps</td>
+</tr>
+<tr class="odd">
+<td>HDMI sideband capture</td>
+<td>DDC 100 kHz, CEC 400 bps</td>
+</tr>
+<tr class="even">
+<td>USB-C PD capture</td>
+<td>300 kHz BMC</td>
+</tr>
+<tr class="odd">
+<td>Throughput to host</td>
+<td>Pi 5 may be required as the bridge node for sustained Tier 3 capture</td>
+</tr>
+</tbody>
+</table>
+<h3 id="adc-and-dac-scaling-path">6.3 ADC and DAC Scaling Path</h3>
+<p>The platform supports a four-tier upgrade path for analog front ends. Tier upgrade is a module swap; the orchestration layer, transport, and software stack are unchanged.</p>
+<p><strong>Table 6-5: ADC and DAC Scaling Path</strong></p>
+<table>
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 19%" />
+<col style="width: 20%" />
+<col style="width: 29%" />
+<col style="width: 11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Tier</th>
+<th>Part</th>
+<th>Resolution</th>
+<th>Sample Rate</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Entry</td>
+<td>ADS1115</td>
+<td>16-bit</td>
+<td>860 SPS</td>
+<td>$3 (breakout)</td>
+<td>76 µV resolution at ±2.048 V; used by 1B and 1D</td>
+</tr>
+<tr class="even">
+<td>Precision</td>
+<td>ADS1256</td>
+<td>24-bit</td>
+<td>30 kSPS</td>
+<td>$10 (breakout)</td>
+<td>Sub-microvolt resolution; precision variant of 1B</td>
+</tr>
+<tr class="odd">
+<td>Waveform</td>
+<td>AD9226 + FPGA</td>
+<td>12-bit</td>
+<td>65 MSPS</td>
+<td>$10 to $15</td>
+<td>Audio FFT, switching-waveform capture</td>
+</tr>
+<tr class="even">
+<td>High-speed</td>
+<td>AD9254 or HMCAD1511 + FPGA</td>
+<td>14-bit</td>
+<td>150 to 250 MSPS</td>
+<td>$70 to $120 (custom PCB)</td>
+<td>LVDS or JESD204B to FPGA; approaches commercial digitizer performance</td>
+</tr>
+</tbody>
+</table>
+<h3 id="software-stack-version-pins">6.4 Software Stack Version Pins</h3>
+<p><strong>Table 6-6: Software Stack Version Pins</strong></p>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 33%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Version</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Python</td>
+<td>3.11+</td>
+<td>Targets Pi 5 default Bookworm Python</td>
+</tr>
+<tr class="even">
+<td>PyVISA</td>
+<td>1.13+</td>
+<td>Vendor-neutral instrumentation library</td>
+</tr>
+<tr class="odd">
+<td>PyVISA-py</td>
+<td>0.7+</td>
+<td>Pure Python VISA backend; supports USB-TMC and TCPIP</td>
+</tr>
+<tr class="even">
+<td>pytest</td>
+<td>8.x</td>
+<td>Test runner with parametric fixtures</td>
+</tr>
+<tr class="odd">
+<td>InfluxDB</td>
+<td>1.8.x preferred on 2 GB Pi; 2.7+ on 16 GB Pi</td>
+<td>Lighter footprint at 1.8</td>
+</tr>
+<tr class="even">
+<td>Grafana</td>
+<td>10.x OSS</td>
+<td>Dashboard server</td>
+</tr>
+<tr class="odd">
+<td>MCP SDK</td>
+<td>Anthropic Python SDK, current stable</td>
+<td>Updated with platform releases</td>
+</tr>
+<tr class="even">
+<td>TinyUSB</td>
+<td>0.16+</td>
+<td>Pico 2 W USB-TMC firmware base</td>
+</tr>
+</tbody>
+</table>
+<h2 id="detailed-description">7. Detailed Description</h2>
+<h3 id="design-philosophy">7.1 Design Philosophy</h3>
+<p>The platform’s design takes its cues from National Instruments’ PXIe rack-and-module test architecture, scaled down to hobbyist budget and a single workstation. Three principles drive every architectural decision.</p>
+<p><em>Modules expose capability through a uniform interface.</em> Every module, regardless of its physical layer (microcontroller, FPGA, or future custom PCB), presents a SCPI command surface and an MCP tool surface. The orchestration layer never branches on module identity at the transport level; it talks to a logic analyzer and a voltmeter through the same abstractions.</p>
+<p><em>Transport is a deployment concern, not an architectural concern.</em> USB-TMC and TCPIP::INSTR are interchangeable from the orchestration layer’s standpoint. A module’s transport is chosen at design time based on its host platform (Pico 2 W has native USB; Tang Primer 25K does not), not on the module’s role in the system. This keeps the path to a heterogeneous chassis open.</p>
+<p><em>Test artifacts are first-class citizens.</em> Every measurement run produces a logged dataset in InfluxDB, a structured pass-fail outcome in pytest, and a generated report. The platform is not finished when measurements happen; it is finished when measurements are reproducible from raw inputs by anyone with the same hardware.</p>
+<h3 id="fundamental-constraints">7.2 Fundamental Constraints</h3>
+<p>Four constraints shape every component selection and architectural choice in this document.</p>
+<p><strong>Constraint 1: Per-tier cost discipline.</strong> Tier 1 modules target $7 to $15 BOM each. Tier 2 modules target $50 to $80 each (Tang Primer 25K, Pico 2 W bridge, Pi Zero 2 W sidecar, plus per-module front end). Tier 3 modules form a separate budget pool whose ceiling is set by the FPGA platform acquired for the tier (approximately $200 for the Tang Mega 138K Pro, approximately $450 for the Alinx AX7325B). The chassis total is the sum of selected modules plus orchestration overhead and is allowed to grow as the catalog grows. The discipline is on per-module spend within tier, not on chassis total.</p>
+<p>Two Tier 2 modules are documented exceptions to the $50 to $80 ceiling. Module 2E (Mixed-Signal Digitizer, approximately $124) earns the exception because the AD9226 ADC and analog front end are intrinsic to the module’s purpose and have no cheaper substitute at 25 MHz bandwidth and 12-bit resolution. Module 2D (Ethernet MAC with external PHY, approximately $105) earns the exception because the external PHY adds line-rate capability that the FPGA-only path cannot provide. Going over the per-tier target on a new module requires the same scrutiny as adding the module itself.</p>
+<p><strong>Constraint 2: Hand-solderable assembly.</strong> All custom PCBs must be assemblable with a temperature-controlled iron, fine-tip tweezers, no-clean flux, and an optional cheap hot-air station. This places SOIC-8/14/16 (1.27 mm pitch), SOT-23, TSSOP, and MSOP within scope; QFN with thermal pads requires hot-air rework but stays in scope; BGA is excluded. The constraint is enforced at component selection, not papered over with reflow ovens.</p>
+<p><strong>Constraint 3: Modular and transport-agnostic.</strong> No module’s design may presuppose what the orchestration host is, which transport it uses, or which other modules are connected. A module that requires a specific USB hub model, a specific Pi version, or a specific peer module is rejected on architectural grounds. The chassis is a collection of independent SCPI instruments connected by a shared transport layer.</p>
+<p><strong>Constraint 4: Every run reproducible from raw inputs.</strong> Every measurement run must produce a logged dataset, a structured test outcome, and a generated report. The dataset must be sufficient to regenerate the report; the outcome must be sufficient to regenerate the pass-fail decision. A measurement that exists only in conversation, in a chat log, or in a screenshot is not a measurement.</p>
+<h3 id="two-plane-architecture">7.3 Two-Plane Architecture</h3>
+<p>The platform exposes every instrument module through two independent control surfaces: the VISA/SCPI plane and the MCP plane. Both planes consume the same per-module command schema and reach the same physical hardware; neither is layered on top of the other.</p>
+<p>The VISA/SCPI plane is the authoritative instrument protocol. It is the surface used by pytest test sequences, by headless test runners, and by any vendor-portable tooling that expects standard SCPI behavior. Commands follow IEEE 488.2 conventions (mandatory commands, error queue, status registers); subsystem hierarchies follow SCPI 1999 (<code>CONF</code>, <code>MEAS</code>, <code>SOUR</code>, <code>CALC</code>, <code>SYST</code>). The plane is deterministic, scriptable, and free of natural-language interpretation. Test code in this plane reads the same on every machine, by every author, on every run.</p>
+<p>The MCP plane is an overlay that exposes the same instruments as LLM-callable tools. It is the surface used during interactive bench sessions, exploratory characterization, and any work where natural-language reasoning over measurement results is part of the workflow. The MCP server for each module advertises a small, schema-validated tool surface (for example, <code>set_voltage(channel: int, volts: float)</code>) generated mechanically from the module’s SCPI command schema. An agent calling <code>set_voltage(0, 3.3)</code> produces the same on-the-wire SCPI command as a pytest test issuing <code>SOUR:VOLT 3.3, (@0)</code>.</p>
+<p>The two planes coexist without locking. A pytest run can hold a sequence of measurements while an agent injects an ad-hoc query; both arrive at the module as SCPI commands and the module’s SCPI parser serializes them. The per-node concurrency rules in section 9 ensure that no module is asked to do two things at once on the same physical channel.</p>
+<p>A third control plane, an inference plane running narrow ML models on a Raspberry Pi AI HAT+, was specified in earlier revisions and is reserved for a future release. It is out of scope for this document.</p>
+<h3 id="orchestration-layer">7.4 Orchestration Layer</h3>
+<p>The orchestration layer is a single Raspberry Pi 5. The current build uses the 2 GB variant; a planned upgrade to the 16 GB variant is gated on a budget increase. The 2 GB variant is sufficient for the current platform with care taken on the time-series database choice (described below); the 16 GB variant relaxes that choice and absorbs concurrent dashboard, report-generation, and MCP-server workloads without per-component tuning.</p>
+<p>The Pi 5 hosts six software services, all running natively under the same Raspberry Pi OS Bookworm instance.</p>
+<p>PyVISA and PyVISA-py provide instrument discovery and SCPI dispatch. PyVISA-sim provides the simulation backend, generated mechanically from each module’s command schema. pytest is the test runner, with parametric fixtures keyed off the module catalog. InfluxDB is the time-series database; the 2 GB Pi runs InfluxDB 1.8 (Go-based, ~150 MB resident under typical load), and the 16 GB Pi runs InfluxDB 2.7+ (Flux query language, web UI, ~600 MB resident). Grafana 10.x OSS edition serves dashboards. The MCP gateway runs as a Python process exposing the module surface as MCP tools to local or LAN-connected clients.</p>
+<p>The Pi 5 does not host any instrument hardware. It does not connect to DUT-facing analog or digital signals; it does not provide bench power; it does not act as a USB device. All instrument I/O happens at the module layer, accessed through the transport layer. This separation lets the Pi 5 be replaced (with a Pi 6, an Intel mini PC, or a desktop workstation) without changing any module design.</p>
+<hr />
+<h3 id="module-tier-1-microcontroller-based-modules">7.5 Module Tier 1: Microcontroller-Based Modules</h3>
+<p>Tier 1 modules use the Raspberry Pi Pico 2 W (RP2350 dual Cortex-M33 with optional dual Hazard3 RISC-V cores, 520 KB SRAM, 4 MB external flash, native USB device controller, 2.4 GHz Wi-Fi and BLE) as their host platform. All Tier 1 modules present to the orchestration layer as USB-TMC instruments through the chassis-wide powered USB hub. The Pico 2 W runs bare-metal C firmware built against the Pico SDK and TinyUSB; the SCPI parser is generated mechanically from each module’s YAML command schema (see section 8). Tier 1 modules do not include a Pi Zero 2 W sidecar; their persistent state (configuration, calibration constants) lives in the Pico’s external flash.</p>
+<h4 id="module-1a-digital-io-controller">7.5.1 Module 1A: Digital I/O Controller</h4>
+<p>Module 1A provides programmable digital I/O, PWM generation, and frequency measurement on a Pico 2 W with no external peripherals. The eight GPIO lines are independently configurable as inputs or outputs at 3.3 V CMOS levels, and are 5 V tolerant via the chassis-supplied bidirectional level shifter when 5 V interfacing is required. Two PWM outputs are driven by the RP2350’s PWM peripheral; one dedicated frequency-counter input uses a PIO state machine implementing reciprocal counting with a 32-bit accumulator.</p>
+<p><strong>Table 7-1: Module 1A Specifications</strong></p>
+<table>
+<colgroup>
+<col style="width: 61%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>GPIO channels</td>
+<td>8</td>
+</tr>
+<tr class="even">
+<td>GPIO logic level</td>
+<td>3.3 V CMOS, 5 V tolerant via level shifter</td>
+</tr>
+<tr class="odd">
+<td>GPIO direction</td>
+<td>Independently configurable per channel</td>
+</tr>
+<tr class="even">
+<td>PWM channels</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<td>PWM frequency range</td>
+<td>100 kHz to 50 MHz</td>
+</tr>
+<tr class="even">
+<td>PWM duty cycle resolution</td>
+<td>8-bit</td>
+</tr>
+<tr class="odd">
+<td>Frequency-counter inputs</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>Frequency measurement range</td>
+<td>1 Hz to 100 MHz</td>
+</tr>
+<tr class="odd">
+<td>Frequency measurement resolution</td>
+<td>1 Hz at 1 s gate (sub-Hz at longer gates)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 1A</strong></p>
+<ul>
+<li><code>*IDN?</code> returns identification string</li>
+<li><code>DIGI:OUTP &lt;chan&gt;, &lt;0|1&gt;</code> sets output state</li>
+<li><code>DIGI:INP? &lt;chan&gt;</code> reads input state</li>
+<li><code>DIGI:DIR &lt;chan&gt;, &lt;IN|OUT&gt;</code> sets channel direction</li>
+<li><code>PWM:FREQ &lt;chan&gt;, &lt;freq&gt;</code> sets PWM frequency in hertz</li>
+<li><code>PWM:DUTY &lt;chan&gt;, &lt;0..255&gt;</code> sets PWM duty cycle</li>
+<li><code>PWM:STAT &lt;chan&gt;, &lt;ON|OFF&gt;</code> enables or disables a channel</li>
+<li><code>FREQ:MEAS? &lt;gate_ms&gt;</code> measures frequency on dedicated input</li>
+</ul>
+<p><strong>Table 7-2: Module 1A BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td>RP2350 host</td>
+</tr>
+<tr class="even">
+<td>0.1" pin headers</td>
+<td>$1</td>
+<td>DUT-side connection</td>
+</tr>
+<tr class="odd">
+<td>3D-printed enclosure</td>
+<td>$1</td>
+<td>PETG print cost</td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td><strong>~$9</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-1b-voltage-measurement-unit">7.5.2 Module 1B: Voltage Measurement Unit</h4>
+<p>Module 1B is a four-channel single-ended (or two-channel differential) voltmeter using a Texas Instruments ADS1115 16-bit Σ-Δ ADC on a SparkFun-style breakout connected to the Pico 2 W over I²C. The PGA-selectable range covers ±0.256 V to ±6.144 V; the noise floor at the most sensitive range is approximately 76 µV per LSB with a roughly 25 µV RMS noise floor after averaging. Calibration constants for offset and gain are stored in the Pico’s external flash and applied by firmware before SCPI return values.</p>
+<p>A precision variant of Module 1B substitutes the ADS1115 for an ADS1256 (24-bit Σ-Δ, 30 kSPS, sub-microvolt resolution) on an SPI bus. Firmware and SCPI command surface are identical except for the sample rate and resolution metadata returned by <code>MEAS:VOLT:DC?</code> queries.</p>
+<p><strong>Table 7-3: Module 1B Specifications (Standard Variant)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ADC</td>
+<td>ADS1115, 16-bit Σ-Δ</td>
+</tr>
+<tr class="even">
+<td>Channels</td>
+<td>4 single-ended or 2 differential</td>
+</tr>
+<tr class="odd">
+<td>Voltage range</td>
+<td>±0.256 V to ±6.144 V (PGA selectable)</td>
+</tr>
+<tr class="even">
+<td>Resolution at most-sensitive range</td>
+<td>7.8125 µV per LSB</td>
+</tr>
+<tr class="odd">
+<td>Sample rate</td>
+<td>8 to 860 SPS, configurable</td>
+</tr>
+<tr class="even">
+<td>DC accuracy</td>
+<td>±0.2% typical, ±0.05% achievable with calibration</td>
+</tr>
+<tr class="odd">
+<td>Input impedance</td>
+<td>~10 MΩ</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 1B</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>MEAS:VOLT:DC? &lt;chan&gt;</code> single voltage measurement (auto-config)</li>
+<li><code>CONF:VOLT:DC:RANG &lt;chan&gt;, &lt;range&gt;</code> sets PGA range</li>
+<li><code>CONF:VOLT:DC:RATE &lt;chan&gt;, &lt;SPS&gt;</code> sets sample rate</li>
+<li><code>MEAS:VOLT:DC:AVER? &lt;chan&gt;, &lt;n&gt;</code> averaged measurement of n samples</li>
+<li><code>CALC:CAL:OFFS &lt;chan&gt;, &lt;volts&gt;</code> sets offset calibration</li>
+<li><code>CALC:CAL:GAIN &lt;chan&gt;, &lt;factor&gt;</code> sets gain calibration</li>
+</ul>
+<p><strong>Table 7-4: Module 1B BOM (Standard Variant)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>ADS1115 breakout</td>
+<td>$5</td>
+<td>Adafruit, SparkFun, or CJMCU</td>
+</tr>
+<tr class="odd">
+<td>Hookup wire and headers</td>
+<td>$1</td>
+<td>I²C bus and channel inputs</td>
+</tr>
+<tr class="even">
+<td>3D-printed enclosure</td>
+<td>$1</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Total</strong></td>
+<td><strong>~$14</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>The precision variant replaces the ADS1115 breakout ($5) with an ADS1256 breakout ($10); module total approximately $19.</p>
+<h4 id="module-1c-usb-hid-protocol-analyzer">7.5.3 Module 1C: USB HID Protocol Analyzer</h4>
+<p>Module 1C captures USB Human Interface Device traffic from a device under test and decodes HID descriptors and reports for inspection. The module pairs two Pico 2 W boards. The first (chassis-facing) Pico presents as the USB-TMC instrument over the chassis powered USB hub. The second (DUT-facing) Pico runs TinyUSB in host mode and enumerates the device under test. The two Picos communicate over a UART link at 1 Mbps. This split avoids the dual-role USB complexity that would arise from trying to use a single Pico as both USB-TMC device (uplink) and USB host (downlink) simultaneously, since the RP2350’s USB controller supports either role but not both on the same port.</p>
+<p>The DUT-facing Pico captures full HID descriptors, parses report descriptors, and forwards either decoded reports or raw bytes back to the chassis-facing Pico for SCPI response. Capture buffer is approximately 32 KB on the DUT-facing Pico; longer captures stream live to the chassis side over UART.</p>
+<p><strong>Table 7-5: Module 1C Specifications</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DUT USB connection</td>
+<td>USB 2.0 full-speed (12 Mbps) host</td>
+</tr>
+<tr class="even">
+<td>Devices supported</td>
+<td>HID class (mouse, keyboard, gamepad, generic HID)</td>
+</tr>
+<tr class="odd">
+<td>Descriptor parsing</td>
+<td>Full device, configuration, interface, HID, report</td>
+</tr>
+<tr class="even">
+<td>Report capture</td>
+<td>Live streaming up to 1000 reports per second</td>
+</tr>
+<tr class="odd">
+<td>Capture buffer</td>
+<td>32 KB on-board, plus UART streaming</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 1C</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>USB:HID:ENUM?</code> lists connected device VID, PID, and string descriptors</li>
+<li><code>USB:HID:DESC? &lt;descriptor_type&gt;</code> returns raw descriptor bytes</li>
+<li><code>USB:HID:REPORT:STAR</code> starts report capture</li>
+<li><code>USB:HID:REPORT:STOP</code> stops report capture</li>
+<li><code>USB:HID:REPORT:DATA?</code> returns captured reports as decoded JSON</li>
+</ul>
+<p><strong>Table 7-6: Module 1C BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raspberry Pi Pico 2 W (chassis-facing)</td>
+<td>$7</td>
+<td>USB-TMC instrument</td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi Pico 2 W (DUT-facing)</td>
+<td>$7</td>
+<td>USB host for DUT</td>
+</tr>
+<tr class="odd">
+<td>USB-A receptacle for DUT</td>
+<td>$2</td>
+<td>Hand-soldered or breakout</td>
+</tr>
+<tr class="even">
+<td>Hookup wire and headers</td>
+<td>$2</td>
+<td>UART link, USB host wiring</td>
+</tr>
+<tr class="odd">
+<td>3D-printed enclosure</td>
+<td>$1</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td><strong>~$19</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-1d-source-measure-unit-lite">7.5.4 Module 1D: Source-Measure Unit Lite</h4>
+<p>Module 1D provides synchronized voltage sourcing and voltage/current measurement for IV-curve generation, low-power source-measure characterization, and transient response capture. The module pairs a Pico 2 W with a Microchip MCP4922 dual 12-bit DAC (SPI) and an ADS1115 ADC (I²C). Two source channels, each with an op-amp output stage providing 0 to 5 V with software-selectable gain to ±10 V, drive the DUT. Two voltage measurement channels and two current measurement channels (via 1 Ω shunt and differential ADC reading) close the loop on the DUT response.</p>
+<p>The “Lite” qualifier differentiates the module from a full bench SMU; current capability is bounded at ±30 mA by the op-amp output stage and shunt heat dissipation. A higher-current variant (replacing the op-amp output with an LM317-based regulator) extends capability to roughly ±500 mA but reduces voltage range and accuracy.</p>
+<p><strong>Table 7-7: Module 1D Specifications</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DAC</td>
+<td>MCP4922 dual 12-bit SPI</td>
+</tr>
+<tr class="even">
+<td>DAC update rate</td>
+<td>8 µs settling per channel</td>
+</tr>
+<tr class="odd">
+<td>Source channels</td>
+<td>2</td>
+</tr>
+<tr class="even">
+<td>Source voltage range</td>
+<td>0 to 5 V (default), ±10 V with gain</td>
+</tr>
+<tr class="odd">
+<td>Source resolution</td>
+<td>1.22 mV per LSB at 0 to 5 V range</td>
+</tr>
+<tr class="even">
+<td>Voltage measurement channels</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<td>Current measurement channels</td>
+<td>2 (via 1 Ω shunt and differential ADC)</td>
+</tr>
+<tr class="even">
+<td>Current measurement range</td>
+<td>±30 mA, 1 µA resolution</td>
+</tr>
+<tr class="odd">
+<td>ADC</td>
+<td>ADS1115, 16-bit</td>
+</tr>
+<tr class="even">
+<td>Sweep modes</td>
+<td>Linear, log, list</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 1D</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>SOUR:VOLT &lt;chan&gt;, &lt;volts&gt;</code> sets source voltage</li>
+<li><code>OUTP &lt;chan&gt;, &lt;ON|OFF&gt;</code> enables or disables channel output</li>
+<li><code>MEAS:VOLT? &lt;chan&gt;</code> measures DUT voltage</li>
+<li><code>MEAS:CURR? &lt;chan&gt;</code> measures DUT current</li>
+<li><code>SOUR:VOLT:SWEEP &lt;chan&gt;, &lt;start&gt;, &lt;stop&gt;, &lt;points&gt;, &lt;dwell_ms&gt;</code> performs a linear sweep</li>
+<li><code>MEAS:VOLT:SWEEP? &lt;chan&gt;</code> returns sweep voltage results</li>
+<li><code>MEAS:CURR:SWEEP? &lt;chan&gt;</code> returns sweep current results</li>
+</ul>
+<p><strong>Table 7-8: Module 1D BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>MCP4922 breakout</td>
+<td>$4</td>
+<td>Dual 12-bit DAC</td>
+</tr>
+<tr class="odd">
+<td>ADS1115 breakout</td>
+<td>$5</td>
+<td>16-bit ADC</td>
+</tr>
+<tr class="even">
+<td>MCP6232 op-amp (DIP)</td>
+<td>$2</td>
+<td>Output stage</td>
+</tr>
+<tr class="odd">
+<td>1 Ω current shunt resistors (qty 2)</td>
+<td>$1</td>
+<td>Through-hole</td>
+</tr>
+<tr class="even">
+<td>Hookup wire, headers, perfboard</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3D-printed enclosure</td>
+<td>$1</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td><strong>~$22</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-1e-function-generator-arbitrary-waveform-generator">7.5.5 Module 1E: Function Generator / Arbitrary Waveform Generator</h4>
+<p>Module 1E is an audio-band programmable function generator and arbitrary waveform generator. The module pairs a Pico 2 W with a Microchip MCP4922 dual 12-bit DAC clocked at the Pico SDK’s maximum DMA-driven SPI rate (approximately 1 MSPS sustained per channel). One DAC channel drives a single-ended output through an op-amp buffer providing approximately ±10 V into a 600 Ω load; the other channel is reserved for a sync/trigger output or a second waveform output. Standard waveforms (sine, square, triangle, ramp, noise, multitone) are generated from a precomputed lookup table; arbitrary waveforms are uploaded as 16-bit sample arrays up to 32 K samples deep.</p>
+<p>The audio-band ceiling is approximately 50 kHz, sufficient for clean sine generation through the output filter (about 20 samples per cycle at 1 MSPS DAC update). Frequency accuracy is bounded by the Pico’s onboard crystal at ±20 ppm, improvable to ±2 ppm by chaining the trigger bus to Module 2C’s TCXO reference. Module 1E pairs with Module 2E to enable the worked-example audio characterization recipes documented in section 10 (swept-sine THD, frequency response, intermodulation distortion).</p>
+<p><strong>Table 7-27: Module 1E Specifications</strong></p>
+<table>
+<colgroup>
+<col style="width: 61%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DAC</td>
+<td>MCP4922 dual 12-bit SPI</td>
+</tr>
+<tr class="even">
+<td>Channels</td>
+<td>2 (1 primary output, 1 sync or secondary)</td>
+</tr>
+<tr class="odd">
+<td>Sample rate (DAC update)</td>
+<td>up to 1 MSPS</td>
+</tr>
+<tr class="even">
+<td>Standard waveforms</td>
+<td>Sine, square, triangle, ramp, noise, multitone</td>
+</tr>
+<tr class="odd">
+<td>Arbitrary waveform depth</td>
+<td>up to 32 K samples (16-bit)</td>
+</tr>
+<tr class="even">
+<td>Output range</td>
+<td>±10 V into 600 Ω (op-amp buffered)</td>
+</tr>
+<tr class="odd">
+<td>Output impedance</td>
+<td>50 Ω or 600 Ω switchable</td>
+</tr>
+<tr class="even">
+<td>Frequency range</td>
+<td>DC to ~50 kHz</td>
+</tr>
+<tr class="odd">
+<td>Frequency accuracy</td>
+<td>±20 ppm (crystal); ±2 ppm with external 10 MHz reference</td>
+</tr>
+<tr class="even">
+<td>Amplitude resolution</td>
+<td>12-bit (~5 mV at 10 V FS)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 1E</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>SOUR:FUNC &lt;SIN|SQU|TRI|RAMP|NOIS|MULT|ARB&gt;</code> selects waveform shape</li>
+<li><code>SOUR:FREQ &lt;hz&gt;</code> sets frequency</li>
+<li><code>SOUR:VOLT &lt;volts_pp&gt;</code> sets peak-to-peak amplitude</li>
+<li><code>SOUR:VOLT:OFFS &lt;volts&gt;</code> sets DC offset</li>
+<li><code>SOUR:PHAS &lt;degrees&gt;</code> sets phase</li>
+<li><code>SOUR:ARB:UPLD &lt;samples&gt;</code> uploads arbitrary waveform</li>
+<li><code>OUTP &lt;ON|OFF&gt;</code> enables or disables output</li>
+<li><code>SOUR:SWEEP:CONF &lt;start_hz&gt;, &lt;stop_hz&gt;, &lt;time_s&gt;, &lt;LOG|LIN&gt;</code> configures swept sine</li>
+<li><code>SOUR:SWEEP:STAR</code> starts sweep</li>
+<li><code>SOUR:MULT:UPLD &lt;freqs&gt;, &lt;amps&gt;</code> uploads multitone definition</li>
+</ul>
+<p><strong>Table 7-28: Module 1E BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>MCP4922 breakout</td>
+<td>$4</td>
+<td>Same chip as 1D</td>
+</tr>
+<tr class="odd">
+<td>MCP6232 op-amp (DIP)</td>
+<td>$2</td>
+<td>Output buffer</td>
+</tr>
+<tr class="even">
+<td>Output network passives</td>
+<td>$1</td>
+<td>Filter, output impedance switching</td>
+</tr>
+<tr class="odd">
+<td>BNC output connector</td>
+<td>$1</td>
+<td>Front panel</td>
+</tr>
+<tr class="even">
+<td>Hookup wire, headers, perfboard</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3D-printed enclosure</td>
+<td>$1</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td><strong>~$18</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-1f-high-voltage-differential-probe">7.5.6 Module 1F: High-Voltage Differential Probe</h4>
+<p>Module 1F is a v1.1 addition that adapts the Module 1B voltmeter for high-voltage differential measurement. The module presents a differential input pair (insulated banana jacks) buffered by a precision instrumentation amplifier (Analog Devices AD8421 or Texas Instruments INA128) with a 100:1 input attenuator network providing ±300 V differential range. The attenuator divides the input by 100 before the instrumentation amp; the amp drives an ADS1115 ADC for digitization.</p>
+<p>Isolation between the high-voltage input and the chassis-side electronics is provided by the attenuator network alone in v1.1; full galvanic isolation (optical signal coupling and transformer-isolated DC-DC for the front-end power) is reserved for a future v1.2 variant. The v1.1 form is suitable for tube amp B+ rail measurement, line-voltage measurement, and any DUT where the common-mode voltage exceeds Module 1B’s ±6.144 V range. The v1.1 form must not be used to measure voltages above 300 V DC or 212 V RMS, and must not be used where galvanic isolation from chassis ground is required for safety; the v1.2 isolated variant is the correct path for those cases.</p>
+<p>Status: Planned, v1.1.</p>
+<p><strong>Table 7-29: Module 1F Specifications</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Input topology</td>
+<td>Differential, two-pin</td>
+</tr>
+<tr class="even">
+<td>Attenuator ratio</td>
+<td>100:1 (precision matched, ±0.1%)</td>
+</tr>
+<tr class="odd">
+<td>Input voltage range</td>
+<td>±300 V differential</td>
+</tr>
+<tr class="even">
+<td>Common-mode rejection</td>
+<td>&gt; 80 dB at DC, &gt; 60 dB at 60 Hz</td>
+</tr>
+<tr class="odd">
+<td>Bandwidth</td>
+<td>DC to 100 kHz</td>
+</tr>
+<tr class="even">
+<td>ADC</td>
+<td>ADS1115, 16-bit</td>
+</tr>
+<tr class="odd">
+<td>DC accuracy</td>
+<td>±0.5% typical, ±0.1% with calibration</td>
+</tr>
+<tr class="even">
+<td>Input impedance</td>
+<td>10 MΩ differential</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 1F</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>MEAS:VOLT:HV?</code> differential voltage measurement</li>
+<li><code>CONF:VOLT:HV:RANG &lt;range&gt;</code> sets ADC PGA range</li>
+<li><code>MEAS:VOLT:HV:AVER? &lt;n&gt;</code> averaged measurement of n samples</li>
+</ul>
+<p><strong>Table 7-30: Module 1F BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>AD8421 instrumentation amp</td>
+<td>$10</td>
+<td>INA128 alternative</td>
+</tr>
+<tr class="odd">
+<td>100:1 attenuator (1% precision resistors, matched)</td>
+<td>$4</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>ADS1115 breakout</td>
+<td>$5</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Banana jacks, insulated, 600 V rated (qty 2)</td>
+<td>$4</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Hookup wire, headers</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3D-printed enclosure with safety creepage spacing</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td><strong>~$35</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-1g-ir-capture-and-transmit">7.5.7 Module 1G: IR Capture and Transmit</h4>
+<p>Module 1G is a v1.1 addition that captures and transmits infrared remote-control signals, supporting decoded-protocol identification and raw-timing capture. The module pairs a Pico 2 W with a Vishay TSOP4838 IR receiver (38 kHz carrier, the dominant consumer IR frequency), an IR LED with current-limited transmit driver, and a PIO state machine that samples received signals at 1 MHz and drives transmitted signals with sub-microsecond accuracy. Standard protocols supported in firmware include NEC, Sony SIRC, RC5, RC6, JVC, and Samsung; a raw mode captures arbitrary IR timing for protocols not explicitly supported.</p>
+<p>The intended use cases are consumer electronics debug (capturing remote codes from a Firestick or TV remote, injecting control commands during boot scripting, characterizing IR receiver sensitivity at varying distances). Carrier frequencies other than 38 kHz are supported in firmware via the PIO state machine but require the appropriate TSOP variant (TSOP4840 for 40 kHz, TSOP4856 for 56 kHz) on the receive side.</p>
+<p>Status: Planned, v1.1.</p>
+<p><strong>Table 7-31: Module 1G Specifications</strong></p>
+<table>
+<colgroup>
+<col style="width: 61%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Receiver</td>
+<td>Vishay TSOP4838 (38 kHz default)</td>
+</tr>
+<tr class="even">
+<td>Receive sample rate</td>
+<td>1 MHz via PIO</td>
+</tr>
+<tr class="odd">
+<td>Decoded protocols</td>
+<td>NEC, Sony SIRC, RC5, RC6, JVC, Samsung; raw mode otherwise</td>
+</tr>
+<tr class="even">
+<td>Transmit LED</td>
+<td>High-power IR LED (e.g., SFH4715A), ~100 mA peak</td>
+</tr>
+<tr class="odd">
+<td>Transmit timing accuracy</td>
+<td>&lt; 1 µs jitter via PIO</td>
+</tr>
+<tr class="even">
+<td>Carrier frequency, transmit</td>
+<td>30 to 60 kHz software-selectable</td>
+</tr>
+<tr class="odd">
+<td>Range</td>
+<td>~5 m receive, ~3 m transmit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 1G</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>IR:RX:DEC?</code> returns decoded received signal (protocol and payload)</li>
+<li><code>IR:RX:RAW? &lt;duration_ms&gt;</code> returns raw timing capture</li>
+<li><code>IR:TX:SEND &lt;protocol&gt;, &lt;payload&gt;</code> sends formatted command</li>
+<li><code>IR:TX:RAW &lt;timing_array&gt;</code> sends raw timing sequence</li>
+<li><code>IR:CAR:FREQ &lt;hz&gt;</code> sets carrier frequency for transmit</li>
+</ul>
+<p><strong>Table 7-32: Module 1G BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>TSOP4838 IR receiver</td>
+<td>$1</td>
+<td>38 kHz</td>
+</tr>
+<tr class="odd">
+<td>IR LED (SFH4715A or similar)</td>
+<td>$1</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Transistor driver and current-limit resistor</td>
+<td>$1</td>
+<td>2N3904 or BSS138</td>
+</tr>
+<tr class="odd">
+<td>Hookup wire, headers</td>
+<td>$1</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>3D-printed enclosure</td>
+<td>$1</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Total</strong></td>
+<td><strong>~$12</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="module-tier-2-fpga-based-modules">7.6 Module Tier 2: FPGA-Based Modules</h3>
+<p>Tier 2 modules implement instrument logic in HDL on the Sipeed Tang Primer 25K. The Tang Primer 25K hosts a Gowin GW5A-LV25MG121 FPGA with approximately 23,040 LUT4, 1,008 Kbit BSRAM, and 180 Kbit distributed shift-register memory. The dev board provides USB-C power, JTAG programming, an onboard 50 MHz oscillator, and 88 user-accessible I/O pins through expansion headers.</p>
+<p>Each Tier 2 module bundles three host-facing devices alongside the FPGA. The Pico 2 W is the canonical SCPI bridge: it presents as a USB-TMC instrument to the chassis-wide powered USB hub, runs the SCPI parser in bare-metal C against the module’s YAML command schema, and acts as SPI master to the FPGA’s instrument register file at approximately 30 MHz. The Pi Zero 2 W is the per-module Linux sidecar: it provides SD-card storage for module configuration and calibration data, ssh and optional web-UI access for human inspection, optional Wi-Fi or wired LAN connectivity via USB-Ethernet adapter, and a reserved secondary SPI lane to the FPGA for v2.0 streaming-capture expansion (the v1.0 baseline does not exercise this lane). The two host devices do not share the FPGA SPI bus during normal operation; the canonical instrument data path is FPGA to Pico to USB-TMC to Pi 5.</p>
+<p>FPGA resource estimates for each Tier 2 module are conservative and target less than 50 percent fabric utilization to leave headroom for module evolution and shared infrastructure (clock domain crossings, register file, SPI slave, debug ports). Memory budgets target less than 80 percent BSRAM utilization for the same reason.</p>
+<h4 id="module-2a-logic-analyzer">7.6.1 Module 2A: Logic Analyzer</h4>
+<p>Module 2A captures sixteen single-ended digital channels at sample rates up to 100 MHz with configurable triggers and post-capture protocol decoding. Triggers include edge, level, multi-channel pattern, and sequence (state-machine triggers up to 8 states deep). Captures land in BSRAM as a circular buffer; the Pico bridge transfers captures to the host on demand at USB-TMC throughput.</p>
+<p><strong>Table 7-9: Module 2A Specifications</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Channels</td>
+<td>16 single-ended</td>
+</tr>
+<tr class="even">
+<td>Logic level</td>
+<td>3.3 V CMOS, 5 V tolerant via level shifter</td>
+</tr>
+<tr class="odd">
+<td>Maximum sample rate</td>
+<td>100 MHz</td>
+</tr>
+<tr class="even">
+<td>Memory depth</td>
+<td>~63 K samples at 16-channel width</td>
+</tr>
+<tr class="odd">
+<td>Triggers</td>
+<td>Edge, level, multi-channel pattern, 8-state sequence</td>
+</tr>
+<tr class="even">
+<td>Post-capture decoders</td>
+<td>SPI, I²C, UART (firmware-resident)</td>
+</tr>
+<tr class="odd">
+<td>Capture transfer time</td>
+<td>~85 ms full buffer at USB-TMC 12 Mbps</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 7-10: Module 2A FPGA Resource Estimate</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Resource</th>
+<th>Estimate</th>
+<th>Percent of Tang Primer 25K</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LUT4</td>
+<td>~6,000</td>
+<td>26%</td>
+</tr>
+<tr class="even">
+<td>BSRAM</td>
+<td>~700 Kbit</td>
+<td>70%</td>
+</tr>
+<tr class="odd">
+<td>Distributed memory</td>
+<td>~10 Kbit</td>
+<td>6%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 2A</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>TRAC:CONF &lt;channels&gt;, &lt;rate&gt;, &lt;depth&gt;</code> configures capture</li>
+<li><code>TRAC:TRIG:EDGE &lt;chan&gt;, &lt;RIS|FALL|EITH&gt;</code> sets edge trigger</li>
+<li><code>TRAC:TRIG:PATT &lt;pattern&gt;, &lt;mask&gt;</code> sets pattern trigger</li>
+<li><code>TRAC:ARM</code> arms capture and returns when ready</li>
+<li><code>TRAC:DATA?</code> returns captured samples</li>
+<li><code>TRAC:DEC:SPI &lt;clk&gt;, &lt;mosi&gt;, &lt;miso&gt;, &lt;cs&gt;</code> decodes SPI transactions</li>
+<li><code>TRAC:DEC:I2C &lt;sda&gt;, &lt;scl&gt;</code> decodes I²C transactions</li>
+<li><code>TRAC:DEC:UART &lt;rx&gt;, &lt;baud&gt;</code> decodes a UART stream</li>
+</ul>
+<p><strong>Table 7-11: Module 2A BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sipeed Tang Primer 25K</td>
+<td>$35</td>
+<td>FPGA dev board</td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi Pico 2 W (chassis-facing)</td>
+<td>$7</td>
+<td>USB-TMC bridge</td>
+</tr>
+<tr class="odd">
+<td>Raspberry Pi Zero 2 W</td>
+<td>$15</td>
+<td>Admin sidecar</td>
+</tr>
+<tr class="even">
+<td>MicroSD card (16 GB)</td>
+<td>$5</td>
+<td>Pi Zero boot and storage</td>
+</tr>
+<tr class="odd">
+<td>USB-Ethernet adapter (optional, wired LAN)</td>
+<td>$10</td>
+<td>Switch-side connectivity</td>
+</tr>
+<tr class="even">
+<td>Bidirectional level shifter (8-channel)</td>
+<td>$3</td>
+<td>DUT-side</td>
+</tr>
+<tr class="odd">
+<td>Hookup wire, headers, ribbon cable</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>3D-printed enclosure</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Total</strong></td>
+<td><strong>~$80</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-2b-protocol-exerciseranalyzer">7.6.2 Module 2B: Protocol Exerciser/Analyzer</h4>
+<p>Module 2B implements concurrent I²C, SPI, UART, and CEC engines in FPGA fabric, each capable of master or slave operation. The module both drives DUT protocol traffic for stimulus generation and captures DUT-originated traffic for analysis. Up to four independent engines can run concurrently on independent channel groups.</p>
+<p>The CEC (Consumer Electronics Control) engine, although low-bandwidth at 400 bps, justifies inclusion because CEC implementations are commonly buggy in commercial HDMI consumer devices, and a standalone exerciser fills a real diagnostic need.</p>
+<p><strong>Table 7-12: Module 2B Specifications</strong></p>
+<table>
+<colgroup>
+<col style="width: 61%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>I²C engine</td>
+<td>Master and slave, up to 1 MHz, 7-bit and 10-bit addressing</td>
+</tr>
+<tr class="even">
+<td>SPI engine</td>
+<td>Master and slave, up to 50 MHz, all four modes</td>
+</tr>
+<tr class="odd">
+<td>UART engine</td>
+<td>Up to 12 Mbps, configurable parity and stop bits</td>
+</tr>
+<tr class="even">
+<td>CEC engine</td>
+<td>400 bps, full message framing</td>
+</tr>
+<tr class="odd">
+<td>Concurrent engines</td>
+<td>Up to 4</td>
+</tr>
+<tr class="even">
+<td>Capture depth per engine</td>
+<td>~1,000 transactions (firmware-resident ring buffer)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 7-13: Module 2B FPGA Resource Estimate</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Resource</th>
+<th>Estimate</th>
+<th>Percent of Tang Primer 25K</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LUT4</td>
+<td>~4,000</td>
+<td>17%</td>
+</tr>
+<tr class="even">
+<td>BSRAM</td>
+<td>~50 Kbit</td>
+<td>5%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 2B</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>PROT:I2C:CONF &lt;freq&gt;, &lt;mode&gt;</code> configures I²C engine</li>
+<li><code>PROT:I2C:WRITE &lt;addr&gt;, &lt;data&gt;</code> master write</li>
+<li><code>PROT:I2C:READ? &lt;addr&gt;, &lt;count&gt;</code> master read</li>
+<li><code>PROT:I2C:SCAN?</code> scans bus for responding addresses</li>
+<li><code>PROT:SPI:CONF &lt;freq&gt;, &lt;mode&gt;</code> configures SPI engine</li>
+<li><code>PROT:SPI:TRANS? &lt;data&gt;</code> full-duplex transaction</li>
+<li><code>PROT:UART:CONF &lt;baud&gt;, &lt;parity&gt;, &lt;stop&gt;</code> configures UART</li>
+<li><code>PROT:UART:WRITE &lt;data&gt;</code> sends bytes</li>
+<li><code>PROT:UART:READ? &lt;count&gt;, &lt;timeout_ms&gt;</code> receives bytes</li>
+<li><code>PROT:CEC:SEND &lt;message&gt;</code> sends a CEC message</li>
+<li><code>PROT:CEC:CAPTURE? &lt;duration_ms&gt;</code> captures CEC traffic</li>
+</ul>
+<p><strong>Table 7-14: Module 2B BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sipeed Tang Primer 25K</td>
+<td>$35</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Raspberry Pi Zero 2 W</td>
+<td>$15</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>MicroSD card</td>
+<td>$5</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>USB-Ethernet adapter (optional)</td>
+<td>$10</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Bidirectional level shifter</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Headers and hookup</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>3D-printed enclosure</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Total</strong></td>
+<td><strong>~$80</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-2c-frequency-counter">7.6.3 Module 2C: Frequency Counter</h4>
+<p>Module 2C measures input frequency from 1 Hz to 100 MHz with sub-hertz resolution at a 1 second gate using reciprocal counting. The reciprocal architecture (counting the number of reference-clock ticks between input-clock edges) gives uniform resolution across the input frequency range, in contrast to direct counting which loses resolution at low frequencies.</p>
+<p><strong>Table 7-15: Module 2C Specifications</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Channels</td>
+<td>1 measurement, 1 reference (TCXO or external)</td>
+</tr>
+<tr class="even">
+<td>Frequency range</td>
+<td>1 Hz to 100 MHz</td>
+</tr>
+<tr class="odd">
+<td>Resolution</td>
+<td>&lt; 1 Hz at 1 s gate, &lt; 0.01 Hz at 100 s gate</td>
+</tr>
+<tr class="even">
+<td>Reference accuracy</td>
+<td>±2.5 ppm (onboard TCXO) or external 10 MHz</td>
+</tr>
+<tr class="odd">
+<td>Gate time</td>
+<td>1 ms to 1000 s, configurable</td>
+</tr>
+<tr class="even">
+<td>Architecture</td>
+<td>Reciprocal counting, 32-bit accumulator</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 7-16: Module 2C FPGA Resource Estimate</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Resource</th>
+<th>Estimate</th>
+<th>Percent of Tang Primer 25K</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LUT4</td>
+<td>~2,000</td>
+<td>9%</td>
+</tr>
+<tr class="even">
+<td>BSRAM</td>
+<td>&lt; 5 Kbit</td>
+<td>&lt; 1%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 2C</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>FREQ:MEAS? &lt;gate_ms&gt;</code> measures frequency on default channel</li>
+<li><code>PER:MEAS? &lt;gate_ms&gt;</code> measures period (inverse)</li>
+<li><code>FREQ:CONF:GATE &lt;gate_ms&gt;</code> sets default gate</li>
+<li><code>FREQ:CONF:REF &lt;INT|EXT&gt;</code> selects internal or external reference</li>
+<li><code>FREQ:RAT? &lt;chan_a&gt;, &lt;chan_b&gt;</code> measures ratio between two channels</li>
+</ul>
+<p><strong>Table 7-17: Module 2C BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sipeed Tang Primer 25K</td>
+<td>$35</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Raspberry Pi Zero 2 W</td>
+<td>$15</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>MicroSD card</td>
+<td>$5</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>USB-Ethernet adapter (optional)</td>
+<td>$10</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>TCXO module (10 MHz, 2.5 ppm)</td>
+<td>$5</td>
+<td>Onboard reference</td>
+</tr>
+<tr class="odd">
+<td>BNC connectors (qty 2, optional)</td>
+<td>$3</td>
+<td>Front-panel reference and signal</td>
+</tr>
+<tr class="even">
+<td>Headers and hookup</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3D-printed enclosure</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td><strong>~$84</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-2d-ethernet-mac-and-network-analyzer">7.6.4 Module 2D: Ethernet MAC and Network Analyzer</h4>
+<p>Module 2D implements an Ethernet MAC with capture, statistics, and bridge functions, paired with an external PHY (PmodNIC100 or equivalent) connected to the Tang Primer 25K via MII or RMII. The PHY provides 100BASE-TX or 1000BASE-T line-side encoding; the FPGA implements the MAC layer with full-frame capture and CRC validation. A bridge mode connects two Ethernet ports through the FPGA, capturing every frame that crosses the bridge into BSRAM. At line rates that exceed the BSRAM capture buffer’s drain rate over USB-TMC the bridge becomes a sampler rather than a tap; sustained capture at full line rate requires the v2.0 streaming variant via the Pi Zero secondary bus.</p>
+<p>A 10BASE-T raw FPGA-only implementation (Manchester-encoded line driver with pulse transformer, no external PHY) was considered as a separate phase but has been dropped from the v1.0 scope. The external-PHY path provides materially more useful line rates and is closer to the bring-up patterns Brad will encounter in real DUTs.</p>
+<p><strong>Table 7-18: Module 2D Specifications</strong></p>
+<table>
+<colgroup>
+<col style="width: 61%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Line rate</td>
+<td>100 Mbps or 1000 Mbps via external PHY</td>
+</tr>
+<tr class="even">
+<td>Capture</td>
+<td>Full frame to BSRAM, CRC validated</td>
+</tr>
+<tr class="odd">
+<td>Capture depth</td>
+<td>~256 frames at 1500-byte MTU</td>
+</tr>
+<tr class="even">
+<td>Modes</td>
+<td>Single-port capture, dual-port TAP, transparent bridge</td>
+</tr>
+<tr class="odd">
+<td>Statistics</td>
+<td>RX/TX frame counts, CRC errors, length errors, alignment errors</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 7-19: Module 2D FPGA Resource Estimate</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Resource</th>
+<th>Estimate</th>
+<th>Percent of Tang Primer 25K</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LUT4</td>
+<td>~5,000</td>
+<td>22%</td>
+</tr>
+<tr class="even">
+<td>BSRAM</td>
+<td>~250 Kbit</td>
+<td>25%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 2D</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>ETH:CAPT:CONF &lt;port&gt;, &lt;filter&gt;</code> configures capture filter</li>
+<li><code>ETH:CAPT:STAR &lt;port&gt;</code> starts capture</li>
+<li><code>ETH:CAPT:STOP &lt;port&gt;</code> stops capture and returns trace ID</li>
+<li><code>ETH:CAPT:DATA? &lt;trace_id&gt;</code> returns captured frames</li>
+<li><code>ETH:STAT? &lt;port&gt;</code> returns statistics counters</li>
+<li><code>ETH:BRIDGE:STAR &lt;port_a&gt;, &lt;port_b&gt;</code> starts transparent bridge with capture</li>
+<li><code>ETH:BRIDGE:STOP</code> stops bridge</li>
+</ul>
+<p><strong>Table 7-20: Module 2D BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sipeed Tang Primer 25K</td>
+<td>$35</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>External PHY (PmodNIC100 or equivalent)</td>
+<td>$25</td>
+<td>100/1000 BASE-TX</td>
+</tr>
+<tr class="odd">
+<td>RJ45 jack with magnetics</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Raspberry Pi Zero 2 W</td>
+<td>$15</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>MicroSD card</td>
+<td>$5</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>USB-Ethernet adapter</td>
+<td>$10</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Headers and hookup</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3D-printed enclosure</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td><strong>~$105</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-2e-mixed-signal-digitizer-oscilloscope">7.6.5 Module 2E: Mixed-Signal Digitizer / Oscilloscope</h4>
+<p>Module 2E provides oscilloscope-class analog waveform capture at PMVB scale. The module pairs an Analog Devices AD9226 12-bit 65 MSPS ADC with the Tang Primer 25K and a programmable analog front end (AFE). The AFE provides DC and AC coupling, relay-switched input attenuation through a precision divider network, and a single-ended-to-differential conversion stage (high-speed op-amp such as AD8131) that drives the AD9226’s differential input. Two channels are supported in v1.0 through channel multiplexing on the single ADC at approximately 32 MSPS per channel; a future v2.0 variant will use two AD9226 ICs for true simultaneous dual-channel capture at 65 MSPS each.</p>
+<p>Capture depth is bounded by the Tang Primer 25K’s BSRAM at approximately 65 K samples per channel at 12-bit width in single-channel mode, or 32 K per channel in dual-channel mode. Trigger sources include level (with hysteresis), edge, and external (taken from the chassis trigger bus). The FPGA computes basic statistics (peak, RMS, mean, min, max) on the BSRAM-resident capture so the host can query summary numbers without dragging the full waveform across USB-TMC. Spectrum analysis (FFT) is performed on the Pi 5 in Python after the waveform transfers, rather than in the FPGA fabric, to keep FPGA resource utilization below the Tier 2 80 percent BSRAM target.</p>
+<p>Module 2E is the headline analog characterization module for the platform. It enables Firestick-class consumer electronics debug (rail transient capture, signal sequencing during boot) and audio-amplifier characterization (waveform capture, FFT-based THD measurement when paired with Module 1E for stimulus).</p>
+<p><strong>Table 7-33: Module 2E Specifications</strong></p>
+<table>
+<colgroup>
+<col style="width: 61%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ADC</td>
+<td>AD9226, 12-bit, 65 MSPS</td>
+</tr>
+<tr class="even">
+<td>Channels</td>
+<td>1 at 65 MSPS, or 2 at 32 MSPS (multiplexed)</td>
+</tr>
+<tr class="odd">
+<td>Analog bandwidth</td>
+<td>DC to 25 MHz (Nyquist limited)</td>
+</tr>
+<tr class="even">
+<td>Input ranges (relay-switched attenuator)</td>
+<td>±50 mV, ±200 mV, ±1 V, ±5 V, ±20 V</td>
+</tr>
+<tr class="odd">
+<td>Coupling</td>
+<td>DC or AC, switchable</td>
+</tr>
+<tr class="even">
+<td>Memory depth</td>
+<td>~65 K samples at 12-bit (single channel); ~32 K (dual)</td>
+</tr>
+<tr class="odd">
+<td>Triggers</td>
+<td>Level (with hysteresis), edge, external (chassis trigger bus)</td>
+</tr>
+<tr class="even">
+<td>Onboard analytics</td>
+<td>Peak, RMS, mean, min, max (computed in FPGA)</td>
+</tr>
+<tr class="odd">
+<td>Vertical resolution</td>
+<td>12-bit (4096 levels)</td>
+</tr>
+<tr class="even">
+<td>Voltage accuracy</td>
+<td>±1% typical after calibration</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 7-34: Module 2E FPGA Resource Estimate</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Resource</th>
+<th>Estimate</th>
+<th>Percent of Tang Primer 25K</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LUT4</td>
+<td>~5,000</td>
+<td>22%</td>
+</tr>
+<tr class="even">
+<td>BSRAM</td>
+<td>~800 Kbit</td>
+<td>79%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 2E</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>DIG:CONF &lt;chan&gt;, &lt;range&gt;, &lt;coupling&gt;</code> configures channel input</li>
+<li><code>DIG:RATE &lt;sps&gt;</code> sets sample rate (single or dual mode)</li>
+<li><code>DIG:DEPTH &lt;samples&gt;</code> sets capture depth</li>
+<li><code>DIG:TRIG:LEV &lt;chan&gt;, &lt;volts&gt;</code> sets level trigger</li>
+<li><code>DIG:TRIG:EDGE &lt;chan&gt;, &lt;RIS|FALL&gt;</code> sets edge trigger</li>
+<li><code>DIG:TRIG:EXT &lt;ON|OFF&gt;</code> selects external trigger from chassis bus</li>
+<li><code>DIG:ARM</code> arms capture and returns when complete</li>
+<li><code>DIG:DATA? &lt;chan&gt;</code> returns captured samples (volts after calibration)</li>
+<li><code>DIG:STAT? &lt;chan&gt;</code> returns capture statistics</li>
+<li><code>DIG:FFT? &lt;chan&gt;, &lt;points&gt;</code> returns FFT magnitude (Pi 5 computed)</li>
+</ul>
+<p><strong>Table 7-35: Module 2E BOM</strong></p>
+<table>
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 58%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sipeed Tang Primer 25K</td>
+<td>$35</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>AD9226 ADC (bare IC + perfboard or custom PCB)</td>
+<td>$15</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>AD8131 high-speed differential driver</td>
+<td>$5</td>
+<td>SE-to-diff for ADC</td>
+</tr>
+<tr class="even">
+<td>Analog front end PCB (custom or perfboard)</td>
+<td>$15</td>
+<td>Op-amps, attenuator network, relay switching</td>
+</tr>
+<tr class="odd">
+<td>Relay-switched attenuator (bistable signal relays)</td>
+<td>$8</td>
+<td>Precision divider with five ranges</td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Raspberry Pi Zero 2 W</td>
+<td>$15</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>MicroSD card (16 GB)</td>
+<td>$5</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>USB-Ethernet adapter (optional)</td>
+<td>$10</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>BNC input connectors (qty 2)</td>
+<td>$4</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Headers, hookup, enclosure</td>
+<td>$5</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td><strong>~$124</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Module 2E exceeds the $50 to $80 Tier 2 BOM target due to the analog front end. The exception is intentional and was approved as part of the v1.0 catalog scoping; the AFE complexity and the AD9226 IC drive cost beyond Tier 2 norms but the module sits architecturally within Tier 2 (single Tang Primer 25K, Pico bridge, Pi Zero sidecar).</p>
+<h3 id="module-tier-3-high-speed-interfaces">7.7 Module Tier 3: High-Speed Interfaces</h3>
+<p>Tier 3 modules target multi-megabit and multi-gigabit interfaces that exceed the Tang Primer 25K’s I/O capacity and the Pico bridge’s USB-TMC throughput. These modules are deferred from the v1.0 build pending acquisition of a larger FPGA platform with multi-gigabit transceivers (Sipeed Tang Mega 138K Pro at approximately $200, or Alinx AX7325B with Xilinx Kintex-7 325T at approximately $450). The Pi Zero 2 W sidecar becomes more important at this tier because USB full-speed is too slow for sustained capture; the Pi Zero’s secondary SPI bus and wired LAN port carry the bulk of the captured data.</p>
+<p>The architectural pattern (Pico USB-TMC bridge, Pi Zero admin sidecar, FPGA instrument logic) is preserved at Tier 3; only the FPGA changes and the data path shifts toward the Pi Zero LAN bulk channel for sustained captures.</p>
+<h4 id="module-3a-usb-2.0-protocol-analyzer">7.7.1 Module 3A: USB 2.0 Protocol Analyzer</h4>
+<p>Module 3A captures USB high-speed traffic at 480 Mbps, decodes packets, and identifies protocol errors. The FPGA implements a USB high-speed receive-only PHY interface (using ULPI or UTMI+ depending on the FPGA platform), captures SETUP, IN, OUT, and SOF packets, and applies a configurable filter to limit capture to relevant traffic. Captured data streams over the Pi Zero SPI bus to the Pi Zero’s SD card or LAN-attached storage, since 480 Mbps far exceeds USB-TMC’s 12 Mbps full-speed link.</p>
+<p><strong>Table 7-21: Module 3A Specifications</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Capture rate</td>
+<td>480 Mbps (USB 2.0 high-speed)</td>
+</tr>
+<tr class="even">
+<td>Direction</td>
+<td>Receive only (passive analyzer)</td>
+</tr>
+<tr class="odd">
+<td>Decoded packet types</td>
+<td>SETUP, IN, OUT, SOF, DATA0/1, ACK, NAK, STALL</td>
+</tr>
+<tr class="even">
+<td>Filter</td>
+<td>VID/PID, endpoint, packet type</td>
+</tr>
+<tr class="odd">
+<td>Capture buffer</td>
+<td>FPGA BSRAM with Pi Zero LAN streaming</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 3A</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>USB:CAPT:CONF &lt;filter&gt;</code> configures filter</li>
+<li><code>USB:CAPT:STAR &lt;duration_ms&gt;</code> starts capture</li>
+<li><code>USB:CAPT:STOP</code> stops capture and returns trace ID</li>
+<li><code>USB:CAPT:DEC? &lt;trace_id&gt;</code> returns decoded transactions as a path or trace ID, not inline payload (per section 9 rules)</li>
+<li><code>USB:STAT?</code> returns statistics counters</li>
+</ul>
+<p><strong>Table 7-22: Module 3A BOM</strong></p>
+<table>
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 58%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sipeed Tang Mega 138K Pro</td>
+<td>$200</td>
+<td>Or Alinx AX7325B at ~$450</td>
+</tr>
+<tr class="even">
+<td>USB high-speed PHY (USB3300 or similar)</td>
+<td>$15</td>
+<td>If FPGA does not include integrated PHY</td>
+</tr>
+<tr class="odd">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td>USB-TMC bridge</td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi Zero 2 W</td>
+<td>$15</td>
+<td>Bulk data path</td>
+</tr>
+<tr class="odd">
+<td>MicroSD card (32 GB)</td>
+<td>$8</td>
+<td>Capture storage</td>
+</tr>
+<tr class="even">
+<td>USB-Ethernet adapter</td>
+<td>$10</td>
+<td>Wired LAN required at this tier</td>
+</tr>
+<tr class="odd">
+<td>USB-A receptacle for DUT</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Headers, hookup, RF connectors</td>
+<td>$5</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3D-printed or aluminum enclosure</td>
+<td>$5</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Total (Tang Mega platform)</strong></td>
+<td><strong>~$267</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-3b-hdmi-sideband-analyzer">7.7.2 Module 3B: HDMI Sideband Analyzer</h4>
+<p>Module 3B captures the slow HDMI sideband channels rather than the multi-gigabit TMDS channels (the latter would require equipment-grade equalizers and clock recovery). The DDC (Display Data Channel) is I²C at 100 kHz, the CEC (Consumer Electronics Control) channel is 400 bps, and the HEC/ARC (HDMI Ethernet Channel and Audio Return Channel) sidebands run at audio-band rates. These three channels carry the EDID negotiation, device control commands, and audio metadata that account for the majority of HDMI interoperability failures in the field.</p>
+<p>The module presents an HDMI receptacle to the DUT, taps DDC, CEC, HEC, and ARC into the FPGA, and exposes capture and decode commands. The FPGA load is light enough that this module can run on the Tang Primer 25K rather than the larger Tier 3 FPGA, but it is grouped in Tier 3 because the HDMI receptacle and breakout PCB push the module BOM and bring-up complexity above Tier 2 norms.</p>
+<p><strong>Table 7-23: Module 3B Specifications</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DDC capture</td>
+<td>I²C at 100 kHz, full transaction record</td>
+</tr>
+<tr class="even">
+<td>CEC capture</td>
+<td>400 bps, full message framing</td>
+</tr>
+<tr class="odd">
+<td>HEC/ARC capture</td>
+<td>~12 Mbps Ethernet over HDMI sideband, audio-rate samples</td>
+</tr>
+<tr class="even">
+<td>Capture buffer</td>
+<td>FPGA BSRAM (DDC and CEC), Pi Zero stream (HEC/ARC)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 3B</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>HDMI:EDID:READ?</code> reads complete EDID block from sink</li>
+<li><code>HDMI:DDC:MON &lt;duration_ms&gt;</code> monitors DDC traffic</li>
+<li><code>HDMI:DDC:DATA?</code> returns captured DDC transactions</li>
+<li><code>HDMI:CEC:CAPT &lt;duration_ms&gt;</code> captures CEC traffic</li>
+<li><code>HDMI:CEC:DATA?</code> returns decoded CEC messages</li>
+<li><code>HDMI:CEC:SEND &lt;message&gt;</code> injects a CEC message</li>
+<li><code>HDMI:HEC:CAPT &lt;duration_ms&gt;</code> captures HEC/ARC</li>
+</ul>
+<p><strong>Table 7-24: Module 3B BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sipeed Tang Primer 25K</td>
+<td>$35</td>
+<td>Sufficient for sideband only</td>
+</tr>
+<tr class="even">
+<td>HDMI receptacle (full size)</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>HDMI breakout PCB</td>
+<td>$15</td>
+<td>Custom or evaluation board</td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Raspberry Pi Zero 2 W</td>
+<td>$15</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>MicroSD card</td>
+<td>$5</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>USB-Ethernet adapter</td>
+<td>$10</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Headers, hookup</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3D-printed enclosure</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td><strong>~$95</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-3c-usb-c-configuration-channel-analyzer">7.7.3 Module 3C: USB-C Configuration Channel Analyzer</h4>
+<p>Module 3C captures the USB-C Configuration Channel (CC) line, which carries Power Delivery (PD) negotiation messages encoded in BMC at 300 kHz. The CC channel also signals cable orientation and alternate-mode entry. The module taps CC1 and CC2 from a USB-C receptacle, decodes PD message framing, and presents the decoded source capabilities, request, and accept messages back to the orchestration layer. Alternate-mode detection (DisplayPort or Thunderbolt) is reported as a state-transition log.</p>
+<p><strong>Table 7-25: Module 3C Specifications</strong></p>
+<table>
+<colgroup>
+<col style="width: 61%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CC capture rate</td>
+<td>300 kHz BMC</td>
+</tr>
+<tr class="even">
+<td>Decoded messages</td>
+<td>Source Capabilities, Request, Accept, PS_RDY, alternate-mode entry/exit</td>
+</tr>
+<tr class="odd">
+<td>Cable orientation</td>
+<td>Detected and reported</td>
+</tr>
+<tr class="even">
+<td>Capture buffer</td>
+<td>FPGA BSRAM, ~10 minutes of typical PD traffic</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SCPI Command Set, Module 3C</strong></p>
+<ul>
+<li><code>*IDN?</code> identification</li>
+<li><code>USBC:CC:CAPT:STAR &lt;duration_ms&gt;</code> starts capture</li>
+<li><code>USBC:CC:CAPT:STOP</code> stops capture</li>
+<li><code>USBC:CC:DATA?</code> returns decoded messages</li>
+<li><code>USBC:CC:ORIENT?</code> returns detected cable orientation</li>
+<li><code>USBC:ALT:STATE?</code> returns alternate-mode state</li>
+</ul>
+<p><strong>Table 7-26: Module 3C BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Approximate Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sipeed Tang Primer 25K</td>
+<td>$35</td>
+<td>Sufficient for CC channel only</td>
+</tr>
+<tr class="even">
+<td>USB-C receptacle (16-pin)</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>USB-C breakout PCB</td>
+<td>$10</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi Pico 2 W</td>
+<td>$7</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Raspberry Pi Zero 2 W</td>
+<td>$15</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>MicroSD card</td>
+<td>$5</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>USB-Ethernet adapter</td>
+<td>$10</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Headers, hookup</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3D-printed enclosure</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td><strong>~$90</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="scpi-command-schema-and-auto-generation">8. SCPI Command Schema and Auto-Generation</h2>
+<p>The platform uses a single source of truth for each module’s command surface: a YAML file describing the module’s commands, parameters, return types, and SCPI subsystem hierarchy. From this YAML, two artifacts are mechanically generated: a C-language SCPI parser embedded in the module’s firmware (or a Python parser for non-Pico hosts), and a PyVISA-sim YAML backend that simulates the module’s responses for test development without hardware.</p>
+<p>This pattern eliminates drift between the firmware implementation and the simulation backend: any change to a command’s parameter list or return shape happens in the YAML and propagates to both consumers automatically. A pytest test that passes against the simulator must continue to pass against live hardware (modulo measurement noise and latency that the simulator cannot reproduce).</p>
+<h3 id="yaml-schema-structure">8.1 YAML Schema Structure</h3>
+<p>Each module has a YAML file at <code>modules/&lt;module_id&gt;/commands.yaml</code> with the following top-level keys:</p>
+<ul>
+<li><code>module</code>: metadata (id, name, version, IEEE 488.2 IDN string)</li>
+<li><code>subsystems</code>: SCPI subsystem hierarchy (e.g., <code>MEASure</code>, <code>CONFigure</code>, <code>SOURce</code>, <code>CALCulate</code>, <code>SYSTem</code>)</li>
+<li><code>commands</code>: command definitions, each with parameter and return signatures</li>
+<li><code>errors</code>: module-specific SCPI error codes (in addition to the standard SCPI error queue)</li>
+</ul>
+<p>An abbreviated example for Module 1B:</p>
+<pre class="yaml"><code>module:
+  id: 1B
+  name: Voltage Measurement Unit
+  version: &quot;1.0.0&quot;
+  idn: &quot;PMVB,Module1B,VoltMeas,1.0.0&quot;
+
+subsystems:
+  - MEASure
+  - CONFigure
+  - CALCulate
+
+commands:
+  - cmd: &quot;MEAS:VOLT:DC?&quot;
+    description: &quot;Single voltage measurement on specified channel&quot;
+    params:
+      - name: channel
+        type: int
+        range: [0, 3]
+    returns:
+      type: float
+      units: V
+      precision: 1e-6
+
+  - cmd: &quot;CONF:VOLT:DC:RANG&quot;
+    description: &quot;Set PGA range for a channel&quot;
+    params:
+      - name: channel
+        type: int
+        range: [0, 3]
+      - name: range
+        type: enum
+        values: [0.256, 0.512, 1.024, 2.048, 4.096, 6.144]
+    returns: none
+
+  - cmd: &quot;MEAS:VOLT:DC:AVER?&quot;
+    description: &quot;Averaged voltage measurement of n samples&quot;
+    params:
+      - name: channel
+        type: int
+        range: [0, 3]
+      - name: samples
+        type: int
+        range: [1, 1000]
+    returns:
+      type: float
+      units: V</code></pre>
+<h3 id="ieee-488.2-mandatory-commands">8.2 IEEE 488.2 Mandatory Commands</h3>
+<p>Every module supports the IEEE 488.2 mandatory command subset, generated automatically from the schema and shared across all modules:</p>
+<ul>
+<li><code>*IDN?</code> returns the module’s IDN string from <code>module.idn</code></li>
+<li><code>*RST</code> resets module state to documented power-on defaults</li>
+<li><code>*CLS</code> clears the error queue and status byte</li>
+<li><code>*OPC?</code> returns 1 when pending operations are complete</li>
+<li><code>*WAI</code> blocks until pending operations complete</li>
+<li><code>*ESR?</code>, <code>*ESE</code>, <code>*STB?</code>, <code>*SRE</code> provide standard event and status register access</li>
+<li><code>SYST:ERR?</code> pops the next entry from the SCPI error queue</li>
+</ul>
+<p>Modules cannot override these; the parser generator emits them from a fixed template. Module-specific commands are layered on top.</p>
+<h3 id="code-generation-pipeline">8.3 Code Generation Pipeline</h3>
+<p>The build pipeline runs at every module firmware compile and at every PyVISA-sim backend regeneration. The pipeline lives in <code>tools/scpigen/</code> and is invoked as:</p>
+<pre><code>scpigen --target firmware modules/1B/commands.yaml &gt; firmware/1B/scpi_table.c
+scpigen --target pyvisa-sim modules/1B/commands.yaml &gt; sim/1B/responses.yaml</code></pre>
+<p>The firmware target emits a C array of (command_string, parser_function, response_format) tuples consumed by a small dispatch loop on the Pico. The PyVISA-sim target emits the YAML format that PyVISA-sim’s stub backend consumes natively. Both targets share the same parameter validators and range checks; the validators are emitted as identical logic in both languages so that a parameter-out-of-range error reaches the host with the same error code and message in both paths.</p>
+<p>A regression test at <code>tests/test_schema_consistency.py</code> runs every command against both backends with known-good and known-bad inputs to confirm the two artifacts behave identically.</p>
+<h2 id="mcp-tool-surface">9. MCP Tool Surface</h2>
+<p>Each module’s SCPI command set is also exposed as a Model Context Protocol tool surface. The MCP gateway runs as a Python process on the Pi 5 and advertises one MCP server per connected module, with tool names and parameter signatures derived mechanically from the same YAML schema described in section 8. An agent calling a tool produces the same on-the-wire SCPI command as a pytest test issuing the same operation, because both paths converge at the SCPI dispatcher.</p>
+<h3 id="tool-naming-convention">9.1 Tool Naming Convention</h3>
+<p>Tool names follow the pattern <code>&lt;module_id&gt;_&lt;verb&gt;_&lt;object&gt;</code> in lowercase with underscores. The mapping from SCPI commands to MCP tool names is:</p>
+<ul>
+<li><code>MEAS:VOLT:DC?</code> becomes <code>module_1b_measure_voltage_dc</code></li>
+<li><code>SOUR:VOLT:SWEEP</code> becomes <code>module_1d_source_voltage_sweep</code></li>
+<li><code>TRAC:ARM</code> becomes <code>module_2a_trace_arm</code></li>
+<li><code>DIG:DATA?</code> becomes <code>module_2e_digitizer_data_read</code></li>
+</ul>
+<p>The verb-object form is more agent-friendly than the SCPI hierarchical form. Tool descriptions (the human-readable text shown to the LLM) are taken from the <code>description</code> field of each command’s YAML entry.</p>
+<h3 id="parameter-convention">9.2 Parameter Convention</h3>
+<p>MCP tool parameters use named arguments matching the YAML <code>params</code> definitions. Types map directly: <code>int</code> and <code>float</code> pass through, <code>enum</code> values become Python literals, <code>string</code> is UTF-8. Range and enum validators are enforced at the MCP layer before dispatch to SCPI; an out-of-range parameter produces an MCP-level error rather than reaching the module.</p>
+<p>Default values are taken from the YAML and applied before the agent sees the tool. An agent calling <code>module_1b_measure_voltage_dc(channel=0)</code> with no other parameters gets a measurement at the channel’s currently-configured range and rate, identical to what the YAML schema’s defaults would produce.</p>
+<h3 id="return-shape-convention">9.3 Return Shape Convention</h3>
+<p>Return values are JSON-serializable and structured. Single scalar returns become objects of the form <code>{"value": 1.234, "units": "V", "channel": 0, "timestamp": "..."}</code> rather than bare scalars, so the agent has enough context to reason about what was measured without re-querying the module. Tabular returns (sweep results, captured trace samples up to a threshold) become arrays of objects with consistent keys.</p>
+<h3 id="big-data-handling-rule">9.4 Big-Data Handling Rule</h3>
+<p>Captured waveforms, logic-analyzer traces, and Ethernet frame captures can exceed reasonable inline payload sizes (several megabytes for a full Tang Primer BSRAM dump). The convention is:</p>
+<ul>
+<li>Any return value larger than 64 KiB JSON-serialized is replaced with a <code>trace_id</code> string referring to a file on the orchestration layer’s filesystem.</li>
+<li>Companion tools <code>trace_path(trace_id)</code> and <code>trace_metadata(trace_id)</code> give the agent a path or summary without dragging the full payload through the MCP transport.</li>
+<li>The agent fetches the full payload by calling a separate tool that streams the data, or by reading the file directly if it has filesystem access.</li>
+</ul>
+<p>This rule prevents an agent from accidentally pulling tens of megabytes through the MCP HTTP transport on every query.</p>
+<h3 id="per-node-concurrency-rule">9.5 Per-Node Concurrency Rule</h3>
+<p>A single MCP node (one module’s MCP server) handles one tool call at a time. Concurrent calls to the same module are serialized at the MCP layer, since the underlying SCPI dispatcher is single-threaded per module. Concurrent calls across different modules are independent; the orchestration layer can drive a sweep on Module 1D while reading Module 1B without coordination.</p>
+<p>If an agent attempts a concurrent call on a node that is currently processing, the second call returns an <code>EBUSY</code> error with a retry-after hint. The agent is responsible for retrying or for using the explicit synchronization tools (<code>module_X_wait_complete</code>).</p>
+<h3 id="synchronization-rule">9.6 Synchronization Rule</h3>
+<p>Time-critical synchronization between modules (sub-microsecond arming) is not a job for the MCP plane. The agent issues <code>module_X_arm</code> to one module and <code>module_Y_arm</code> to another; the actual arming happens at the host’s clock resolution (millisecond-class). When sub-microsecond sync is required, the modules must be wired to the chassis shared trigger bus and the arm commands must specify external triggering. The MCP plane only initiates and reports the result of the trigger; the trigger event itself happens between the modules over the GPIO bus.</p>
+<h3 id="transport-and-authentication">9.7 Transport and Authentication</h3>
+<p>The MCP gateway accepts connections over HTTP on the orchestration layer’s LAN interface. Authentication uses a shared bearer token configured at gateway startup. The gateway rejects connections without a valid token. Wi-Fi access from the Pi Zero sidecars is not the MCP transport; the MCP traffic flows through the gateway on the Pi 5.</p>
+<h2 id="software-stack-and-data-flow">10. Software Stack and Data Flow</h2>
+<h3 id="software-stack">10.1 Software Stack</h3>
+<p>The orchestration layer hosts the full software stack on the Pi 5. The components and their responsibilities are:</p>
+<ul>
+<li><strong>PyVISA + PyVISA-py</strong> for instrument resource discovery, connection, and SCPI dispatch. Resource strings follow the standard form <code>USB::0xVID::0xPID::SERIAL::INSTR</code> for USB-TMC instruments. Tier 2 modules access the Pico bridge through the chassis USB hub like any other USB-TMC instrument.</li>
+<li><strong>PyVISA-sim</strong> for simulation backends. Each module’s simulation backend lives at <code>sim/&lt;module_id&gt;/responses.yaml</code> and is consumed by PyVISA-sim’s stub session. Test code targeting <code>@pmvb.fixture(module='1B', sim=True)</code> gets a simulated module; targeting <code>sim=False</code> gets the live module.</li>
+<li><strong>pytest</strong> with parametric fixtures keyed off the module catalog. Fixtures provide module sessions, sweep parameter sets, calibration constants, and run identifiers. A test marked <code>@pytest.mark.module('1B')</code> is parameterized across all 1B-class modules attached to the chassis.</li>
+<li><strong>InfluxDB</strong> as the time-series database. The 2 GB Pi runs InfluxDB 1.8 with InfluxQL queries; the 16 GB Pi runs InfluxDB 2.7+ with Flux. The schema described in section 10.2 is identical across both backends.</li>
+<li><strong>Grafana</strong> for live dashboards. Template variables select the active modules and DUTs from the InfluxDB tag taxonomy.</li>
+<li><strong>Jinja2 + Matplotlib</strong> for automated report generation. Reports are produced from InfluxDB queries by run identifier.</li>
+<li><strong>MCP gateway</strong> as a Python process (FastMCP-based or similar) exposing module tools as described in section 9.</li>
+</ul>
+<h3 id="influxdb-schema-and-tag-taxonomy">10.2 InfluxDB Schema and Tag Taxonomy</h3>
+<p>All measurements land in a single InfluxDB database named <code>pmvb</code>. Each measurement uses a consistent tag taxonomy:</p>
+<ul>
+<li><code>instrument</code> (string): module ID (e.g., <code>1B</code>, <code>2A</code>)</li>
+<li><code>channel</code> (string): channel within the module</li>
+<li><code>dut</code> (string): DUT identifier (user-supplied)</li>
+<li><code>run_id</code> (string): UUID assigned at the start of a pytest run or MCP session</li>
+<li><code>measurement_type</code> (string): <code>voltage_dc</code>, <code>voltage_ac</code>, <code>current_dc</code>, <code>frequency</code>, <code>logic_capture</code>, <code>waveform</code>, etc.</li>
+</ul>
+<p>Field values vary by measurement type but follow conventions: voltages in volts (float), currents in amperes (float), frequencies in hertz (float), captured waveforms as a serialized array reference (the <code>trace_id</code> pattern from section 9.4).</p>
+<p>A typical line-protocol row for a Module 1B reading:</p>
+<pre><code>voltage,instrument=1B,channel=0,dut=BravoOcean_R3,run_id=abc12345,measurement_type=voltage_dc value=2.483 1714780800000000000</code></pre>
+<h3 id="pytest-fixture-pattern">10.3 pytest Fixture Pattern</h3>
+<p>Test code uses module-aware fixtures that select live or simulated backends based on environment configuration. An abbreviated example:</p>
+<pre class="python"><code>import pytest
+from pmvb.fixtures import module, run_id, dut, record
+
+@pytest.fixture
+def voltmeter():
+    return module(&#39;1B&#39;)
+
+@pytest.fixture
+def amplifier_dut():
+    return dut(&#39;BravoOcean_R3&#39;)
+
+def test_amp_idle_offset(voltmeter, amplifier_dut, run_id):
+    &quot;&quot;&quot;Verify the amplifier&#39;s idle DC offset is within ±10 mV.&quot;&quot;&quot;
+    voltmeter.write(&#39;CONF:VOLT:DC:RANG 0, 0.256&#39;)
+    reading = float(voltmeter.query(&#39;MEAS:VOLT:DC? 0&#39;))
+    record(run_id, dut=amplifier_dut, instrument=&#39;1B&#39;, channel=0,
+           measurement_type=&#39;voltage_dc&#39;, value=reading)
+    assert abs(reading) &lt; 0.010, f&quot;Idle offset {reading*1000:.2f} mV exceeds ±10 mV&quot;</code></pre>
+<p>PyVISA-instrumented sessions log every <code>MEAS</code> and <code>READ</code> query to InfluxDB by default. The explicit <code>record</code> call shown above is for measurements that do not flow through PyVISA’s standard query path or for cross-module recipes.</p>
+<h3 id="worked-example-audio-analyzer-recipe-module-1e-module-2e">10.4 Worked Example: Audio Analyzer Recipe (Module 1E + Module 2E)</h3>
+<p>The audio analyzer recipe demonstrates how the platform composes modules into higher-level instruments without dedicated hardware. The recipe characterizes total harmonic distortion (THD) of an amplifier by injecting a swept sine wave from Module 1E, capturing the amplifier output with Module 2E, and computing the FFT on the Pi 5 to extract harmonic amplitudes.</p>
+<p>The pytest implementation:</p>
+<pre class="python"><code>import numpy as np
+from scipy.fft import rfft, rfftfreq
+
+@pytest.mark.parametrize(&#39;test_freq_hz&#39;, [100, 1000, 10000])
+def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
+    &quot;&quot;&quot;Measure THD at a single test frequency. Repeated across the audio band.&quot;&quot;&quot;
+    sample_rate = 1_000_000  # Module 2E single-channel rate
+    capture_seconds = 0.1
+
+    # 1. Configure stimulus
+    awg.write(&#39;SOUR:FUNC SIN&#39;)
+    awg.write(f&#39;SOUR:FREQ {test_freq_hz}&#39;)
+    awg.write(&#39;SOUR:VOLT 1.0&#39;)
+    awg.write(&#39;OUTP ON&#39;)
+
+    # 2. Configure capture
+    scope.write(&#39;DIG:CONF 0, 5.0, AC&#39;)
+    scope.write(f&#39;DIG:RATE {sample_rate}&#39;)
+    scope.write(f&#39;DIG:DEPTH {int(sample_rate * capture_seconds)}&#39;)
+    scope.write(&#39;DIG:ARM&#39;)
+
+    # 3. Pull samples and compute FFT
+    samples = scope.query_binary_values(&#39;DIG:DATA? 0&#39;, datatype=&#39;f&#39;)
+    spectrum = np.abs(rfft(samples))
+    freqs = rfftfreq(len(samples), 1.0/sample_rate)
+
+    # 4. Find fundamental and first 5 harmonics
+    fundamental_bin = np.argmin(np.abs(freqs - test_freq_hz))
+    fundamental = spectrum[fundamental_bin]
+    harmonics = [spectrum[np.argmin(np.abs(freqs - test_freq_hz*n))] for n in range(2, 7)]
+    thd = np.sqrt(sum(h**2 for h in harmonics)) / fundamental
+
+    # 5. Record and assert
+    record(run_id, dut=dut, instrument=&#39;1E+2E&#39;,
+           measurement_type=&#39;thd&#39;, frequency=test_freq_hz, value=thd)
+    assert thd &lt; 0.01, f&quot;THD {thd*100:.2f}% exceeds 1% threshold at {test_freq_hz} Hz&quot;
+
+    awg.write(&#39;OUTP OFF&#39;)</code></pre>
+<p>The recipe operates entirely through standard SCPI commands; no special “audio analyzer” firmware exists. The 1E + 2E pairing is a software construction. A Grafana panel keyed off <code>measurement_type=thd</code> plots THD versus frequency for any DUT in real time. The Jinja2 report includes both the THD curve and the spectrum at each test frequency.</p>
+<p>The same pattern composes more sophisticated audio-domain measurements: noise floor (capture with no stimulus, integrate over band), frequency response (sine sweep, magnitude vs frequency), and intermodulation distortion (multitone stimulus, peak ratios). All live as test recipes rather than as dedicated modules.</p>
+<h3 id="report-generation">10.5 Report Generation</h3>
+<p>Reports are generated post-run by a Python module that consumes the run identifier, queries InfluxDB for all measurements tagged with that run, and renders both PDF and HTML through Jinja2 templates with embedded Matplotlib plots. The default template includes:</p>
+<ul>
+<li>A summary table of pass-fail outcomes per test</li>
+<li>Time-series plots for each <code>measurement_type</code> in the run</li>
+<li>A spectrum plot for any FFT-based measurement (audio analyzer recipe, oscilloscope)</li>
+<li>The full module catalog state at run time (which modules were attached, their firmware versions, calibration timestamps)</li>
+</ul>
+<p>Reports are written to <code>reports/&lt;run_id&gt;/</code> on the Pi 5 with both <code>.pdf</code> and <code>.html</code> outputs. The HTML form is suitable for direct browsing or upload into a static-site portfolio.</p>
+<h2 id="chassis-and-mechanical-design-rationale">11. Chassis and Mechanical Design Rationale</h2>
+<h3 id="form-factor">11.1 Form Factor</h3>
+<p>The v1.0 chassis form factor is loose-on-bench: modules sit individually on the workbench surface in 3D-printed enclosures, connected to the orchestration layer through the powered USB hub and the LAN switch. There is no shared backplane or structural rack.</p>
+<p>This decision is intentional. A loose-on-bench chassis is the cheapest path to a working bench, allows incremental module addition without retooling, accommodates the variable depth of Tier 2 modules (which have three host devices stacked) without forcing a fixed-depth slot, and minimizes mechanical bring-up effort. The downside (it does not photograph as well as a rack-mount form factor) is acknowledged.</p>
+<p>A v2.0 form factor (DIN-rail or 3U Eurocard chassis) is reserved for after the module catalog stabilizes. The v2.0 enclosure design must accommodate the existing module dimensions; the architectural rule is that no module redesign is permitted to fit a future enclosure.</p>
+<h3 id="powered-usb-hub">11.2 Powered USB Hub</h3>
+<p>The chassis powered USB hub provides 5 V at 2.4 A per port to up to 8 USB-TMC instrument bridges. Required specifications:</p>
+<ul>
+<li>Per-port current: 2.4 A minimum, 3.0 A preferred for headroom</li>
+<li>Total throughput: USB 2.0 high-speed aggregate at the hub uplink (the hub-to-Pi-5 link is full-speed because Pico 2 W is full-speed; high-speed at the uplink does not add value)</li>
+<li>Per-port power switching: preferred but not required; allows scripted module power cycling for boot debug</li>
+<li>Power input: 12 V DC barrel jack, 5 A minimum supply (60 W headroom for 8 ports at full draw)</li>
+</ul>
+<p>A representative example is the Sabrent HB-UM43 or Plugable USB3-HUB7C. Cost approximately $25.</p>
+<h3 id="gigabit-lan-switch">11.3 Gigabit LAN Switch</h3>
+<p>The chassis LAN switch carries Pi Zero sidecar traffic. Required specifications:</p>
+<ul>
+<li>Port count: 5 to 8 (one for the Pi 5, one per Tier 2 module’s Pi Zero sidecar)</li>
+<li>Speed: gigabit Ethernet on every port</li>
+<li>Switching: unmanaged is sufficient for v1.0; managed (with VLAN support) is reserved for if the bench network later needs isolation from a home network</li>
+</ul>
+<p>A representative example is the TP-Link TL-SG108 (8-port unmanaged gigabit). Cost approximately $25.</p>
+<h3 id="shared-trigger-bus">11.4 Shared Trigger Bus</h3>
+<p>The optional shared trigger bus is a single GPIO line wired between modules that need sub-microsecond synchronization. Implementation:</p>
+<ul>
+<li>Physical: 3.3 V CMOS logic level, single-ended, 100 Ω terminated at one end</li>
+<li>Topology: daisy-chained from module to module with short stubs</li>
+<li>Maximum length: 50 cm at 100 MHz signal rate; longer runs require differential drivers</li>
+<li>Connector: 2-pin Molex KK or similar at each module</li>
+</ul>
+<p>The trigger bus is wired only on modules that need it (Module 2A Logic Analyzer, Module 2E Digitizer for sub-microsecond capture sync, Module 1E AWG for synchronized stimulus). Modules without trigger-bus connections fall back to software arming.</p>
+<h3 id="power-architecture">11.5 Power Architecture</h3>
+<p>The chassis power architecture is per-module local power, not a shared rail. Each Pico 2 W draws power from its USB-TMC connection (approximately 100 mA at 5 V). Each Pi Zero 2 W has its own 5 V/2.5 A wall power supply or USB-PD adapter; the Pi Zero is not USB-powered from the chassis hub because the Pi Zero’s peak current (2 A during Wi-Fi association and SD writes) exceeds typical USB hub per-port limits.</p>
+<p>Tier 2 modules that include a Tang Primer 25K source the Tang Primer’s 5 V from the Pi Zero’s GPIO header (the Tang Primer draws under 500 mA in instrument-class workloads). This avoids a separate wall wart per Tang Primer.</p>
+<p>Total chassis wall-power footprint:</p>
+<ul>
+<li>1 supply for the Pi 5 (Raspberry Pi official 5.1 V/5 A)</li>
+<li>1 supply for the powered USB hub (12 V/5 A)</li>
+<li>1 supply per Pi Zero 2 W (5 V/2.5 A; one per Tier 2 module)</li>
+</ul>
+<p>A typical 4-module Tier 2 build needs 6 wall warts. This is acknowledged as a downside of the loose-on-bench form factor; v2.0 should consolidate to a single 12 V chassis input with onboard step-down to per-module rails.</p>
+<h3 id="thermal">11.6 Thermal</h3>
+<p>The chassis has no active cooling beyond the Pi 5’s stock heatsink and fan. Per-module thermal dissipation budgets:</p>
+<ul>
+<li>Tier 1 modules: under 1 W each (Pico 2 W plus discrete IC). No heatsinking required.</li>
+<li>Tier 2 modules: under 5 W each (Tang Primer 25K plus Pico plus Pi Zero). Tang Primer benefits from a small heatsink at sustained 100 MHz logic capture; the GW5A FPGA can run warm but is not at risk of thermal shutdown in instrument workloads.</li>
+<li>Module 1F (HV probe): under 1 W; the instrumentation amp dissipation is negligible at the input voltages involved.</li>
+</ul>
+<p>Bench ambient temperature is assumed to be 18 to 30 °C (typical home or lab environment). Operation outside this range is not specified.</p>
+<h2 id="verification-and-calibration-strategy">12. Verification and Calibration Strategy</h2>
+<h3 id="verification-layers">12.1 Verification Layers</h3>
+<p>The platform is verified at four layers, with progressively higher fidelity:</p>
+<ol type="1">
+<li><strong>Unit tests</strong> of the SCPI parser and YAML schema generator. Run on every commit.</li>
+<li><strong>Simulator-backed tests</strong> using PyVISA-sim. Every test that is marked <code>@pytest.mark.simulatable</code> must pass against the simulator before being exercised on live hardware. The simulator provides deterministic responses to confirm command-parameter-validation behavior; it does not reproduce noise, drift, or timing.</li>
+<li><strong>Module-level bring-up tests</strong> on live hardware. Each module has a bring-up suite that exercises every command in the module’s YAML schema against known reference inputs. Bring-up tests run when a module is first assembled, when firmware is updated, and at scheduled intervals (quarterly recommended).</li>
+<li><strong>System integration tests</strong> that compose multiple modules into recipes (audio analyzer, power sequencing, etc.). These run when any module in the recipe changes.</li>
+</ol>
+<p>Tests at higher layers must not depend on tests at lower layers having been re-run; layer 4 tests assume layer 3 has passed and trust layer 3’s measurement accuracy.</p>
+<h3 id="calibration-sources">12.2 Calibration Sources</h3>
+<p>Calibration of the platform’s analog modules requires traceable reference sources. The recommended set:</p>
+<ul>
+<li><strong>Voltage</strong>: a Fluke 87V handheld DMM (calibrated annually) provides DC voltage reference to 0.05% basic accuracy. Adequate for Module 1B and Module 1F calibration.</li>
+<li><strong>Frequency</strong>: a 10 MHz GPSDO (GPS-disciplined oscillator) such as the Leo Bodnar Mini Precision GPS reference clock provides frequency reference to ~10⁻¹¹ accuracy. Adequate for Module 2C and Module 1E frequency-base calibration.</li>
+<li><strong>Current</strong>: a known precision shunt resistor (1 Ω, 0.01%) plus a calibrated voltmeter is sufficient for Module 1D current-measurement calibration.</li>
+<li><strong>Time domain</strong>: a calibrated function generator (Rigol DG811 or similar) provides reference square waves and known-frequency sines for Module 2E (Digitizer) calibration.</li>
+</ul>
+<p>The calibration sources do not have to be lab-grade; what matters is that they are documented, traceable to a primary standard (NIST through Fluke’s calibration certificate, GPS through the Leo Bodnar’s GPS lock), and dated.</p>
+<h3 id="calibration-constants">12.3 Calibration Constants</h3>
+<p>Each module stores its calibration constants in its host MCU’s external flash (Tier 1 modules) or in the Pi Zero sidecar’s SD card (Tier 2 modules). Calibration constants include:</p>
+<ul>
+<li>Per-channel offset (volts, amperes, etc.)</li>
+<li>Per-channel gain (dimensionless multiplier)</li>
+<li>Per-range correction factors (for modules with switchable ranges)</li>
+<li>Calibration date and source identifier</li>
+<li>Calibration interval (default: annual; user-overridable)</li>
+</ul>
+<p>Firmware applies calibration constants before returning measurement values to the host. The raw uncalibrated reading is also accessible via a debug-mode SCPI command (<code>MEAS:VOLT:DC:RAW?</code>) for calibration verification.</p>
+<h3 id="traceability-and-calibration-records">12.4 Traceability and Calibration Records</h3>
+<p>Every calibration event is recorded in InfluxDB as a measurement with <code>measurement_type=calibration</code> and tags identifying the module, channel, calibration source, and result (offset and gain values). A pytest fixture <code>assert_calibration_current(module_id)</code> checks that the most recent calibration record is within the configured interval and fails the test if not. This prevents the platform from silently drifting into uncalibrated operation.</p>
+<h3 id="acceptance-criteria-for-v1.0">12.5 Acceptance Criteria for v1.0</h3>
+<p>The v1.0 release is considered complete when:</p>
+<ul>
+<li>All v1.0 modules in the catalog (Tier 1 1A through 1E, Tier 2 2A through 2E) are designed, built, and individually verified against their bring-up suites.</li>
+<li>The audio analyzer recipe (section 10.4) passes against a known reference amplifier (the Bravo Audio Ocean serves as the reference DUT).</li>
+<li>The Firestick boot-debug recipe (a composed test using Module 1B for rail monitoring, Module 2E for transient capture, Module 1G for IR stimulus) passes against an actual Firestick boot transient.</li>
+<li>A complete chassis build report is generated and reviewed; the report includes the catalog state, calibration timestamps, and measurement uncertainty estimates per module.</li>
+</ul>
+<h2 id="build-phases-and-investment-roadmap">13. Build Phases and Investment Roadmap</h2>
+<h3 id="phase-0-orchestration-bring-up">13.1 Phase 0: Orchestration Bring-Up</h3>
+<p>Phase 0 establishes the orchestration layer with no instrument modules attached. Scope:</p>
+<ul>
+<li>Pi 5 2 GB with Raspberry Pi OS Bookworm, Python 3.11+, PyVISA, PyVISA-py, PyVISA-sim, pytest installed</li>
+<li>InfluxDB 1.8 with the schema from section 10.2</li>
+<li>Grafana 10 OSS with template-variable dashboards (no live data yet)</li>
+<li>MCP gateway scaffolding (no module servers yet)</li>
+<li>Powered USB hub and gigabit LAN switch installed</li>
+<li>A representative simulator-backed test passes end-to-end (writes to InfluxDB, renders a Grafana panel, generates a Jinja2 report)</li>
+</ul>
+<p><strong>Table 13-1: Phase 0 BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raspberry Pi 5 2 GB</td>
+<td>$80</td>
+</tr>
+<tr class="even">
+<td>Pi 5 PSU + heatsink + microSD</td>
+<td>$40</td>
+</tr>
+<tr class="odd">
+<td>Powered USB hub</td>
+<td>$25</td>
+</tr>
+<tr class="even">
+<td>Gigabit LAN switch</td>
+<td>$25</td>
+</tr>
+<tr class="odd">
+<td>Cabling and incidentals</td>
+<td>$15</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 0 total</strong></td>
+<td><strong>~$185</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-1-tier-1-core-modules">13.2 Phase 1: Tier 1 Core Modules</h3>
+<p>Phase 1 adds Modules 1A, 1B, 1D, and 1E. Module 1C is deferred to Phase 1.5 because the dual-Pico architecture is more involved and not on the critical path for the audio analyzer recipe.</p>
+<p><strong>Table 13-2: Phase 1 BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Module 1A</td>
+<td>$9</td>
+</tr>
+<tr class="even">
+<td>Module 1B</td>
+<td>$14</td>
+</tr>
+<tr class="odd">
+<td>Module 1D</td>
+<td>$22</td>
+</tr>
+<tr class="even">
+<td>Module 1E</td>
+<td>$18</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 1 total</strong></td>
+<td><strong>~$63</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Phase 1 verification milestone: the audio analyzer recipe (without 2E digitizer; using 1B for slow integration only) measures the Bravo Audio Ocean’s idle DC offset and verifies it is within spec.</p>
+<h3 id="phase-1.5-module-1c-and-tier-2-bridge-bring-up">13.3 Phase 1.5: Module 1C and Tier 2 Bridge Bring-Up</h3>
+<p>Phase 1.5 adds Module 1C (USB HID Analyzer) and stands up the Tier 2 bridge architecture (one Tang Primer 25K, one Pico bridge, one Pi Zero sidecar) without yet implementing instrument logic.</p>
+<p><strong>Table 13-3: Phase 1.5 BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Module 1C</td>
+<td>$19</td>
+</tr>
+<tr class="even">
+<td>Tier 2 bridge stack (FPGA + Pico + Pi Zero + SD)</td>
+<td>$62</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 1.5 total</strong></td>
+<td><strong>~$81</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Phase 1.5 verification milestone: the bridge stack accepts a SCPI <code>*IDN?</code> query and returns a placeholder identification string. No instrument logic; this is a transport-and-protocol verification.</p>
+<h3 id="phase-2-tier-2-core-modules">13.4 Phase 2: Tier 2 Core Modules</h3>
+<p>Phase 2 adds Modules 2A, 2B, 2C, and 2D, building on the Phase 1.5 bridge stack.</p>
+<p><strong>Table 13-4: Phase 2 BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Module 2A</td>
+<td>$80</td>
+</tr>
+<tr class="even">
+<td>Module 2B</td>
+<td>$80</td>
+</tr>
+<tr class="odd">
+<td>Module 2C</td>
+<td>$84</td>
+</tr>
+<tr class="even">
+<td>Module 2D</td>
+<td>$105</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 2 total</strong></td>
+<td><strong>~$349</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Phase 2 verification milestone: each module passes its bring-up suite. The audio analyzer recipe is exercised with Module 2E once it is added (Phase 2.5).</p>
+<h3 id="phase-2.5-module-2e-mixed-signal-digitizer">13.5 Phase 2.5: Module 2E (Mixed-Signal Digitizer)</h3>
+<p>Phase 2.5 adds the Mixed-Signal Digitizer, the headline analog characterization module. This module is intentionally separated from Phase 2 because of its higher cost and because it requires custom analog front-end PCB work that may take additional bring-up time.</p>
+<p><strong>Table 13-5: Phase 2.5 BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Module 2E</td>
+<td>$124</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 2.5 total</strong></td>
+<td><strong>~$124</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Phase 2.5 verification milestone: full audio analyzer recipe (Module 1E + Module 2E + Pi 5 FFT) measures Bravo Audio Ocean THD across 100 Hz, 1 kHz, and 10 kHz. Firestick boot-rail capture demonstrates a 5 V rail transient.</p>
+<h3 id="phase-3-v1.1-additions">13.6 Phase 3: v1.1 Additions</h3>
+<p>Phase 3 adds the v1.1 Tier 1 modules: Module 1F (HV probe) and Module 1G (IR capture/transmit).</p>
+<p><strong>Table 13-6: Phase 3 BOM</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Module 1F</td>
+<td>$35</td>
+</tr>
+<tr class="even">
+<td>Module 1G</td>
+<td>$12</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 3 total</strong></td>
+<td><strong>~$47</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-4-tier-3-deferred">13.7 Phase 4: Tier 3 (Deferred)</h3>
+<p>Phase 4 adds Tier 3 modules. Gated on a hardware purchase (Tang Mega 138K Pro at approximately $200, or Alinx AX7325B at approximately $450).</p>
+<p><strong>Table 13-7: Phase 4 BOM (Tang Mega path)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Module 3A</td>
+<td>$267</td>
+</tr>
+<tr class="even">
+<td>Module 3B</td>
+<td>$95</td>
+</tr>
+<tr class="odd">
+<td>Module 3C</td>
+<td>$90</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 4 total</strong></td>
+<td><strong>~$452</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="total-investment-summary">13.8 Total Investment Summary</h3>
+<p><strong>Table 13-8: Investment Summary</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Phase</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Phase 0 (orchestration)</td>
+<td>~$185</td>
+</tr>
+<tr class="even">
+<td>Phase 1 (Tier 1 core)</td>
+<td>~$63</td>
+</tr>
+<tr class="odd">
+<td>Phase 1.5 (HID + bridge)</td>
+<td>~$81</td>
+</tr>
+<tr class="even">
+<td>Phase 2 (Tier 2 core)</td>
+<td>~$349</td>
+</tr>
+<tr class="odd">
+<td>Phase 2.5 (Module 2E)</td>
+<td>~$124</td>
+</tr>
+<tr class="even">
+<td>Phase 3 (v1.1 Tier 1)</td>
+<td>~$47</td>
+</tr>
+<tr class="odd">
+<td><strong>v1.0 + v1.1 subtotal</strong></td>
+<td><strong>~$849</strong></td>
+</tr>
+<tr class="even">
+<td>Phase 4 (Tier 3, optional)</td>
+<td>~$452</td>
+</tr>
+<tr class="odd">
+<td><strong>All phases total</strong></td>
+<td><strong>~$1,301</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="upgrade-gates">13.9 Upgrade Gates</h3>
+<p>Three upgrade gates are documented:</p>
+<ul>
+<li><strong>16 GB Pi 5 upgrade</strong>: replaces the orchestration layer’s 2 GB Pi with a 16 GB variant. Allows InfluxDB 2.x deployment, larger dashboard refresh rates, and concurrent MCP/report workloads. Gated on a budget increase, not on a technical milestone.</li>
+<li><strong>Larger FPGA</strong>: enables Tier 3 modules. Gated on Phase 4 commencement.</li>
+<li><strong>Second Tang Primer 25K</strong>: enables RISC CPU project FPGA synthesis without sharing the PMVB FPGA. Cost approximately $35; gated on RISC CPU project resumption.</li>
+</ul>
+<h2 id="revision-history">14. Revision History</h2>
+<p><strong>v1.0, May 2026.</strong> Initial system design document release. Supersedes the prior <code>Deep_Dive_RISC_SCPI_Diagnostics_v7</code> as the canonical document for the Poor Man’s Validation Bench. The RISC CPU content from prior revisions has been removed and now lives in the separate RISC CPU project document. The AI HAT+ inference plane has been removed from scope and is reserved for a future release.</p>
+<h2 id="references-and-further-reading">15. References and Further Reading</h2>
+<h3 id="standards-and-protocols">Standards and Protocols</h3>
+<ul>
+<li><strong>SCPI 1999</strong>: Standard Commands for Programmable Instruments, version 1999. The IVI Foundation maintains the current specification.</li>
+<li><strong>IEEE 488.2-1992</strong>: IEEE Standard Codes, Formats, Protocols, and Common Commands for Use With IEEE Std 488.1.</li>
+<li><strong>USBTMC 1.0</strong>: USB Test and Measurement Class specification, USB Implementers Forum.</li>
+<li><strong>Model Context Protocol</strong>: Anthropic’s open protocol for agent-tool communication. <a href="https://modelcontextprotocol.io/" class="uri">https://modelcontextprotocol.io/</a></li>
+</ul>
+<h3 id="software-documentation">Software Documentation</h3>
+<ul>
+<li><strong>PyVISA documentation</strong>: <a href="https://pyvisa.readthedocs.io/" class="uri">https://pyvisa.readthedocs.io/</a></li>
+<li><strong>PyVISA-py documentation</strong>: <a href="https://pyvisa.readthedocs.io/projects/pyvisa-py/" class="uri">https://pyvisa.readthedocs.io/projects/pyvisa-py/</a></li>
+<li><strong>PyVISA-sim documentation</strong>: <a href="https://pyvisa.readthedocs.io/projects/pyvisa-sim/" class="uri">https://pyvisa.readthedocs.io/projects/pyvisa-sim/</a></li>
+<li><strong>InfluxDB 1.8 documentation</strong>: <a href="https://docs.influxdata.com/influxdb/v1.8/" class="uri">https://docs.influxdata.com/influxdb/v1.8/</a></li>
+<li><strong>Grafana documentation</strong>: <a href="https://grafana.com/docs/grafana/latest/" class="uri">https://grafana.com/docs/grafana/latest/</a></li>
+</ul>
+<h3 id="hardware-references-and-datasheets">Hardware References and Datasheets</h3>
+<ul>
+<li><strong>Raspberry Pi Pico 2 W datasheet</strong>, Raspberry Pi Foundation</li>
+<li><strong>RP2350 datasheet</strong>, Raspberry Pi Foundation</li>
+<li><strong>Sipeed Tang Primer 25K user guide</strong>, Sipeed</li>
+<li><strong>Gowin GW5A-LV25MG121 datasheet</strong>, Gowin Semiconductor</li>
+<li><strong>TI ADS1115 datasheet</strong>, Texas Instruments</li>
+<li><strong>TI ADS1256 datasheet</strong>, Texas Instruments</li>
+<li><strong>Microchip MCP4922 datasheet</strong>, Microchip Technology</li>
+<li><strong>Analog Devices AD9226 datasheet</strong>, Analog Devices</li>
+<li><strong>Analog Devices AD8421 datasheet</strong>, Analog Devices</li>
+<li><strong>Analog Devices AD8131 datasheet</strong>, Analog Devices</li>
+</ul>
+<h3 id="industry-references">Industry References</h3>
+<ul>
+<li><strong>National Instruments PXI Express specification</strong>, NI corporate documents</li>
+<li><strong>NI PXIe-5108 product page</strong>: <a href="https://www.ni.com/en/shop/hardware/oscilloscopes-and-digitizers/model-pxie-5108" class="uri">https://www.ni.com/en/shop/hardware/oscilloscopes-and-digitizers/model-pxie-5108</a>. The architectural reference for Module 2E’s digitizer scope.</li>
+</ul>
+<h3 id="suggested-reading-order">Suggested Reading Order</h3>
+<p>Start with SCPI 1999 and IEEE 488.2 to internalize the command surface; then read the PyVISA documentation for the host-side dispatch model; then individual module datasheets as each module enters its design phase; the MCP specification last, as it builds on top of the SCPI layer that the rest of the document establishes.</p>
+<h2 id="acknowledgments">Acknowledgments</h2>
+<p>This System Design Document serves a dual purpose. Primarily it is the technical reference for the Poor Man’s Validation Bench, intended for the engineer building, calibrating, or extending the platform. Secondarily it functions as an engineering portfolio artifact, demonstrating competency in modular instrumentation design, distributed test orchestration, software-defined instrument architecture, and the integration of agentic control surfaces into validation workflows.</p>
+<p>The document’s structure mirrors the FMCW Radar Baseband System Design Document hosted at <a href="https://pike1950.github.io/fmcw-radar-portfolio/docs/system-design/System_Design_Document.html" class="uri">https://pike1950.github.io/fmcw-radar-portfolio/docs/system-design/System_Design_Document.html</a>, which itself follows the conventions of TI integrated-circuit datasheets. The intent is consistency across the author’s portfolio so that a reader familiar with one document can navigate the others without orientation friction.</p>
+<p>Prior revisions of the platform’s planning material (<code>Deep_Dive_RISC_SCPI_Diagnostics_v6</code> and <code>v7</code>, <code>Engineering_Portfolio_Deep_Dive_v3</code> and <code>v4</code>) are superseded by this document for PMVB-related content. RISC CPU content from those prior revisions has been moved to the RISC CPU project’s own documentation.</p>
+</body>
+</html>
