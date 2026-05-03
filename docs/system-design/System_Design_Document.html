@@ -1977,6 +1977,26 @@ def test_firestick_remote_codes(ir):
 <p>FPGA resource estimates for each Tier 2 module are conservative and target less than 50 percent fabric utilization to leave headroom for module evolution and shared infrastructure (clock domain crossings, register file, SPI slave, debug ports). Memory budgets target less than 80 percent BSRAM utilization for the same reason.</p>
 <h4 id="module-2a-logic-analyzer">7.6.1 Module 2A: Logic Analyzer</h4>
 <p>Module 2A captures sixteen single-ended digital channels at sample rates up to 100 MHz with configurable triggers and post-capture protocol decoding. Triggers include edge, level, multi-channel pattern, and sequence (state-machine triggers up to 8 states deep). Captures land in BSRAM as a circular buffer; the Pico bridge transfers captures to the host on demand at USB-TMC throughput.</p>
+<p><strong>Block Diagram, Module 2A</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W<br/>USB-TMC bridge]
+    PiZero[Pi Zero 2 W<br/>admin sidecar]
+    Switch[Chassis LAN switch]
+    LS[8-channel<br/>level shifter]
+    Inputs[16 channels<br/>3.3V CMOS, 5V tolerant]
+    FPGA[Tang Primer 25K FPGA<br/>capture engine + trigger logic + decoders]
+    BSRAM[FPGA BSRAM<br/>~63K samples buffer]
+    Trig[Chassis trigger bus]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|SPI 30 MHz| FPGA
+    PiZero -.optional SPI.- FPGA
+    Inputs --> LS
+    LS --> FPGA
+    FPGA <--> BSRAM
+    Trig -.shared trigger.- FPGA
+</div>
 <p><strong>Table 7-9: Module 2A Specifications</strong></p>
 <table>
 <thead>
@@ -2016,6 +2036,8 @@ def test_firestick_remote_codes(ir):
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> <a href="https://www.ni.com/en/shop/hardware/digital-io-instruments/model-pxie-6570">NI PXIe-6570 Digital Pattern Instrument</a> at hobbyist scale. The 6570 supports 32 channels with programmable VOH/VOL and per-channel timing engines; Module 2A is 16 channels at fixed 3.3 V CMOS levels (5 V tolerant via the chassis level shifter) with a single shared timebase. The PMVB pattern-generation side of 6570 functionality is partially covered by Module 2B.</p>
+
 <p><strong>Table 7-10: Module 2A FPGA Resource Estimate</strong></p>
 <table>
 <thead>
@@ -2055,6 +2077,38 @@ def test_firestick_remote_codes(ir):
 <li><code>TRAC:DEC:I2C &lt;sda&gt;, &lt;scl&gt;</code> decodes I²C transactions</li>
 <li><code>TRAC:DEC:UART &lt;rx&gt;, &lt;baud&gt;</code> decodes a UART stream</li>
 </ul>
+<p><strong>Timing Diagram, Module 2A Capture</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant P as Pico
+    participant F as FPGA
+    participant B as BSRAM
+    H->>P: TRAC:CONF 16, 100e6, 65000
+    P->>F: configure 16 channels at 100 MHz, 65k depth
+    H->>P: TRAC:TRIG:EDGE 0, RIS
+    P->>F: edge trigger on channel 0 rising
+    H->>P: TRAC:ARM
+    P->>F: arm
+    Note over F: wait for trigger condition
+    F->>B: stream pre-trigger samples to circular buffer
+    Note over F: trigger fires, fill remaining buffer
+    F-->>P: capture complete
+    H->>P: TRAC:DATA?
+    P->>F: read BSRAM via SPI (~85 ms full buffer)
+    P-->>H: array of samples
+</div>
+<p><strong>Sample Test, Module 2A</strong></p>
+<pre><code class="language-python">import json
+
+def test_capture_arm_and_readout(la):
+    """Arm a capture, wait for trigger, read samples; verify the buffer is non-empty."""
+    la.write('TRAC:CONF 8, 50e6, 8192')
+    la.write('TRAC:TRIG:EDGE 0, RIS')
+    la.write('TRAC:ARM')
+    samples = json.loads(la.query('TRAC:DATA?'))
+    assert len(samples) == 8192
+    assert any(s != 0 for s in samples), 'Capture buffer all zeros - check input wiring'
+</code></pre>
 <p><strong>Table 7-11: Module 2A BOM</strong></p>
 <table>
 <thead>
@@ -2115,6 +2169,23 @@ def test_firestick_remote_codes(ir):
 <h4 id="module-2b-protocol-exerciseranalyzer">7.6.2 Module 2B: Protocol Exerciser/Analyzer</h4>
 <p>Module 2B implements concurrent I²C, SPI, UART, and CEC engines in FPGA fabric, each capable of master or slave operation. The module both drives DUT protocol traffic for stimulus generation and captures DUT-originated traffic for analysis. Up to four independent engines can run concurrently on independent channel groups.</p>
 <p>The CEC (Consumer Electronics Control) engine, although low-bandwidth at 400 bps, justifies inclusion because CEC implementations are commonly buggy in commercial HDMI consumer devices, and a standalone exerciser fills a real diagnostic need.</p>
+<p><strong>Block Diagram, Module 2B</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    LS[Level shifter]
+    DUT[DUT protocol pins]
+    FPGA[Tang Primer 25K FPGA]
+    Engines[I2C engine<br/>SPI engine<br/>UART engine<br/>CEC engine<br/>each independent FSM]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|SPI| FPGA
+    FPGA --> Engines
+    Engines --> LS
+    LS --> DUT
+</div>
 <p><strong>Table 7-12: Module 2B Specifications</strong></p>
 <table>
 <colgroup>
@@ -2154,6 +2225,8 @@ def test_firestick_remote_codes(ir):
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> NI does not sell a dedicated multi-protocol exerciser; closest commercial analogs are <a href="https://www.totalphase.com/products/aardvark-i2cspi/">Total Phase Aardvark</a> (I²C/SPI) and <a href="https://www.totalphase.com/products/cheetah-spi/">Cheetah</a> (SPI). Module 2B integrates I²C, SPI, UART, and CEC engines into a single FPGA-resident instrument with concurrent operation, addressing the use case where a test sequence needs to drive and capture multiple protocol buses on the same DUT simultaneously.</p>
+
 <p><strong>Table 7-13: Module 2B FPGA Resource Estimate</strong></p>
 <table>
 <thead>
@@ -2191,6 +2264,36 @@ def test_firestick_remote_codes(ir):
 <li><code>PROT:CEC:SEND &lt;message&gt;</code> sends a CEC message</li>
 <li><code>PROT:CEC:CAPTURE? &lt;duration_ms&gt;</code> captures CEC traffic</li>
 </ul>
+<p><strong>Timing Diagram, Module 2B I²C Master Write</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant P as Pico
+    participant F as FPGA I2C engine
+    participant DUT as DUT slave 0x50
+    H->>P: PROT:I2C:WRITE 0x50, [0x00, 0xAA]
+    P->>F: queue write transaction
+    F->>DUT: START
+    F->>DUT: addr 0x50 + W bit
+    DUT-->>F: ACK
+    F->>DUT: byte 0x00 (memory address)
+    DUT-->>F: ACK
+    F->>DUT: byte 0xAA (data)
+    DUT-->>F: ACK
+    F->>DUT: STOP
+    F-->>P: complete
+    P-->>H: OK
+</div>
+<p><strong>Sample Test, Module 2B</strong></p>
+<pre><code class="language-python">import json
+
+def test_i2c_eeprom_write_read(prot):
+    """Write a byte to a 24LC256 EEPROM at addr 0x50 and verify readback."""
+    prot.write('PROT:I2C:CONF 100000, MASTER')
+    prot.write('PROT:I2C:WRITE 0x50, [0x00, 0x00, 0xAA]')   # write 0xAA at memory addr 0x0000
+    prot.write('PROT:I2C:WRITE 0x50, [0x00, 0x00]')          # set read pointer
+    result = json.loads(prot.query('PROT:I2C:READ? 0x50, 1'))
+    assert result[0] == 0xAA, f'EEPROM mismatch: got 0x{result[0]:02x}, expected 0xAA'
+</code></pre>
 <p><strong>Table 7-14: Module 2B BOM</strong></p>
 <table>
 <thead>
@@ -2250,6 +2353,23 @@ def test_firestick_remote_codes(ir):
 </table>
 <h4 id="module-2c-frequency-counter">7.6.3 Module 2C: Frequency Counter</h4>
 <p>Module 2C measures input frequency from 1 Hz to 100 MHz with sub-hertz resolution at a 1 second gate using reciprocal counting. The reciprocal architecture (counting the number of reference-clock ticks between input-clock edges) gives uniform resolution across the input frequency range, in contrast to direct counting which loses resolution at low frequencies.</p>
+<p><strong>Block Diagram, Module 2C</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    BNCSig[BNC signal input]
+    BNCRef[BNC ext ref input optional]
+    TCXO[Onboard TCXO<br/>10 MHz ±2.5 ppm]
+    FPGA[Tang Primer 25K<br/>reciprocal counter<br/>32-bit accumulator]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|SPI| FPGA
+    BNCSig --> FPGA
+    BNCRef --> FPGA
+    TCXO --> FPGA
+</div>
 <p><strong>Table 7-15: Module 2C Specifications</strong></p>
 <table>
 <thead>
@@ -2285,6 +2405,8 @@ def test_firestick_remote_codes(ir):
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> <a href="https://www.ni.com/en/shop/hardware/counter-timer-instruments/model-pxi-6608.html">NI PXI-6608 Synchronization and Timing</a>. The 6608 has multiple counters and an OCXO timebase to ~75 ppb; Module 2C is a single counter with onboard TCXO at ±2.5 ppm or external 10 MHz reference. Sufficient for crystal characterization, frequency drift over time, and audio-band frequency measurement; not appropriate for primary frequency-standard work.</p>
+
 <p><strong>Table 7-16: Module 2C FPGA Resource Estimate</strong></p>
 <table>
 <thead>
@@ -2316,6 +2438,30 @@ def test_firestick_remote_codes(ir):
 <li><code>FREQ:CONF:REF &lt;INT|EXT&gt;</code> selects internal or external reference</li>
 <li><code>FREQ:RAT? &lt;chan_a&gt;, &lt;chan_b&gt;</code> measures ratio between two channels</li>
 </ul>
+<p><strong>Timing Diagram, Module 2C Reciprocal Counter Gate</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant P as Pico
+    participant F as FPGA counter
+    participant Ref as 10 MHz reference
+    participant Sig as Input signal
+    H->>P: FREQ:MEAS? 1000
+    P->>F: open gate for 1000 ms
+    Note over F: count input edges and reference ticks simultaneously
+    Sig->>F: edges (N count)
+    Ref->>F: 10 MHz reference (M count)
+    Note over F: gate closes; measured freq = N × 10MHz / M
+    F-->>P: result
+    P-->>H: 1000.0023 Hz
+</div>
+<p><strong>Sample Test, Module 2C</strong></p>
+<pre><code class="language-python">def test_awg_output_frequency(counter, awg):
+    """Program AWG to 10 kHz and verify counter measures within ±0.1%."""
+    awg.write('SOUR:FUNC SQU; SOUR:FREQ 10000; OUTP ON')
+    measured = float(counter.query('FREQ:MEAS? 1000'))
+    assert 9990 &lt;= measured &lt;= 10010, f'Measured {measured:.2f} Hz, expected 10 kHz ± 0.1%'
+    awg.write('OUTP OFF')
+</code></pre>
 <p><strong>Table 7-17: Module 2C BOM</strong></p>
 <table>
 <thead>
@@ -2381,6 +2527,23 @@ def test_firestick_remote_codes(ir):
 <h4 id="module-2d-ethernet-mac-and-network-analyzer">7.6.4 Module 2D: Ethernet MAC and Network Analyzer</h4>
 <p>Module 2D implements an Ethernet MAC with capture, statistics, and bridge functions, paired with an external PHY (PmodNIC100 or equivalent) connected to the Tang Primer 25K via MII or RMII. The PHY provides 100BASE-TX or 1000BASE-T line-side encoding; the FPGA implements the MAC layer with full-frame capture and CRC validation. A bridge mode connects two Ethernet ports through the FPGA, capturing every frame that crosses the bridge into BSRAM. At line rates that exceed the BSRAM capture buffer’s drain rate over USB-TMC the bridge becomes a sampler rather than a tap; sustained capture at full line rate requires the v2.0 streaming variant via the Pi Zero secondary bus.</p>
 <p>A 10BASE-T raw FPGA-only implementation (Manchester-encoded line driver with pulse transformer, no external PHY) was considered as a separate phase but has been dropped from the v1.0 scope. The external-PHY path provides materially more useful line rates and is closer to the bring-up patterns Brad will encounter in real DUTs.</p>
+<p><strong>Block Diagram, Module 2D</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    PHY[PmodNIC100 or PHY breakout<br/>100/1000 BASE-TX]
+    RJ45[RJ45 jack + magnetics]
+    Net[DUT or network]
+    FPGA[Tang Primer 25K<br/>MAC + capture buffer]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|SPI| FPGA
+    PHY <-->|MII or RMII| FPGA
+    PHY <-->|TX RX pairs| RJ45
+    RJ45 <-->|cat6 cable| Net
+</div>
 <p><strong>Table 7-18: Module 2D Specifications</strong></p>
 <table>
 <colgroup>
@@ -2416,6 +2579,8 @@ def test_firestick_remote_codes(ir):
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> NI does not produce a dedicated Ethernet protocol analyzer in the PXIe form factor; the field-standard tools are <a href="https://www.wireshark.org/">Wireshark</a> on a host with port-mirroring switch, or specialized commercial analyzers (<a href="https://www.keysight.com/us/en/products/network-test/network-test-platforms.html">Keysight Ixia</a>). Module 2D's value is integrating Ethernet capture into the PMVB SCPI plane so automated test sequences can correlate Ethernet traffic with other instrument captures on the same DUT.</p>
+
 <p><strong>Table 7-19: Module 2D FPGA Resource Estimate</strong></p>
 <table>
 <thead>
@@ -2449,6 +2614,38 @@ def test_firestick_remote_codes(ir):
 <li><code>ETH:BRIDGE:STAR &lt;port_a&gt;, &lt;port_b&gt;</code> starts transparent bridge with capture</li>
 <li><code>ETH:BRIDGE:STOP</code> stops bridge</li>
 </ul>
+<p><strong>Timing Diagram, Module 2D Frame Capture</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant P as Pico
+    participant F as FPGA MAC
+    participant PHY as PHY
+    participant Net as DUT network
+    H->>P: ETH:CAPT:STAR 0
+    P->>F: arm capture on port 0
+    Net->>PHY: Ethernet frame
+    PHY-->>F: frame data via MII
+    F->>F: validate CRC, store in BSRAM
+    H->>P: ETH:CAPT:STOP 0
+    P->>F: stop, return trace_id
+    H->>P: ETH:CAPT:DATA? trace_id
+    F-->>P: captured frames
+    P-->>H: array of frames
+</div>
+<p><strong>Sample Test, Module 2D</strong></p>
+<pre><code class="language-python">import json
+import time
+
+def test_capture_arp_traffic(eth):
+    """Capture five seconds of LAN traffic and verify at least one ARP request was seen."""
+    eth.write('ETH:CAPT:CONF 0, ARP')
+    eth.write('ETH:CAPT:STAR 0')
+    time.sleep(5)
+    eth.write('ETH:CAPT:STOP 0')
+    frames = json.loads(eth.query('ETH:CAPT:DATA?'))
+    arps = [f for f in frames if f['ethertype'] == 0x0806]
+    assert len(arps) &gt; 0, 'No ARP frames captured in 5 s - check LAN connection'
+</code></pre>
 <p><strong>Table 7-20: Module 2D BOM</strong></p>
 <table>
 <thead>
@@ -2515,6 +2712,26 @@ def test_firestick_remote_codes(ir):
 <p>Module 2E provides oscilloscope-class analog waveform capture at PMVB scale. The module pairs an Analog Devices AD9226 12-bit 65 MSPS ADC with the Tang Primer 25K and a programmable analog front end (AFE). The AFE provides DC and AC coupling, relay-switched input attenuation through a precision divider network, and a single-ended-to-differential conversion stage (high-speed op-amp such as AD8131) that drives the AD9226’s differential input. Two channels are supported in v1.0 through channel multiplexing on the single ADC at approximately 32 MSPS per channel; a future v2.0 variant will use two AD9226 ICs for true simultaneous dual-channel capture at 65 MSPS each.</p>
 <p>Capture depth is bounded by the Tang Primer 25K’s BSRAM at approximately 65 K samples per channel at 12-bit width in single-channel mode, or 32 K per channel in dual-channel mode. Trigger sources include level (with hysteresis), edge, and external (taken from the chassis trigger bus). The FPGA computes basic statistics (peak, RMS, mean, min, max) on the BSRAM-resident capture so the host can query summary numbers without dragging the full waveform across USB-TMC. Spectrum analysis (FFT) is performed on the Pi 5 in Python after the waveform transfers, rather than in the FPGA fabric, to keep FPGA resource utilization below the Tier 2 80 percent BSRAM target.</p>
 <p>Module 2E is the headline analog characterization module for the platform. It enables Firestick-class consumer electronics debug (rail transient capture, signal sequencing during boot) and audio-amplifier characterization (waveform capture, FFT-based THD measurement when paired with Module 1E for stimulus).</p>
+<p><strong>Block Diagram, Module 2E</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    BNCs[BNC inputs<br/>2 channels]
+    AFE[Analog front end<br/>relay-switched attenuator<br/>AC/DC coupling<br/>SE-to-diff driver]
+    ADC[AD9226<br/>12-bit 65 MSPS]
+    FPGA[Tang Primer 25K<br/>capture buffer + trigger + statistics]
+    Trig[Chassis trigger bus]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin/bulk| PiZero
+    Pico -->|SPI| FPGA
+    PiZero -.optional SPI.- FPGA
+    BNCs --> AFE
+    AFE --> ADC
+    ADC --> FPGA
+    Trig -.shared trigger.- FPGA
+</div>
 <p><strong>Table 7-33: Module 2E Specifications</strong></p>
 <table>
 <colgroup>
@@ -2570,6 +2787,8 @@ def test_firestick_remote_codes(ir):
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> <a href="https://www.ni.com/en/shop/hardware/oscilloscopes-and-digitizers/model-pxie-5108">NI PXIe-5108 Oscilloscope</a> (8-channel, 100 MS/s, 8-bit) at hobbyist scale. Brad's TI bench used a PXIe-5108 in this slot. Module 2E offers higher per-sample resolution (12-bit vs 8-bit), lower channel count (2 vs 8), and slightly lower max sample rate (65 MS/s single-channel vs 100 MS/s on the 5108). The 12-bit resolution makes 2E better suited for audio-band FFT and small-signal characterization; the 5108 wins on simultaneous multi-channel capture.</p>
+
 <p><strong>Table 7-34: Module 2E FPGA Resource Estimate</strong></p>
 <table>
 <thead>
@@ -2606,6 +2825,44 @@ def test_firestick_remote_codes(ir):
 <li><code>DIG:STAT? &lt;chan&gt;</code> returns capture statistics</li>
 <li><code>DIG:FFT? &lt;chan&gt;, &lt;points&gt;</code> returns FFT magnitude (Pi 5 computed)</li>
 </ul>
+<p><strong>Timing Diagram, Module 2E Triggered Capture</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant P as Pico
+    participant F as FPGA
+    participant ADC as AD9226
+    H->>P: DIG:CONF 0, 1.0, AC
+    H->>P: DIG:RATE 65000000
+    H->>P: DIG:DEPTH 65000
+    H->>P: DIG:TRIG:LEV 0, 0.5
+    H->>P: DIG:ARM
+    P->>F: arm
+    Note over F: wait for trigger condition
+    F->>ADC: stream samples 65 MSPS continuous
+    ADC-->>F: 12-bit samples
+    Note over F: trigger fires, complete buffer fill
+    F->>F: compute statistics (peak, RMS, mean)
+    F-->>P: capture complete
+    H->>P: DIG:DATA? 0
+    Note over P,F: transfer over USB-TMC ~80 ms full buffer
+    P-->>H: array of samples in volts
+</div>
+<p><strong>Sample Test, Module 2E</strong></p>
+<pre><code class="language-python">import numpy as np
+
+def test_amp_thd_at_1khz(awg, scope):
+    """Pair AWG and scope to measure DUT amplifier THD at 1 kHz."""
+    awg.write('SOUR:FUNC SIN; SOUR:FREQ 1000; SOUR:VOLT 1.0; OUTP ON')
+    scope.write('DIG:CONF 0, 5.0, AC')
+    scope.write('DIG:RATE 1000000; DIG:DEPTH 100000; DIG:ARM')
+    samples = scope.query_binary_values('DIG:DATA? 0', datatype='f')
+    spec = np.abs(np.fft.rfft(samples))
+    fund = spec[100]   # 1 kHz at 1 MSPS, 100 k samples maps to bin 100
+    harmonics = [spec[100 * n] for n in range(2, 6)]
+    thd = np.sqrt(sum(h ** 2 for h in harmonics)) / fund
+    assert thd &lt; 0.01, f'THD {thd * 100:.2f}% exceeds 1% threshold'
+    awg.write('OUTP OFF')
+</code></pre>
 <p><strong>Table 7-35: Module 2E BOM</strong></p>
 <table>
 <colgroup>
@@ -2689,6 +2946,24 @@ def test_firestick_remote_codes(ir):
 <p>The architectural pattern (Pico USB-TMC bridge, Pi Zero admin sidecar, FPGA instrument logic) is preserved at Tier 3; only the FPGA changes and the data path shifts toward the Pi Zero LAN bulk channel for sustained captures.</p>
 <h4 id="module-3a-usb-2.0-protocol-analyzer">7.7.1 Module 3A: USB 2.0 Protocol Analyzer</h4>
 <p>Module 3A captures USB high-speed traffic at 480 Mbps, decodes packets, and identifies protocol errors. The FPGA implements a USB high-speed receive-only PHY interface (using ULPI or UTMI+ depending on the FPGA platform), captures SETUP, IN, OUT, and SOF packets, and applies a configurable filter to limit capture to relevant traffic. Captured data streams over the Pi Zero SPI bus to the Pi Zero’s SD card or LAN-attached storage, since 480 Mbps far exceeds USB-TMC’s 12 Mbps full-speed link.</p>
+<p><strong>Block Diagram, Module 3A</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    USBJack[USB-A tap point]
+    PHY[USB3300<br/>USB high-speed PHY<br/>ULPI or UTMI+]
+    FPGA[Larger FPGA<br/>Tang Mega 138K Pro<br/>or AX7325B]
+    Storage[Pi Zero SD card<br/>+ wired LAN to host]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin/bulk| PiZero
+    Pico -->|SPI command| FPGA
+    PiZero -->|SPI bulk| FPGA
+    USBJack --> PHY
+    PHY <-->|ULPI| FPGA
+    FPGA -->|stream captures| Storage
+</div>
 <p><strong>Table 7-21: Module 3A Specifications</strong></p>
 <table>
 <thead>
@@ -2720,6 +2995,8 @@ def test_firestick_remote_codes(ir):
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> not a standard NI PXIe instrument; commercial USB protocol analyzers in this category include <a href="https://www.totalphase.com/products/beagle-usb480-power/">Beagle USB 480 Power</a> and Teledyne LeCroy Voyager. Module 3A targets hobbyist USB-class device debug at high-speed (480 Mbps) data rates with capture streamed to the Pi Zero sidecar.</p>
+
 <p><strong>SCPI Command Set, Module 3A</strong></p>
 <ul>
 <li><code>*IDN?</code> identification</li>
@@ -2729,6 +3006,36 @@ def test_firestick_remote_codes(ir):
 <li><code>USB:CAPT:DEC? &lt;trace_id&gt;</code> returns decoded transactions as a path or trace ID, not inline payload (per section 9 rules)</li>
 <li><code>USB:STAT?</code> returns statistics counters</li>
 </ul>
+<p><strong>Timing Diagram, Module 3A USB Capture</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant P as Pico
+    participant F as FPGA
+    participant PHY as USB PHY
+    participant DUT as USB DUT
+    participant Z as Pi Zero
+    H->>P: USB:CAPT:STAR 5000
+    P->>F: arm capture for 5 s
+    DUT->>PHY: USB high-speed traffic
+    PHY-->>F: ULPI samples
+    F->>F: filter, decode, store
+    F->>Z: stream to SD via secondary SPI bus
+    F-->>P: complete trace_id
+    H->>P: USB:CAPT:DEC? trace_id
+    P-->>H: file path on Pi Zero (per section 9.4 big-data rule)
+</div>
+<p><strong>Sample Test, Module 3A</strong></p>
+<pre><code class="language-python">import json
+import time
+
+def test_dut_enumeration_packets(usb):
+    """Capture initial USB enumeration and verify SETUP packets were seen."""
+    usb.write('USB:CAPT:STAR 2000')
+    time.sleep(2.5)
+    usb.write('USB:CAPT:STOP')
+    stats = json.loads(usb.query('USB:STAT?'))
+    assert stats['setup_count'] &gt; 0, 'No SETUP packets captured during enumeration'
+</code></pre>
 <p><strong>Table 7-22: Module 3A BOM</strong></p>
 <table>
 <colgroup>
@@ -2799,6 +3106,23 @@ def test_firestick_remote_codes(ir):
 <h4 id="module-3b-hdmi-sideband-analyzer">7.7.2 Module 3B: HDMI Sideband Analyzer</h4>
 <p>Module 3B captures the slow HDMI sideband channels rather than the multi-gigabit TMDS channels (the latter would require equipment-grade equalizers and clock recovery). The DDC (Display Data Channel) is I²C at 100 kHz, the CEC (Consumer Electronics Control) channel is 400 bps, and the HEC/ARC (HDMI Ethernet Channel and Audio Return Channel) sidebands run at audio-band rates. These three channels carry the EDID negotiation, device control commands, and audio metadata that account for the majority of HDMI interoperability failures in the field.</p>
 <p>The module presents an HDMI receptacle to the DUT, taps DDC, CEC, HEC, and ARC into the FPGA, and exposes capture and decode commands. The FPGA load is light enough that this module can run on the Tang Primer 25K rather than the larger Tier 3 FPGA, but it is grouped in Tier 3 because the HDMI receptacle and breakout PCB push the module BOM and bring-up complexity above Tier 2 norms.</p>
+<p><strong>Block Diagram, Module 3B</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    HDMI[HDMI receptacle]
+    BO[HDMI breakout PCB<br/>taps DDC, CEC, HEC, ARC]
+    FPGA[Tang Primer 25K<br/>I2C 100kHz · CEC 400bps · audio-rate]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|SPI| FPGA
+    HDMI --> BO
+    BO -->|DDC SDA/SCL| FPGA
+    BO -->|CEC| FPGA
+    BO -->|HEC/ARC| FPGA
+</div>
 <p><strong>Table 7-23: Module 3B Specifications</strong></p>
 <table>
 <thead>
@@ -2826,6 +3150,8 @@ def test_firestick_remote_codes(ir):
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> not a standard NI PXIe instrument; HDMI compliance and protocol work is typically done with dedicated tools like <a href="https://www.quantumdata.com/products/780.html">Quantum Data 780/980</a> or <a href="https://www.tek.com/en/products/oscilloscopes/ultra-deep-memory-oscilloscope">Tektronix HDMI compliance suites</a>. Module 3B targets the sideband-only debug case (the protocol-level failures that account for most consumer HDMI interoperability issues) at hobbyist scale, leaving TMDS signal-integrity testing to commercial tools.</p>
+
 <p><strong>SCPI Command Set, Module 3B</strong></p>
 <ul>
 <li><code>*IDN?</code> identification</li>
@@ -2837,6 +3163,28 @@ def test_firestick_remote_codes(ir):
 <li><code>HDMI:CEC:SEND &lt;message&gt;</code> injects a CEC message</li>
 <li><code>HDMI:HEC:CAPT &lt;duration_ms&gt;</code> captures HEC/ARC</li>
 </ul>
+<p><strong>Timing Diagram, Module 3B EDID Read</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant P as Pico
+    participant F as FPGA DDC engine
+    participant Sink as HDMI sink (TV)
+    H->>P: HDMI:EDID:READ?
+    P->>F: read EDID via DDC
+    F->>Sink: I2C addr 0x50, byte 0x00
+    Sink-->>F: 256-byte EDID block 0
+    Note over F,Sink: extension blocks fetched if present (4-block typical)
+    F-->>P: EDID bytes
+    P-->>H: hex-encoded EDID
+</div>
+<p><strong>Sample Test, Module 3B</strong></p>
+<pre><code class="language-python">def test_read_tv_edid(hdmi):
+    """Read EDID from an attached HDMI sink and verify a valid EDID 1.4 header."""
+    edid = bytes.fromhex(hdmi.query('HDMI:EDID:READ?').strip())
+    expected_header = bytes([0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00])
+    assert edid[:8] == expected_header, 'EDID header invalid - check HDMI cable'
+    assert len(edid) &gt;= 128, f'EDID block too short: {len(edid)} bytes'
+</code></pre>
 <p><strong>Table 7-24: Module 3B BOM</strong></p>
 <table>
 <thead>
@@ -2901,6 +3249,21 @@ def test_firestick_remote_codes(ir):
 </table>
 <h4 id="module-3c-usb-c-configuration-channel-analyzer">7.7.3 Module 3C: USB-C Configuration Channel Analyzer</h4>
 <p>Module 3C captures the USB-C Configuration Channel (CC) line, which carries Power Delivery (PD) negotiation messages encoded in BMC at 300 kHz. The CC channel also signals cable orientation and alternate-mode entry. The module taps CC1 and CC2 from a USB-C receptacle, decodes PD message framing, and presents the decoded source capabilities, request, and accept messages back to the orchestration layer. Alternate-mode detection (DisplayPort or Thunderbolt) is reported as a state-transition log.</p>
+<p><strong>Block Diagram, Module 3C</strong></p>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W]
+    PiZero[Pi Zero 2 W]
+    Switch[Chassis LAN switch]
+    USBC[USB-C receptacle]
+    BO[USB-C breakout PCB<br/>CC1 and CC2 taps]
+    FPGA[Tang Primer 25K<br/>BMC 300 kHz decoder<br/>PD message framer]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|SPI| FPGA
+    USBC --> BO
+    BO -->|CC1/CC2| FPGA
+</div>
 <p><strong>Table 7-25: Module 3C Specifications</strong></p>
 <table>
 <colgroup>
@@ -2932,6 +3295,8 @@ def test_firestick_remote_codes(ir):
 </tr>
 </tbody>
 </table>
+<p><strong>Closest commercial equivalent:</strong> not a standard NI PXIe instrument; commercial USB-C/PD analyzers include <a href="https://www.totalphase.com/products/usb-power-delivery/">Total Phase USB Power Delivery Analyzer</a> and <a href="https://granitechip.com/">Granite River Labs USB-C tools</a>. Module 3C targets passive PD-negotiation observation for consumer electronics debug (Firestick, phone chargers, Thunderbolt docks) at hobbyist scale.</p>
+
 <p><strong>SCPI Command Set, Module 3C</strong></p>
 <ul>
 <li><code>*IDN?</code> identification</li>
@@ -2941,6 +3306,39 @@ def test_firestick_remote_codes(ir):
 <li><code>USBC:CC:ORIENT?</code> returns detected cable orientation</li>
 <li><code>USBC:ALT:STATE?</code> returns alternate-mode state</li>
 </ul>
+<p><strong>Timing Diagram, Module 3C PD Negotiation Capture</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant P as Pico
+    participant F as FPGA
+    participant Source as USB-C source
+    participant DUT as DUT
+    H->>P: USBC:CC:CAPT:STAR 10000
+    P->>F: arm 10 s capture
+    Note over Source,DUT: PD negotiation begins on cable insertion
+    Source->>DUT: Source Capabilities (PDOs)
+    DUT->>Source: Request (RDO selecting one PDO)
+    Source->>DUT: Accept
+    Source->>DUT: PS_RDY
+    F->>F: BMC decode and store messages
+    H->>P: USBC:CC:CAPT:STOP
+    H->>P: USBC:CC:DATA?
+    P-->>H: array of decoded PD messages
+</div>
+<p><strong>Sample Test, Module 3C</strong></p>
+<pre><code class="language-python">import json
+import time
+
+def test_pd_negotiation_to_5v(usbc):
+    """Plug in a USB-C source and verify PD negotiation lands on 5 V default."""
+    usbc.write('USBC:CC:CAPT:STAR 5000')
+    time.sleep(5.5)
+    usbc.write('USBC:CC:CAPT:STOP')
+    msgs = json.loads(usbc.query('USBC:CC:DATA?'))
+    request = next((m for m in msgs if m['type'] == 'Request'), None)
+    assert request is not None, 'No Request message captured during 5 s'
+    assert request['voltage_mV'] == 5000, f'Negotiated {request["voltage_mV"]} mV, expected 5000'
+</code></pre>
 <p><strong>Table 7-26: Module 3C BOM</strong></p>
 <table>
 <thead>
