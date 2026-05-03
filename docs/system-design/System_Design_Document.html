@@ -339,14 +339,14 @@ blockquote {
 <div class="mermaid">flowchart TB
     Pi5["Raspberry Pi 5<br/>(Orchestration Head)<br/>PyVISA · pytest · InfluxDB · Grafana · MCP Gateway"]
     Pi5 --> Hub["Powered USB Hub<br/>5V / 2.4A · 4–8 ports"]
-    Pi5 --> Switch["Gigabit LAN Switch<br/>5–8 ports"]
-    Hub -->|USB-TMC| T1A["1A: Digital I/O<br/>Pico 2 W"]
-    Hub -->|USB-TMC| T1B["1B: Voltage Meas<br/>Pico + ADS1115"]
-    Hub -->|USB-TMC| T1C["1C: USB HID Analyzer<br/>Pico 2 W ×2"]
-    Hub -->|USB-TMC| T1D["1D: SMU Lite<br/>Pico + DAC + ADC"]
-    Hub -->|USB-TMC| T1E["1E: Function Gen / AWG<br/>Pico + DAC"]
-    Hub -.->|USB-TMC v1.1| T1F["1F: HV Differential Probe<br/>Pico + INA + attenuator"]
-    Hub -.->|USB-TMC v1.1| T1G["1G: IR Capture / TX<br/>Pico + IR"]
+    Pi5 --> Switch["Gigabit LAN Switch<br/>12–16 ports"]
+    subgraph T1["Tier 1 Module (instances: 1A · 1B · 1C · 1D · 1E · 1F · 1G)"]
+        direction TB
+        T1P["Pico 2 W<br/>USB-TMC bridge<br/>+ analog or digital front end"]
+        T1Z["Pi Zero 2 W<br/>admin sidecar"]
+    end
+    Hub -->|USB-TMC<br/>SCPI command + data| T1P
+    Switch -->|admin · storage · web UI| T1Z
     subgraph T2["Tier 2 Module (instances: 2A · 2B · 2C · 2D · 2E)"]
         direction TB
         P["Pico 2 W<br/>USB-TMC bridge"]
@@ -358,10 +358,9 @@ blockquote {
     Hub -->|USB-TMC<br/>SCPI command + data| P
     Switch -->|admin · storage · web UI| Z
     Trig{{"Shared Trigger Bus<br/>(optional GPIO line)"}}
-    T1A -.-> Trig
-    T1B -.-> Trig
-    T1E -.-> Trig
-    F -.-> Trig</div>
+    T1P -.-> Trig
+    F -.-> Trig
+</div>
 <p><em>Tier 3 modules (3A, 3B, 3C) are deferred and follow the same Pico + Pi Zero + FPGA pattern with a larger FPGA; they are documented in section 7.7 and omitted from this diagram for clarity.</em></p>
 <h3 id="representative-control-flow">4.2 Representative Control Flow</h3>
 <p>The control flow for a representative measurement, “characterize the noise floor of an external preamplifier,” exercises every architectural layer.</p>
@@ -415,56 +414,56 @@ blockquote {
 <td>1A</td>
 <td>1</td>
 <td>Digital I/O Controller</td>
-<td>Pico 2 W</td>
-<td>USB-TMC</td>
+<td>Pico 2 W + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
 <td>Planned (v1.0)</td>
 </tr>
 <tr class="even">
 <td>1B</td>
 <td>1</td>
 <td>Voltage Measurement Unit</td>
-<td>Pico 2 W + ADS1115</td>
-<td>USB-TMC</td>
+<td>Pico 2 W + ADS1115 + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
 <td>Planned (v1.0)</td>
 </tr>
 <tr class="odd">
 <td>1C</td>
 <td>1</td>
 <td>USB HID Protocol Analyzer</td>
-<td>Pico 2 W (×2)</td>
-<td>USB-TMC</td>
+<td>Pico 2 W (×2) + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
 <td>Planned (v1.0)</td>
 </tr>
 <tr class="even">
 <td>1D</td>
 <td>1</td>
 <td>Source-Measure Unit Lite</td>
-<td>Pico 2 W + MCP4922 + ADS1115</td>
-<td>USB-TMC</td>
+<td>Pico 2 W + MCP4922 + ADS1115 + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
 <td>Planned (v1.0)</td>
 </tr>
 <tr class="odd">
 <td>1E</td>
 <td>1</td>
 <td>Function Generator / AWG</td>
-<td>Pico 2 W + MCP4922</td>
-<td>USB-TMC</td>
+<td>Pico 2 W + MCP4922 + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
 <td>Planned (v1.0)</td>
 </tr>
 <tr class="even">
 <td>1F</td>
 <td>1</td>
 <td>HV Differential Probe</td>
-<td>Pico 2 W + AD8421 + ADS1115</td>
-<td>USB-TMC</td>
+<td>Pico 2 W + AD8421 + ADS1115 + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
 <td>Planned (v1.1)</td>
 </tr>
 <tr class="odd">
 <td>1G</td>
 <td>1</td>
 <td>IR Capture and Transmit</td>
-<td>Pico 2 W + TSOP4838 + IR LED</td>
-<td>USB-TMC</td>
+<td>Pico 2 W + TSOP4838 + IR LED + Pi Zero 2 W</td>
+<td>USB-TMC (primary) + LAN (admin)</td>
 <td>Planned (v1.1)</td>
 </tr>
 <tr class="even">
@@ -561,6 +560,7 @@ blockquote {
 <td>USB-TMC, USB 2.0 full-speed (12 Mbps)</td>
 <td>Pico 2 W native USB</td>
 </tr>
+<tr class="even"><td>Transport, Tier 1 (admin / storage)</td><td>Gigabit Ethernet or 2.4 GHz Wi-Fi to per-module Pi Zero 2 W</td><td>Same admin sidecar pattern as Tier 2 and 3</td></tr>
 <tr class="odd">
 <td>Transport, Tier 2 and 3 (instrument)</td>
 <td>USB-TMC, USB 2.0 full-speed (12 Mbps)</td>
@@ -874,7 +874,8 @@ blockquote {
 <p>The Pi 5 does not host any instrument hardware. It does not connect to DUT-facing analog or digital signals; it does not provide bench power; it does not act as a USB device. All instrument I/O happens at the module layer, accessed through the transport layer. This separation lets the Pi 5 be replaced (with a Pi 6, an Intel mini PC, or a desktop workstation) without changing any module design.</p>
 <hr />
 <h3 id="module-tier-1-microcontroller-based-modules">7.5 Module Tier 1: Microcontroller-Based Modules</h3>
-<p>Tier 1 modules use the Raspberry Pi Pico 2 W (RP2350 dual Cortex-M33 with optional dual Hazard3 RISC-V cores, 520 KB SRAM, 4 MB external flash, native USB device controller, 2.4 GHz Wi-Fi and BLE) as their host platform. All Tier 1 modules present to the orchestration layer as USB-TMC instruments through the chassis-wide powered USB hub. The Pico 2 W runs bare-metal C firmware built against the Pico SDK and TinyUSB; the SCPI parser is generated mechanically from each module’s YAML command schema (see section 8). Tier 1 modules do not include a Pi Zero 2 W sidecar; their persistent state (configuration, calibration constants) lives in the Pico’s external flash.</p>
+<p>Tier 1 modules use the Raspberry Pi Pico 2 W (RP2350 dual Cortex-M33 with optional dual Hazard3 RISC-V cores, 520 KB SRAM, 4 MB external flash, native USB device controller, 2.4 GHz Wi-Fi and BLE) as their host platform. All Tier 1 modules present to the orchestration layer as USB-TMC instruments through the chassis-wide powered USB hub. The Pico 2 W runs bare-metal C firmware built against the Pico SDK and TinyUSB; the SCPI parser is generated mechanically from each module’s YAML command schema (see section 8).</p>
+<p>Each Tier 1 module also includes a Pi Zero 2 W sidecar matching the Tier 2 architecture. The Pi Zero provides per-module Linux storage, ssh debug access, optional Wi-Fi or wired LAN connectivity, and a place to host module-level configuration and calibration data. The Pico 2 W remains the canonical USB-TMC bridge to the orchestration layer; the Pi Zero is parallel to that path, not in series with it. The architectural uniformity (every module has the same Pico-and-Pi-Zero pair) makes module bring-up and debug workflows consistent across the catalog at the cost of approximately $30 per module relative to a Pico-only baseline.</p>
 <h4 id="module-1a-digital-io-controller">7.5.1 Module 1A: Digital I/O Controller</h4>
 <p>Module 1A provides programmable digital I/O, PWM generation, and frequency measurement on a Pico 2 W with no external peripherals. The eight GPIO lines are independently configurable as inputs or outputs at 3.3 V CMOS levels, and are 5 V tolerant via the chassis-supplied bidirectional level shifter when 5 V interfacing is required. Two PWM outputs are driven by the RP2350’s PWM peripheral; one dedicated frequency-counter input uses a PIO state machine implementing reciprocal counting with a 32-bit accumulator.</p>
 <p><strong>Table 7-1: Module 1A Specifications</strong></p>
@@ -964,9 +965,12 @@ blockquote {
 <td>$1</td>
 <td>PETG print cost</td>
 </tr>
+<tr><td>Raspberry Pi Zero 2 W</td><td>$15</td><td>Admin sidecar</td></tr>
+<tr><td>MicroSD card (16 GB)</td><td>$5</td><td>Pi Zero boot and storage</td></tr>
+<tr><td>USB-Ethernet adapter (optional)</td><td>$10</td><td>Wired LAN to chassis switch</td></tr>
 <tr class="even">
 <td><strong>Total</strong></td>
-<td><strong>~$9</strong></td>
+<td><strong>~$39</strong></td>
 <td></td>
 </tr>
 </tbody>
@@ -1053,14 +1057,17 @@ blockquote {
 <td>$1</td>
 <td></td>
 </tr>
+<tr><td>Raspberry Pi Zero 2 W</td><td>$15</td><td>Admin sidecar</td></tr>
+<tr><td>MicroSD card (16 GB)</td><td>$5</td><td>Pi Zero boot and storage</td></tr>
+<tr><td>USB-Ethernet adapter (optional)</td><td>$10</td><td>Wired LAN to chassis switch</td></tr>
 <tr class="odd">
 <td><strong>Total</strong></td>
-<td><strong>~$14</strong></td>
+<td><strong>~$44</strong></td>
 <td></td>
 </tr>
 </tbody>
 </table>
-<p>The precision variant replaces the ADS1115 breakout ($5) with an ADS1256 breakout ($10); module total approximately $19.</p>
+<p>The precision variant replaces the ADS1115 breakout ($5) with an ADS1256 breakout ($10); module total approximately $49 (standard variant + ADS1256 upgrade).</p>
 <h4 id="module-1c-usb-hid-protocol-analyzer">7.5.3 Module 1C: USB HID Protocol Analyzer</h4>
 <p>Module 1C captures USB Human Interface Device traffic from a device under test and decodes HID descriptors and reports for inspection. The module pairs two Pico 2 W boards. The first (chassis-facing) Pico presents as the USB-TMC instrument over the chassis powered USB hub. The second (DUT-facing) Pico runs TinyUSB in host mode and enumerates the device under test. The two Picos communicate over a UART link at 1 Mbps. This split avoids the dual-role USB complexity that would arise from trying to use a single Pico as both USB-TMC device (uplink) and USB host (downlink) simultaneously, since the RP2350’s USB controller supports either role but not both on the same port.</p>
 <p>The DUT-facing Pico captures full HID descriptors, parses report descriptors, and forwards either decoded reports or raw bytes back to the chassis-facing Pico for SCPI response. Capture buffer is approximately 32 KB on the DUT-facing Pico; longer captures stream live to the chassis side over UART.</p>
@@ -1139,9 +1146,12 @@ blockquote {
 <td>$1</td>
 <td></td>
 </tr>
+<tr><td>Raspberry Pi Zero 2 W</td><td>$15</td><td>Admin sidecar</td></tr>
+<tr><td>MicroSD card (16 GB)</td><td>$5</td><td>Pi Zero boot and storage</td></tr>
+<tr><td>USB-Ethernet adapter (optional)</td><td>$10</td><td>Wired LAN to chassis switch</td></tr>
 <tr class="even">
 <td><strong>Total</strong></td>
-<td><strong>~$19</strong></td>
+<td><strong>~$49</strong></td>
 <td></td>
 </tr>
 </tbody>
@@ -1256,9 +1266,12 @@ blockquote {
 <td>$1</td>
 <td></td>
 </tr>
+<tr><td>Raspberry Pi Zero 2 W</td><td>$15</td><td>Admin sidecar</td></tr>
+<tr><td>MicroSD card (16 GB)</td><td>$5</td><td>Pi Zero boot and storage</td></tr>
+<tr><td>USB-Ethernet adapter (optional)</td><td>$10</td><td>Wired LAN to chassis switch</td></tr>
 <tr class="even">
 <td><strong>Total</strong></td>
-<td><strong>~$22</strong></td>
+<td><strong>~$52</strong></td>
 <td></td>
 </tr>
 </tbody>
@@ -1380,9 +1393,12 @@ blockquote {
 <td>$1</td>
 <td></td>
 </tr>
+<tr><td>Raspberry Pi Zero 2 W</td><td>$15</td><td>Admin sidecar</td></tr>
+<tr><td>MicroSD card (16 GB)</td><td>$5</td><td>Pi Zero boot and storage</td></tr>
+<tr><td>USB-Ethernet adapter (optional)</td><td>$10</td><td>Wired LAN to chassis switch</td></tr>
 <tr class="even">
 <td><strong>Total</strong></td>
-<td><strong>~$18</strong></td>
+<td><strong>~$48</strong></td>
 <td></td>
 </tr>
 </tbody>
@@ -1486,9 +1502,12 @@ blockquote {
 <td>$3</td>
 <td></td>
 </tr>
+<tr><td>Raspberry Pi Zero 2 W</td><td>$15</td><td>Admin sidecar</td></tr>
+<tr><td>MicroSD card (16 GB)</td><td>$5</td><td>Pi Zero boot and storage</td></tr>
+<tr><td>USB-Ethernet adapter (optional)</td><td>$10</td><td>Wired LAN to chassis switch</td></tr>
 <tr class="even">
 <td><strong>Total</strong></td>
-<td><strong>~$35</strong></td>
+<td><strong>~$65</strong></td>
 <td></td>
 </tr>
 </tbody>
@@ -1589,9 +1608,12 @@ blockquote {
 <td>$1</td>
 <td></td>
 </tr>
+<tr><td>Raspberry Pi Zero 2 W</td><td>$15</td><td>Admin sidecar</td></tr>
+<tr><td>MicroSD card (16 GB)</td><td>$5</td><td>Pi Zero boot and storage</td></tr>
+<tr><td>USB-Ethernet adapter (optional)</td><td>$10</td><td>Wired LAN to chassis switch</td></tr>
 <tr class="odd">
 <td><strong>Total</strong></td>
-<td><strong>~$12</strong></td>
+<td><strong>~$42</strong></td>
 <td></td>
 </tr>
 </tbody>
@@ -2980,23 +3002,23 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <tbody>
 <tr class="odd">
 <td>Module 1A</td>
-<td>$9</td>
+<td>$39</td>
 </tr>
 <tr class="even">
 <td>Module 1B</td>
-<td>$14</td>
+<td>$44</td>
 </tr>
 <tr class="odd">
 <td>Module 1D</td>
-<td>$22</td>
+<td>$52</td>
 </tr>
 <tr class="even">
 <td>Module 1E</td>
-<td>$18</td>
+<td>$48</td>
 </tr>
 <tr class="odd">
 <td><strong>Phase 1 total</strong></td>
-<td><strong>~$63</strong></td>
+<td><strong>~$183</strong></td>
 </tr>
 </tbody>
 </table>
@@ -3014,7 +3036,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <tbody>
 <tr class="odd">
 <td>Module 1C</td>
-<td>$19</td>
+<td>$49</td>
 </tr>
 <tr class="even">
 <td>Tier 2 bridge stack (FPGA + Pico + Pi Zero + SD)</td>
@@ -3022,7 +3044,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>Phase 1.5 total</strong></td>
-<td><strong>~$81</strong></td>
+<td><strong>~$111</strong></td>
 </tr>
 </tbody>
 </table>
@@ -3096,15 +3118,15 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <tbody>
 <tr class="odd">
 <td>Module 1F</td>
-<td>$35</td>
+<td>$65</td>
 </tr>
 <tr class="even">
 <td>Module 1G</td>
-<td>$12</td>
+<td>$42</td>
 </tr>
 <tr class="odd">
 <td><strong>Phase 3 total</strong></td>
-<td><strong>~$47</strong></td>
+<td><strong>~$107</strong></td>
 </tr>
 </tbody>
 </table>
@@ -3153,11 +3175,11 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="even">
 <td>Phase 1 (Tier 1 core)</td>
-<td>~$63</td>
+<td>~$183</td>
 </tr>
 <tr class="odd">
 <td>Phase 1.5 (HID + bridge)</td>
-<td>~$81</td>
+<td>~$111</td>
 </tr>
 <tr class="even">
 <td>Phase 2 (Tier 2 core)</td>
@@ -3169,11 +3191,11 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="even">
 <td>Phase 3 (v1.1 Tier 1)</td>
-<td>~$47</td>
+<td>~$107</td>
 </tr>
 <tr class="odd">
 <td><strong>v1.0 + v1.1 subtotal</strong></td>
-<td><strong>~$849</strong></td>
+<td><strong>~$1,059</strong></td>
 </tr>
 <tr class="even">
 <td>Phase 4 (Tier 3, optional)</td>
@@ -3181,7 +3203,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>All phases total</strong></td>
-<td><strong>~$1,301</strong></td>
+<td><strong>~$1,511</strong></td>
 </tr>
 </tbody>
 </table>
@@ -3232,8 +3254,4 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <p>Start with SCPI 1999 and IEEE 488.2 to internalize the command surface; then read the PyVISA documentation for the host-side dispatch model; then individual module datasheets as each module enters its design phase; the MCP specification last, as it builds on top of the SCPI layer that the rest of the document establishes.</p>
 <h2 id="acknowledgments">Acknowledgments</h2>
 <p>This System Design Document serves a dual purpose. Primarily it is the technical reference for the Poor Man’s Validation Bench, intended for the engineer building, calibrating, or extending the platform. Secondarily it functions as an engineering portfolio artifact, demonstrating competency in modular instrumentation design, distributed test orchestration, software-defined instrument architecture, and the integration of agentic control surfaces into validation workflows.</p>
-<p>The document’s structure mirrors the FMCW Radar Baseband System Design Document hosted at <a href="https://pike1950.github.io/fmcw-radar-portfolio/docs/system-design/System_Design_Document.html" class="uri">https://pike1950.github.io/fmcw-radar-portfolio/docs/system-design/System_Design_Document.html</a>, which itself follows the conventions of TI integrated-circuit datasheets. The intent is consistency across the author’s portfolio so that a reader familiar with one document can navigate the others without orientation friction.</p>
-<p>Prior revisions of the platform’s planning material (<code>Deep_Dive_RISC_SCPI_Diagnostics_v6</code> and <code>v7</code>, <code>Engineering_Portfolio_Deep_Dive_v3</code> and <code>v4</code>) are superseded by this document for PMVB-related content. RISC CPU content from those prior revisions has been moved to the RISC CPU project’s own documentation.</p>
-</body>
-</html>
-                                                  
+<p>The document’s structure mirrors the FMCW Radar Baseband System Design Document hosted at <a href="https://pike1950.github.io/fmcw-radar-portfolio/docs/system-design/System_Design_Document.html" class="uri">https://pike1950.github.io/fmcw-radar-portfolio/docs/system-design/System_Design_Document.html</a>, which itself follows the conventions of TI integrated-circuit datasheets. The intent is consistency across the author’s portfolio so that a reader familiar with one document c

@@ -8,6 +8,8 @@ A modular SCPI instrument platform that mirrors NI PXIe rack-and-module test arc
 
 ## Module Catalog
 
+Every module pairs a Pico 2 W bridge (USB-TMC primary instrument transport) with a Pi Zero 2 W admin sidecar (LAN access for storage, ssh, and module-level config). Tier 2 modules add a Tang Primer 25K FPGA; Tier 3 modules use a larger FPGA platform.
+
 | ID | Tier | Function | Status |
 |----|------|----------|--------|
 | 1A | 1 | Digital I/O Controller | Planned (v1.0) |
@@ -30,7 +32,7 @@ A modular SCPI instrument platform that mirrors NI PXIe rack-and-module test arc
 
 Two control planes per module: a VISA/SCPI plane for headless test sequencing (pytest, vendor-portable, deterministic) and an MCP plane that exposes the same instrument surface as LLM-callable tools for agent-orchestrated bench sessions. Both planes consume the same per-module YAML command schema; firmware parsers and PyVISA-sim simulation backends are generated mechanically from the YAML.
 
-Tier 1 modules use a Raspberry Pi Pico 2 W as their host platform and present as USB-TMC instruments. Tier 2 modules add a Sipeed Tang Primer 25K FPGA (instrument logic), a Pi Zero 2 W sidecar (per-module Linux storage and admin), and the same Pico 2 W bridge architecture for the canonical USB-TMC SCPI path. Tier 3 modules use a larger FPGA (Tang Mega 138K Pro or Alinx AX7325B) for high-speed interface analysis.
+Every module includes a Pico 2 W (USB-TMC bridge) and a Pi Zero 2 W (admin sidecar). Tier 1 modules add an analog or digital front end appropriate to the function; the Pico runs the SCPI parser in firmware and the Pi Zero handles per-module Linux storage, ssh debug access, and configuration files. Tier 2 modules additionally include a Sipeed Tang Primer 25K FPGA where the instrument logic lives; the Pico bridges to the FPGA over SPI. Tier 3 modules replace the Tang Primer 25K with a larger FPGA (Tang Mega 138K Pro or Alinx AX7325B) for high-speed interface analysis.
 
 See section 4 of the [System Design Document](https://pike1950.github.io/poor-mans-validation-bench/docs/system-design/System_Design_Document.html#functional-block-diagram) for the full architecture diagram.
 
