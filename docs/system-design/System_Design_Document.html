@@ -2140,14 +2140,13 @@ def test_firestick_remote_codes(ir):
 <p><strong>Trigger State Machine, Module 2A</strong></p>
 <div class="mermaid">stateDiagram-v2
     [*] --> idle
-    idle --> armed: TRAC:ARM
+    idle --> armed: arm command
     armed --> pre_trigger: capture started
     pre_trigger --> triggered: trigger condition met
-    pre_trigger --> idle: TRAC:STOP or timeout
-    triggered --> post_trigger: filling remaining buffer
+    pre_trigger --> idle: stop or timeout
+    triggered --> post_trigger: fill remaining buffer
     post_trigger --> ready: buffer full
-    ready --> idle: TRAC:DATA returned
-    ready --> idle: TRAC:STOP
+    ready --> idle: data returned or stop
 </div>
 <p><strong>Signal-Level Timing, Example SPI Capture (what 2A samples)</strong></p>
 <script type="WaveDrom">
@@ -2942,14 +2941,14 @@ def test_capture_arp_traffic(eth):
 <p><strong>Trigger State Machine, Module 2E</strong></p>
 <div class="mermaid">stateDiagram-v2
     [*] --> idle
-    idle --> configured: DIG:CONF / DIG:RATE / DIG:DEPTH
-    configured --> armed: DIG:ARM
-    armed --> pre_trigger: streaming to circular buffer
-    pre_trigger --> triggered: level, edge, or external trigger fires
+    idle --> configured: configure rate and depth
+    configured --> armed: arm command
+    armed --> pre_trigger: stream to circular buffer
+    pre_trigger --> triggered: trigger fires
     pre_trigger --> idle: timeout or stop
-    triggered --> capturing: collect post-trigger samples
-    capturing --> ready: buffer full and stats computed
-    ready --> idle: DIG:DATA returned
+    triggered --> capturing: collect post trigger samples
+    capturing --> ready: buffer full and stats ready
+    ready --> idle: data returned
 </div>
 <p><strong>Sample Test, Module 2E</strong></p>
 <pre><code class="language-python">import numpy as np
