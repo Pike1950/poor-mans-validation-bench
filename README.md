@@ -4,7 +4,17 @@ A modular SCPI instrument platform that mirrors NI PXIe rack-and-module test arc
 
 ## Documentation
 
+### Canonical reference
+
 - **[System Design Document](https://pike1950.github.io/poor-mans-validation-bench/docs/system-design/System_Design_Document.html)** — full v1.0 SDD covering architecture, module catalog, specifications, software stack, build phases, and verification strategy. Rendered via GitHub Pages.
+
+### Chassis design
+
+- **[Chassis Power Distribution Design](docs/chassis/Chassis_Power_Distribution_Design.md)** — single-enclosure Hammond 1411P design built around the Silverstone TX300 PSU. Covers theory of operation, mechanical fabrication for novice builders (IEC inlet cutout, fan grille, cable grommet), lid interlock topology, BOM with Mouser and Digi-Key cross-references, bring-up procedure, and safety protocols.
+
+### Per-module design
+
+- **[Module 1E: Function Generator / AWG](docs/modules/Module_1E_Design_Document.md)** — theory of operation, functional block diagram, Pico-to-DAC-to-op-amp pin assignments, four sample applications (single-tone sine, swept-sine THD, multitone IMD, white noise), calibration procedure, bring-up checklist, and BOM with Mouser and Digi-Key cross-references.
 
 ## Module Catalog
 

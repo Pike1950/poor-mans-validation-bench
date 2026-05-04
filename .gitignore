@@ -61,3 +61,6 @@ INSTRUCTIONS.md
 MCP_and_AI_Tooling_Notes.md
 *.docx
 ~$*.docx
+
+# Local-only setup and bring-up notes (contain hostnames, usernames, tokens, paths)
+docs/setup/
