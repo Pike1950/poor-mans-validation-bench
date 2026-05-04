@@ -841,8 +841,8 @@ blockquote {
 </tr>
 <tr class="odd">
 <td>InfluxDB</td>
-<td>1.8.x preferred on 2 GB Pi; 2.7+ on 16 GB Pi</td>
-<td>Lighter footprint at 1.8</td>
+<td>2.7+</td>
+<td>Default on 16 GB Pi 5 baseline</td>
 </tr>
 <tr class="even">
 <td>Grafana</td>
@@ -881,9 +881,9 @@ blockquote {
 <p>The two planes coexist without locking. A pytest run can hold a sequence of measurements while an agent injects an ad-hoc query; both arrive at the module as SCPI commands and the module’s SCPI parser serializes them. The per-node concurrency rules in section 9 ensure that no module is asked to do two things at once on the same physical channel.</p>
 <p>A third control plane, an inference plane running narrow ML models on a Raspberry Pi AI HAT+, was specified in earlier revisions and is reserved for a future release. It is out of scope for this document.</p>
 <h3 id="orchestration-layer">7.4 Orchestration Layer</h3>
-<p>The orchestration layer is a single Raspberry Pi 5. The current build uses the 2 GB variant; a planned upgrade to the 16 GB variant is gated on a budget increase. The 2 GB variant is sufficient for the current platform with care taken on the time-series database choice (described below); the 16 GB variant relaxes that choice and absorbs concurrent dashboard, report-generation, and MCP-server workloads without per-component tuning.</p>
+<p>The orchestration layer is a single Raspberry Pi 5 16 GB with a Raspberry Pi M.2 HAT+ carrying a 512 GB NVMe SSD. The 16 GB memory budget absorbs concurrent dashboard, report-generation, and MCP-server workloads without per-component tuning. The M.2 SSD provides fast bulk storage for captured waveforms and InfluxDB shards, removing the SD-card I/O bottleneck that would otherwise apply to a microSD-only Pi 5.</p>
 <p>The Pi 5 hosts six software services, all running natively under the same Raspberry Pi OS Bookworm instance.</p>
-<p>PyVISA and PyVISA-py provide instrument discovery and SCPI dispatch. PyVISA-sim provides the simulation backend, generated mechanically from each module’s command schema. pytest is the test runner, with parametric fixtures keyed off the module catalog. InfluxDB is the time-series database; the 2 GB Pi runs InfluxDB 1.8 (Go-based, ~150 MB resident under typical load), and the 16 GB Pi runs InfluxDB 2.7+ (Flux query language, web UI, ~600 MB resident). Grafana 10.x OSS edition serves dashboards. The MCP gateway runs as a Python process exposing the module surface as MCP tools to local or LAN-connected clients.</p>
+<p>PyVISA and PyVISA-py provide instrument discovery and SCPI dispatch. PyVISA-sim provides the simulation backend, generated mechanically from each module’s command schema. pytest is the test runner, with parametric fixtures keyed off the module catalog. InfluxDB 2.7+ is the time-series database (Flux query language, integrated web UI, ~600 MB resident under typical load); the 16 GB memory budget makes this the default choice with no per-component tuning required. Grafana 10.x OSS edition serves dashboards. The MCP gateway runs as a Python process exposing the module surface as MCP tools to local or LAN-connected clients. Captured waveforms and trace files land on the M.2 SSD rather than on a microSD card, so the trace_id pattern in section 9.4 stores files at fast paths the orchestration host can serve directly.</p>
 <p>The Pi 5 does not host any instrument hardware. It does not connect to DUT-facing analog or digital signals; it does not provide bench power; it does not act as a USB device. All instrument I/O happens at the module layer, accessed through the transport layer. This separation lets the Pi 5 be replaced (with a Pi 6, an Intel mini PC, or a desktop workstation) without changing any module design.</p>
 <hr />
 <h3 id="module-tier-1-microcontroller-based-modules">7.5 Module Tier 1: Microcontroller-Based Modules</h3>
@@ -3880,11 +3880,23 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </thead>
 <tbody>
 <tr class="odd">
-<td>Raspberry Pi 5 2 GB</td>
-<td>$80</td>
+<td>Raspberry Pi 5 16 GB</td>
+<td>$120</td>
 </tr>
 <tr class="even">
-<td>Pi 5 PSU + heatsink + microSD</td>
+<td>Active cooler / heatsink</td>
+<td>$5</td>
+</tr>
+<tr class="odd">
+<td>32 GB microSD card (boot)</td>
+<td>$8</td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi M.2 HAT+</td>
+<td>$12</td>
+</tr>
+<tr class="odd">
+<td>512 GB NVMe SSD (M.2 2230 or 2242)</td>
 <td>$40</td>
 </tr>
 <tr class="odd">
@@ -3915,9 +3927,9 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <td>5 V distribution cabling</td>
 <td>$10</td>
 </tr>
-<tr class="even">
+<tr>
 <td><strong>Phase 0 total</strong></td>
-<td><strong>~$234</strong></td>
+<td><strong>~$299</strong></td>
 </tr>
 </tbody>
 </table>
@@ -4115,7 +4127,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <tbody>
 <tr class="odd">
 <td>Phase 0 (orchestration + PSU)</td>
-<td>~$234</td>
+<td>~$299</td>
 </tr>
 <tr class="even">
 <td>Phase 1 (Tier 1 core)</td>
@@ -4140,7 +4152,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>v1.0 + v1.1 subtotal</strong></td>
-<td><strong>~$1,191</strong></td>
+<td><strong>~$1,256</strong></td>
 </tr>
 <tr class="even">
 <td>Phase 4 (Tier 3, optional)</td>
@@ -4148,14 +4160,13 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>All phases total</strong></td>
-<td><strong>~$1,643</strong></td>
+<td><strong>~$1,708</strong></td>
 </tr>
 </tbody>
 </table>
 <h3 id="upgrade-gates">13.9 Upgrade Gates</h3>
-<p>Three upgrade gates are documented:</p>
+<p>Two upgrade gates are documented:</p>
 <ul>
-<li><strong>16 GB Pi 5 upgrade</strong>: replaces the orchestration layer’s 2 GB Pi with a 16 GB variant. Allows InfluxDB 2.x deployment, larger dashboard refresh rates, and concurrent MCP/report workloads. Gated on a budget increase, not on a technical milestone.</li>
 <li><strong>Larger FPGA</strong>: enables Tier 3 modules. Gated on Phase 4 commencement.</li>
 <li><strong>Second Tang Primer 25K</strong>: enables RISC CPU project FPGA synthesis without sharing the PMVB FPGA. Cost approximately $35; gated on RISC CPU project resumption.</li>
 </ul>
