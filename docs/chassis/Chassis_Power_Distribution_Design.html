@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chassis Power Distribution Design</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --card: #16213e;
+  --accent: #0f3460;
+  --highlight: #e94560;
+  --text: #d4d4d4;
+  --heading: #f0f0f0;
+  --dim: #888;
+  --green: #4ade80;
+  --amber: #fbbf24;
+  --blue: #60a5fa;
+  --red: #f87171;
+  --teal: #2dd4bf;
+  --code-bg: #0d1117;
+  --border: #333;
+  --doc-width: 1400px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  max-width: var(--doc-width);
+  margin: 0 auto;
+  padding: 2rem;
+}
+h1 {
+  color: var(--heading);
+  font-size: 2rem;
+  margin: 2rem 0 0.5rem;
+  border-bottom: 2px solid var(--highlight);
+  padding-bottom: 0.5rem;
+}
+h2 {
+  color: var(--heading);
+  font-size: 1.5rem;
+  margin: 2.5rem 0 0.5rem;
+  border-left: 4px solid var(--highlight);
+  padding-left: 0.75rem;
+}
+h3 {
+  color: var(--blue);
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.5rem;
+}
+h4 {
+  color: var(--teal);
+  font-size: 1rem;
+  margin: 1.2rem 0 0.3rem;
+}
+p { margin: 0.5rem 0; }
+ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+li { margin: 0.2rem 0; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--accent);
+  color: var(--heading);
+  font-weight: 600;
+}
+td { background: var(--card); }
+code {
+  font-family: 'Consolas', 'Fira Code', 'Cascadia Code', monospace;
+  background: var(--code-bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: var(--amber);
+}
+pre {
+  background: var(--code-bg);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  border-left: 3px solid var(--blue);
+}
+pre code {
+  padding: 0;
+  background: none;
+  color: var(--text);
+}
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+strong, b { color: var(--heading); }
+em, i { color: var(--text); }
+blockquote {
+  border-left: 3px solid var(--amber);
+  background: var(--card);
+  padding: 0.5rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0 6px 6px 0;
+}
+/* Inline TOC styling */
+#TOC, .toc {
+  background: var(--card);
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  border-left: 4px solid var(--blue);
+}
+#TOC ul, .toc ul {
+  list-style: none;
+  padding-left: 1.2rem;
+  margin: 0.25rem 0;
+}
+#TOC li, .toc li { margin: 0.15rem 0; }
+#TOC > ul, .toc > ul { padding-left: 0; }
+/* Mermaid container */
+.mermaid {
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: center;
+  overflow-x: auto;
+}
+/* Width slider control (mirrors FMCW pattern) */
+.width-control {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  background: var(--card);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--dim);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.width-control input[type="range"] { width: 120px; }
+/* Document metadata block */
+.meta {
+  color: var(--dim);
+  font-size: 0.9rem;
+  margin: 1rem 0 2rem;
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#16213e',
+          primaryColor: '#0f3460',
+          primaryTextColor: '#f0f0f0',
+          primaryBorderColor: '#60a5fa',
+          lineColor: '#d4d4d4',
+          secondaryColor: '#16213e',
+          tertiaryColor: '#1a1a2e'
+        }
+      });
+    }
+  });
+</script>
+</head>
+<body>
+<div class="width-control">
+  Width <input type="range" min="900" max="2200" value="1400"
+    oninput="document.documentElement.style.setProperty('--doc-width', this.value + 'px')">
+</div>
+<h1 id="chassis-power-distribution-design-document">Chassis Power Distribution Design Document</h1>
+<h2 id="v1.0-may-2026">v1.0 (May 2026)</h2>
+<p>Companion to the <a href="../system-design/System_Design_Document.html#power-architecture">PMVB System Design Document section 11.5</a>. Documents the mechanical and electrical design for the Chassis Power Unit (CPU): a single integrated enclosure built around the Silverstone SST-TX300 PSU that supplies +5 V to the Pi 5 and per-module Pi Zeros, +12 V to the powered USB hub, and -12 V to the Module 1E op-amp output stage. The Pi 5, USB hub, LAN switch, and instrument modules sit on the bench external to this chassis and connect via DC cables that exit the chassis back panel.</p>
+<hr />
+<h2 id="design-philosophy-and-topology">1. Design Philosophy and Topology</h2>
+<h3 id="single-enclosure-chassis-power-unit">1.1 Single-Enclosure Chassis Power Unit</h3>
+<p>The chassis power system is a <strong>single integrated enclosure</strong> containing the TX300 PSU, the ATX breakout PCB, per-rail fuses, USB-C power breakouts, and (optionally) front-panel toggle and indicator LEDs. The Pi 5, USB hub, LAN switch, and modules sit external to this enclosure and connect through DC cables that exit a back-panel grommet.</p>
+<pre><code>                                       External (on bench, low voltage):
+                                       +-----------------------------------------+
+                                       |                                         |
+                                       |  Pi 5 16 GB --- USB hub --- LAN switch  |
+                                       |    |              |                     |
+                                       |   USB-C        12 V barrel              |
+                                       |  Phase 1+ modules (1A, 1B, 1E, ...)     |
+                                       |                                         |
+                                       +--------------------+--------------------+
+                                                            |
+                                                            | Cables exit
+                                                            | through grommet
++-- Hammond 1411P enclosure (Chassis Power Unit) -----------|------------------+
+|                                                           |                  |
+|  +-- AC Zone ----------+      +-- DC Zone ----------+     |                  |
+|  | TX300 PSU           |      | ATX breakout PCB    |     |                  |
+|  |  (mains-voltage     |      | Per-rail fuses      |-----+ USB-C pigtails   |
+|  |   parts: IEC inlet, |======| USB-C breakouts     |       12 V barrel pig  |
+|  |   primary cap, EMI  | 24p  | (optional toggle    |       (out via         |
+|  |   filter, transformer)     |  switch + LEDs)     |        grommet)        |
+|  | -- earth-bonded     |      |                     |                        |
+|  +---------------------+      +---------------------+                        |
+|         |                                                                    |
+|     IEC inlet                                                                |
+|     exposed via                                                              |
+|     end-plate cutout                                                         |
+|                                                                              |
+|     Lid interlock microswitch on main lid                                    |
++--- Plug into switched power strip via standard IEC C13 cord -----------------+</code></pre>
+<p>The “AC Zone” and “DC Zone” are not separate physical compartments — they are zones of the same enclosure, separated by physical distance and routed cabling. The AC Zone holds mains-voltage parts (TX300’s primary side, IEC inlet, internal AC wiring); the DC Zone holds the post-transformer rails (5 V, 12 V, etc.) and their distribution hardware. The TX300’s transformer provides 1800 Vac of galvanic isolation between the two zones (per its datasheet hi-pot spec).</p>
+<h3 id="what-the-tx300-already-provides">1.2 What the TX300 Already Provides</h3>
+<p>The TX300 is a complete, certified AC power module. Per its manual:</p>
+<ul>
+<li>IEC C14 input inlet integrated on the unit.</li>
+<li>EMI input filter: X2 safety capacitor across L-N, dual Y-capacitors L-and-N to chassis earth, common-mode choke (CLC pi-filter topology).</li>
+<li>Active PFC stage (&gt;0.90 PF at full load).</li>
+<li>1800 Vac primary-to-secondary hi-pot isolation.</li>
+<li>Internal protection: OPP foldback at 360-480 W, OVP latch-off, short-circuit latch-off.</li>
+<li>Earth-bonded chassis via IEC inlet ground pin.</li>
+<li>Compliance: UL60950, EN60950, IEC60950, CE, CCC, FCC Class B, CISPR 22 Class B, IEC61000-3-2.</li>
+</ul>
+<p>We do not add external AC-side EMI filtering, fusing, or earth bonding — all of that is internal to the TX300. The chassis enclosure’s job is mechanical containment, lid interlock for safety, and physical separation of AC-zone wiring from DC-zone wiring.</p>
+<h3 id="the-lid-interlock">1.3 The Lid Interlock</h3>
+<p>A microswitch on the main lid sits in series with the <strong>low-voltage PS_ON# wire</strong> (pin 16 of the 24-pin ATX, green wire, active-low to enable rails).</p>
+<ul>
+<li>Lid closed → microswitch closed → PS_ON# can be pulled to GND → TX300 enables main rails (+3.3, +5, +12, -12 V).</li>
+<li>Lid open → microswitch open → PS_ON# floats high → TX300 disables main rails. The +5VSB standby rail stays alive.</li>
+</ul>
+<p>The interlock interrupts a logic-level signal, not the mains line. Mains is still hot inside the chassis whenever the cord is plugged in. Bulk capacitors on the TX300’s primary side hold dangerous DC voltage for 30 to 60 seconds after AC disconnect. Always observe the safety procedure in section 8 before opening the chassis lid.</p>
+<h2 id="functional-block-diagram">2. Functional Block Diagram</h2>
+<div class="mermaid">flowchart TB
+    Wall["120 V AC outlet"]
+    Strip["Switched power strip<br/>(provides AC switch + surge protection)"]
+    Wall --> Strip
+    subgraph CPU["Chassis Power Unit (Hammond 1411P enclosure)"]
+        IEC["IEC C14 inlet on TX300"]
+        TX300["TX300 PSU<br/>EMI filter · active PFC · transformer · internal protection"]
+        Breakout["ATX 24-pin breakout PCB<br/>terminal blocks per rail"]
+        Toggle["Optional front-panel<br/>PS_ON# toggle"]
+        Lid["Lid interlock microswitch"]
+        Fuses["Per-rail fuse panel<br/>5x20mm holders"]
+        USB_C["USB-C power breakouts<br/>(qty: 1 per Pi)"]
+        Hub_Pig["12 V barrel jack pigtail"]
+        LEDs["Optional front-panel LEDs<br/>AC live · +5 V · +12 V"]
+        IEC --> TX300
+        TX300 -->|24-pin| Breakout
+        Toggle -->|signal| Lid
+        Lid -->|signal| Breakout
+        Breakout -->|+5V rail| Fuses
+        Breakout -->|+12V rail| Fuses
+        Fuses --> USB_C
+        Fuses --> Hub_Pig
+        Breakout --> LEDs
+    end
+    Strip -->|IEC C13 cord| IEC
+    USB_C -->|exits via back grommet| Pi5["External Pi 5 + Pi Zero modules"]
+    Hub_Pig -->|exits via back grommet| HubLoad["External powered USB hub"]</div>
+<h2 id="chassis-mechanical-design">3. Chassis Mechanical Design</h2>
+<h3 id="enclosure-selection">3.1 Enclosure Selection</h3>
+<p><strong>Hammond 1411P</strong> aluminum chassis with two removable steel end plates.</p>
+<ul>
+<li>Internal dimensions: approximately 254 × 152 × 76 mm (10 × 6 × 3 inches)</li>
+<li>Mouser: 546-1411P</li>
+<li>Digi-Key: HM3046-ND</li>
+<li>Approximately $30</li>
+</ul>
+<p>Why this enclosure: - Aluminum body provides natural earth bonding when wired to the TX300 chassis ground. - Removable end plates simplify the mechanical work — the IEC inlet cutout and the fan grille cutout are made on flat plates, much easier than drilling the wraparound chassis. - Comfortable internal volume: TX300 (175 × 85 × 65 mm) and the ATX breakout PCB (about 70 × 50 mm) fit side-by-side with room for cable routing, fuse holders, and USB-C breakouts.</p>
+<h3 id="required-mechanical-modifications">3.2 Required Mechanical Modifications</h3>
+<p>Three cuts are required for v1.0; everything else is optional polish.</p>
+<p><strong>Cut 1: IEC inlet cutout (AC end plate).</strong> A rectangular cutout 35 × 28 mm on one end plate, sized to expose the TX300’s IEC C14 inlet for an external IEC C13 plug.</p>
+<p>How to make this cut, novice-friendly:</p>
+<ol type="1">
+<li>Mark the rectangle on the end plate with a permanent marker. Center the rectangle horizontally; vertically, position it to align with the TX300’s IEC inlet height once the PSU is mounted on its standoffs (typically about 25 mm above the chassis floor).</li>
+<li>Drill a 6 mm pilot hole inside one corner of the rectangle.</li>
+<li>Use a hand jigsaw with a metal-cutting blade (Bosch T118A or equivalent, Mouser doesn’t carry these; Home Depot or any hardware store) to cut along the marked lines. Take it slow; aluminum cuts cleanly at low speed.</li>
+<li>File the cut edges smooth with a flat mill file. Deburr any sharp corners.</li>
+<li>Test-fit: an IEC C13 plug should slide in and out of the TX300’s inlet without binding on the cutout.</li>
+</ol>
+<p>Time estimate for a novice: about 30 minutes.</p>
+<p><strong>Cut 2: Fan grille hole (opposite end plate).</strong> An 80 mm circular cutout on the end plate opposite the IEC inlet, sized to clear the TX300’s exhaust fan and accept a standard 80 mm fan grille.</p>
+<ol type="1">
+<li>Mark the center on the end plate at the position aligned with the TX300’s fan center (typically centered on the plate when the TX300 is mounted on its bottom standoffs).</li>
+<li>Use a step bit (Irwin 10503BX or equivalent) to incrementally enlarge a pilot hole up to 80 mm. The Irwin step bit’s largest step is 1-3/8" (~35 mm), so for 80 mm you’ll need either a hole saw or to enlarge with a coping saw and file. Alternative: use a Greenlee 80 mm chassis punch (~$80, more expensive but produces a clean cut).</li>
+<li>Drill four M3 mounting holes around the opening at the Hammond 1430-PFG fan grille’s hole pattern (54 × 54 mm centers; the grille datasheet has the dimensions).</li>
+<li>Mount the grille with M3 × 6 mm screws and nuts.</li>
+</ol>
+<p>Hammond 1430-PFG fan grille: - Mouser: 546-1430-PFG - Digi-Key: HM3094-ND - Approximately $3</p>
+<p><strong>Cut 3: Cable exit grommet (back face or one side wall).</strong> A 16 mm round hole for a cable strain-relief bushing.</p>
+<ol type="1">
+<li>Drill a 16 mm hole using a step bit.</li>
+<li>Install a Heyco 1300-X strain relief bushing (Mouser 800-1300-X, ~$2). It snaps into the hole without screws.</li>
+<li>The DC output cables (USB-C pigtails for Pi 5 and Pi Zeros, 12 V barrel pigtail for USB hub) pass through this grommet.</li>
+</ol>
+<h3 id="optional-mechanical-modifications-v1.0-polish">3.3 Optional Mechanical Modifications (v1.0 polish)</h3>
+<p>These add convenience but are not required for the chassis to function safely.</p>
+<p><strong>Front-panel features:</strong> drill round holes on one of the long side walls for a panel-mount toggle switch (12 mm hole) and three indicator LEDs (6 mm holes each). Toggle and LEDs are wired as described in section 4.</p>
+<p><strong>Cool-air intake:</strong> drill a 6×6 grid of 6 mm holes on the chassis bottom (or one side wall) to provide intake airflow for the TX300’s fan. Total open area should be at least 50% of the fan’s 80 mm inlet area (~5000 mm²; a 6×6 grid of 6 mm holes gives ~1000 mm² which is too small — use either an 8×8 grid of 6 mm holes or replace with a second 80 mm fan grille on the opposite end plate).</p>
+<p><strong>Lid interlock mounting:</strong> drill two M3 holes through the chassis side wall at a position where the lid edge will press against the microswitch lever when the lid is closed. The Omron D2F-01F-T microswitch mounts via two M3 screws.</p>
+<h3 id="tx300-mounting">3.4 TX300 Mounting</h3>
+<p>The TX300 has four M3 threaded mounting holes on its bottom plate (standard TFX form factor, 175 × 85 mm). Mount the TX300 to the Hammond chassis floor with M3 × 6 mm screws threaded into 5 mm aluminum standoffs, leaving a small air gap underneath for cable routing.</p>
+<p>Orientation: - IEC inlet face → toward the AC end plate (Cut 1). - 80 mm fan exhaust → toward the opposite end plate (Cut 2). - 24-pin ATX output cable → exits toward the DC zone (the half of the chassis opposite the IEC inlet).</p>
+<h3 id="atx-breakout-mounting">3.5 ATX Breakout Mounting</h3>
+<p>The Adafruit 1466 ATX breakout PCB mounts to the chassis floor in the DC zone (opposite half from the TX300). Use four M3 standoffs (10 mm tall) with M3 × 6 mm screws on each end, securing the PCB to the chassis floor with a small air gap.</p>
+<p>Adafruit ATX 24-pin breakout (P/N 1466): - Mouser: 485-1466 - Digi-Key: 1528-1466-ND - Approximately $20</p>
+<h3 id="earth-bonding">3.6 Earth Bonding</h3>
+<p>The TX300’s metal chassis is internally bonded to AC mains earth via the IEC inlet’s ground pin. To extend this bond to the Hammond 1411P aluminum chassis:</p>
+<ol type="1">
+<li>Run a 14 AWG green-yellow wire from one of the TX300’s mounting screw points (a screw threaded into a TX300 mounting hole) to a tapped M3 hole on the Hammond chassis floor.</li>
+<li>Use a star washer between the wire’s ring terminal and the chassis to ensure low-impedance contact.</li>
+<li>Verify continuity with a DMM: chassis-to-IEC-earth-pin should read less than 0.1 Ω.</li>
+</ol>
+<p>This bonds the entire Hammond chassis to AC earth, so any fault current flows safely to earth instead of energizing the chassis surface.</p>
+<h2 id="internal-layout-and-wiring">4. Internal Layout and Wiring</h2>
+<h3 id="ac-zone">4.1 AC Zone</h3>
+<p>Contains: - TX300 PSU (mains-voltage internal parts). - Internal IEC C13 cord stub if needed (not required if the TX300’s existing cord-side connector is exposed directly through the end-plate cutout). - Earth bonding wire from TX300 chassis to Hammond chassis. - Unused TX300 output cables (EPS, PCI-E 6-pin, SATA, Molex, Floppy) bundled and tied off (see section 4.5).</p>
+<h3 id="dc-zone">4.2 DC Zone</h3>
+<p>Contains: - Adafruit ATX 1466 breakout PCB receiving the 24-pin from TX300. - Per-rail fuse panel (5×20 mm fuse holders mounted to the chassis floor or a small mounting bracket). - USB-C power breakout PCBs (one per Pi to be powered by this chassis: Pi 5 + Pi Zero × 3 = 4 for Phase 0). - 12 V barrel-jack pigtail for USB hub feed. - Optional front-panel toggle, LEDs, and test-point banana jacks.</p>
+<h3 id="per-rail-fuse-panel">4.3 Per-Rail Fuse Panel</h3>
+<p>The breakout PCB has built-in polyfuses, but they are slow-acting and reset themselves. Adding discrete glass fuses gives faster failure response and a clearly visible blown-fuse indicator.</p>
+<p>Per-rail recommended values:</p>
+<ul>
+<li>+5 V rail: T5A slow-blow (5×20 mm)</li>
+<li>+12 V rail: T3A slow-blow</li>
+<li>+3.3 V rail (if used): T3A</li>
+<li>-12 V rail (if used): T0.5A</li>
+</ul>
+<p>Bel BK1/S506-5-R panel-mount 5×20 mm fuse holders: - Mouser: 530-S506-5-R - Digi-Key: F2402-ND - Approximately $3 each</p>
+<p>Slow-blow glass fuses 5×20 mm (Bel BK series, various ratings): - Mouser: 530-GMC-5-R (5 A), 530-GMC-3-R (3 A), 530-GMC-500MA-R (500 mA) - Approximately $1 each - Buy a couple of spares per rail.</p>
+<p>Wire each rail’s positive output from the breakout’s screw terminals through its fuse holder before reaching the USB-C breakouts or the 12 V barrel pigtail.</p>
+<h3 id="ps_on-control-circuit">4.4 PS_ON# Control Circuit</h3>
+<p>The lid microswitch is the only mandatory element for chassis safety. The optional front-panel toggle adds operator convenience.</p>
+<p>Minimum-viable wiring (lid interlock only, no front-panel toggle):</p>
+<pre><code>Breakout PS_ON# header  --&gt; wire --&gt; Lid microswitch COM
+                                           |
+Breakout GND header     --&gt; wire --&gt; Lid microswitch NO</code></pre>
+<p>When lid closed, COM-NO conducts → PS_ON# pulled to GND → rails enabled. When lid open, COM-NO open → PS_ON# floats → rails disabled.</p>
+<p>With the optional front-panel toggle, both the toggle and the lid switch must be conductive for the rails to enable:</p>
+<pre><code>Breakout PS_ON# header --&gt; Toggle COM
+                            |
+                         Toggle other --&gt; Lid COM
+                                            |
+                         Breakout GND &lt;-- Lid NO</code></pre>
+<p>Front-panel toggle (NKK SPDT, 3 A rated): - NKK M2012SS1W01 - Mouser: 633-M2012SS1W01 - Digi-Key: 360-3208-ND - Approximately $5</p>
+<p>Lid microswitch (Omron SPDT with hinge lever, 3 A rated): - Omron D2F-01F-T - Mouser: 653-D2F-01F-T - Digi-Key: Z3068-ND - Approximately $3</p>
+<h3 id="unused-tx300-cables">4.5 Unused TX300 Cables</h3>
+<p>The TX300 ships with five additional cables besides the 24-pin ATX (4+4 EPS, PCI-E 6-pin, SATA, Molex, Floppy). Phase 0 doesn’t use any of them. Don’t cut them off — they may be useful for v2.0 expansion.</p>
+<p>Two reasonable management approaches:</p>
+<ol type="1">
+<li><strong>Bundle and tie:</strong> group the unused connectors with a velcro tie or zip tie and secure the bundle to the AC-zone side of the chassis. Heat-shrink each connector individually only if any pins face outward in a way that could short against the chassis.</li>
+<li><strong>Heat-shrink each connector:</strong> slip a 25 mm length of 1" heat-shrink tubing over each unused connector and shrink it down. Bundle and secure as above.</li>
+</ol>
+<p>Heat-shrink tubing kit: SparkFun KIT-15583 or equivalent assortment, Mouser 474-KIT-15583, ~$10. Velcro tie strap: any hardware store, ~$3.</p>
+<h3 id="usb-c-power-breakouts">4.6 USB-C Power Breakouts</h3>
+<p>For each Pi (Pi 5 and per-module Pi Zeros), one USB-C breakout PCB sits between the +5 V fused rail and the Pi’s USB-C input.</p>
+<p>Adafruit USB-C plug breakout (P/N 4090, with 5.1 kΩ CC resistors that signal “5 V capable” to USB-C downstream): - Mouser: 485-4090 - Digi-Key: 1528-4090-ND - Approximately $3 each</p>
+<p>Phase 0 needs 4 breakouts (Pi 5 + 3 Pi Zeros). Full v1.0 + v1.1 chassis populated needs 13 (Pi 5 + 12 Pi Zeros).</p>
+<p>Wiring: solder a short pigtail (16 AWG for the Pi 5, 20 AWG for Pi Zeros) from the breakout’s V_BUS and GND pads to the +5 V fuse output and chassis GND respectively. The USB-C plug at the breakout’s other end runs out through the back-panel grommet to the Pi being powered.</p>
+<h3 id="usb-hub-12-v-feed">4.7 USB Hub 12 V Feed</h3>
+<p>The powered USB hub takes 12 V via a barrel jack (typically 5.5 × 2.1 mm center-positive; verify the specific hub model before ordering pigtails).</p>
+<p>Adafruit 5.5 × 2.1 mm DC plug pigtail (P/N 369): - Mouser: 485-369 - Digi-Key: 1528-1235-ND - Approximately $2</p>
+<p>Wire the pigtail’s red and black leads to the +12 V fuse output and chassis GND. The barrel plug at the other end runs out through the back-panel grommet to the USB hub.</p>
+<h3 id="optional-front-panel-indicators">4.8 Optional Front-Panel Indicators</h3>
+<p>Three LEDs show chassis state:</p>
+<ul>
+<li><strong>AC LIVE</strong> (yellow): driven from the +5VSB rail (always on when AC is plugged in).</li>
+<li><strong>+5 V OK</strong> (green): driven from the +5 V rail (on when main rails are enabled).</li>
+<li><strong>+12 V OK</strong> (blue): driven from the +12 V rail (on when main rails are enabled).</li>
+</ul>
+<p>VCC 1043H1 series panel-mount LED indicators (with internal current-limiting resistor): - 5 V variant (for AC LIVE and +5 V OK): Mouser 593-1043H1-5V - 12 V variant (for +12 V OK): Mouser 593-1043H1-12V - Approximately $2 each</p>
+<p>The 1043H1 housing has a 6 mm shaft and integrated wires. Drill a 6 mm hole in the front panel for each, push through, secure with the included nut, wire the leads to the appropriate rail and chassis GND.</p>
+<h2 id="tools-list-for-novice-assembly">5. Tools List for Novice Assembly</h2>
+<p>If you’re starting fresh on the mechanical work, here’s a minimum tool list. Most can be borrowed or are common workshop tools you may already have. Mouser/Digi-Key don’t stock most of these (mechanical hand tools); use Home Depot, Lowes, or a hardware store.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Tool</th>
+<th>Purpose</th>
+<th>Recommended</th>
+<th>Approx Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Cordless drill</td>
+<td>Pilot holes, mounting screws</td>
+<td>DEWALT DCD771C2 or any 12-20 V drill</td>
+<td>$80</td>
+</tr>
+<tr class="even">
+<td>Step-bit set (1/4" to 1-3/8")</td>
+<td>Round holes in metal/plastic up to 35 mm</td>
+<td>Irwin 10503BX (Home Depot)</td>
+<td>$30</td>
+</tr>
+<tr class="odd">
+<td>Drill bit set (M3 thru 1/4")</td>
+<td>Pilot holes, hardware clearance</td>
+<td>Standard set</td>
+<td>$20</td>
+</tr>
+<tr class="even">
+<td>Hand jigsaw</td>
+<td>Rectangular cutouts (IEC inlet)</td>
+<td>Black &amp; Decker JS660</td>
+<td>$40</td>
+</tr>
+<tr class="odd">
+<td>Metal-cutting jigsaw blades</td>
+<td>Fits the jigsaw</td>
+<td>Bosch T118A 5-pack (Home Depot)</td>
+<td>$10</td>
+</tr>
+<tr class="even">
+<td>Flat mill file</td>
+<td>Deburring jigsaw cuts</td>
+<td>Standard 8"</td>
+<td>$10</td>
+</tr>
+<tr class="odd">
+<td>Round file</td>
+<td>Cleaning round holes</td>
+<td>6 mm rat-tail</td>
+<td>$5</td>
+</tr>
+<tr class="even">
+<td>Phillips and flat screwdrivers</td>
+<td>Hardware</td>
+<td>Klein 32500 (11-in-1)</td>
+<td>$20</td>
+</tr>
+<tr class="odd">
+<td>Wire stripper / crimper</td>
+<td>Hookup wire and crimp ferrules</td>
+<td>Klein 11061</td>
+<td>$25</td>
+</tr>
+<tr class="even">
+<td>Multimeter</td>
+<td>Continuity, voltage check</td>
+<td>Already have a Fluke 87V</td>
+<td>—</td>
+</tr>
+<tr class="odd">
+<td>Ferrule kit</td>
+<td>Strain-relief on stranded wire ends</td>
+<td>Wago 206-150 + crimp tool</td>
+<td>$40</td>
+</tr>
+</tbody>
+</table>
+<p>Total tool budget if starting from scratch: approximately $280.</p>
+<p>For the 80 mm circular fan grille hole, the Irwin step bit’s largest step (1-3/8" / 35 mm) is too small. Three options for the 80 mm cut:</p>
+<ol type="1">
+<li><strong>Hole saw + arbor</strong>: $20-30, takes minutes, leaves a clean cut. Recommended.</li>
+<li><strong>Greenlee 80 mm chassis punch</strong>: $80, professional-grade, very clean cut.</li>
+<li><strong>Coping saw + file</strong>: slow but no special tools beyond what’s already on the list. Acceptable for one-off.</li>
+</ol>
+<h2 id="bill-of-materials">6. Bill of Materials</h2>
+<p>Cross-referenced to Mouser primary, with Digi-Key alternates where available. Pricing approximate as of May 2026; verify before ordering.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Manufacturer P/N</th>
+<th>Mouser P/N</th>
+<th>Digi-Key P/N</th>
+<th>Qty</th>
+<th>Unit Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Enclosure and mechanical</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Hammond 1411P aluminum chassis</td>
+<td>Hammond Manufacturing 1411P</td>
+<td>546-1411P</td>
+<td>HM3046-ND</td>
+<td>1</td>
+<td>$30</td>
+<td>254 × 152 × 76 mm</td>
+</tr>
+<tr class="odd">
+<td>Hammond 1430-PFG fan grille</td>
+<td>Hammond 1430-PFG</td>
+<td>546-1430-PFG</td>
+<td>HM3094-ND</td>
+<td>1</td>
+<td>$3</td>
+<td>80 mm</td>
+</tr>
+<tr class="even">
+<td>Heyco 1300-X strain relief</td>
+<td>Heyco 1300-X</td>
+<td>800-1300-X</td>
+<td>n/a</td>
+<td>1</td>
+<td>$2</td>
+<td>Cable exit grommet</td>
+</tr>
+<tr class="odd">
+<td>M3 × 6 mm screws (qty 20)</td>
+<td>various</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>1 pack</td>
+<td>$5</td>
+<td>Mounting hardware</td>
+</tr>
+<tr class="even">
+<td>M3 × 10 mm aluminum standoffs (qty 8)</td>
+<td>various</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>1 pack</td>
+<td>$5</td>
+<td>TX300 + breakout mounting</td>
+</tr>
+<tr class="odd">
+<td>M3 hex nuts (qty 20)</td>
+<td>various</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>1 pack</td>
+<td>$3</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>AC and interlock</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Silverstone TX300 PSU</td>
+<td>Silverstone SST-TX300</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>1</td>
+<td>$0</td>
+<td>On hand</td>
+</tr>
+<tr class="even">
+<td>IEC C13 to NEMA 5-15 power cord</td>
+<td>various</td>
+<td>562-176-1500</td>
+<td>Q105-ND</td>
+<td>1</td>
+<td>$5</td>
+<td>1.5 m, 14 AWG</td>
+</tr>
+<tr class="odd">
+<td>Omron lid microswitch</td>
+<td>Omron D2F-01F-T</td>
+<td>653-D2F-01F-T</td>
+<td>Z3068-ND</td>
+<td>1</td>
+<td>$3</td>
+<td>SPDT, hinge lever</td>
+</tr>
+<tr class="even">
+<td>14 AWG green-yellow earth wire</td>
+<td>various</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>0.5 m</td>
+<td>$1</td>
+<td>Earth bond</td>
+</tr>
+<tr class="odd">
+<td><strong>DC distribution</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Adafruit ATX breakout PCB</td>
+<td>Adafruit 1466</td>
+<td>485-1466</td>
+<td>1528-1466-ND</td>
+<td>1</td>
+<td>$20</td>
+<td>24-pin to terminal blocks</td>
+</tr>
+<tr class="odd">
+<td>Bel panel-mount fuse holder 5×20 mm</td>
+<td>Bel Fuse BK1/S506-5-R</td>
+<td>530-S506-5-R</td>
+<td>F2402-ND</td>
+<td>4</td>
+<td>$3</td>
+<td>One per protected rail</td>
+</tr>
+<tr class="even">
+<td>Slow-blow fuse T5A 5×20 mm</td>
+<td>Bel BK1/GMC-5-R</td>
+<td>530-GMC-5-R</td>
+<td>F2440-ND</td>
+<td>5</td>
+<td>$1</td>
+<td>+5 V rail; pack with spares</td>
+</tr>
+<tr class="odd">
+<td>Slow-blow fuse T3A 5×20 mm</td>
+<td>Bel BK1/GMC-3-R</td>
+<td>530-GMC-3-R</td>
+<td>F2438-ND</td>
+<td>5</td>
+<td>$1</td>
+<td>+12 V rail; pack with spares</td>
+</tr>
+<tr class="even">
+<td>Adafruit USB-C plug breakout</td>
+<td>Adafruit 4090</td>
+<td>485-4090</td>
+<td>1528-4090-ND</td>
+<td>4</td>
+<td>$3</td>
+<td>Pi 5 + 3 Pi Zeros for Phase 0</td>
+</tr>
+<tr class="odd">
+<td>Adafruit 5.5 × 2.1 mm DC plug pigtail</td>
+<td>Adafruit 369</td>
+<td>485-369</td>
+<td>1528-1235-ND</td>
+<td>1</td>
+<td>$2</td>
+<td>USB hub power feed</td>
+</tr>
+<tr class="even">
+<td>16 AWG stranded hookup wire (red, black)</td>
+<td>Alpha 3050 series</td>
+<td>602-3050-2-RD/BK</td>
+<td>n/a</td>
+<td>5 m</td>
+<td>$5</td>
+<td>DC distribution</td>
+</tr>
+<tr class="odd">
+<td>22 AWG stranded hookup wire (assorted colors)</td>
+<td>Alpha 3050 series</td>
+<td>602-3050-*</td>
+<td>n/a</td>
+<td>30 m</td>
+<td>$20</td>
+<td>Signal and low-current</td>
+</tr>
+<tr class="even">
+<td><strong>Optional front panel</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>NKK panel-mount toggle switch</td>
+<td>NKK M2012SS1W01</td>
+<td>633-M2012SS1W01</td>
+<td>360-3208-ND</td>
+<td>1</td>
+<td>$5</td>
+<td>PS_ON# control</td>
+</tr>
+<tr class="even">
+<td>VCC LED indicator 5 V</td>
+<td>VCC 1043H1-5V</td>
+<td>593-1043H1-5V</td>
+<td>67-1043H1-5V-ND</td>
+<td>2</td>
+<td>$2</td>
+<td>AC LIVE and +5 V OK</td>
+</tr>
+<tr class="odd">
+<td>VCC LED indicator 12 V</td>
+<td>VCC 1043H1-12V</td>
+<td>593-1043H1-12V</td>
+<td>67-1043H1-ND</td>
+<td>1</td>
+<td>$2</td>
+<td>+12 V OK</td>
+</tr>
+<tr class="even">
+<td>Pomona panel-mount banana jack (qty 4 if used)</td>
+<td>Pomona 3760</td>
+<td>565-3760-*</td>
+<td>501-1041-ND</td>
+<td>4</td>
+<td>$5</td>
+<td>Test points</td>
+</tr>
+<tr class="odd">
+<td><strong>Cable management</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Heat-shrink tubing kit</td>
+<td>SparkFun KIT-15583</td>
+<td>474-KIT-15583</td>
+<td>1568-1078-ND</td>
+<td>1</td>
+<td>$10</td>
+<td>Insulate unused TX300 connectors</td>
+</tr>
+<tr class="odd">
+<td>Velcro cable ties</td>
+<td>various</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>1 pack</td>
+<td>$3</td>
+<td>Bundle unused cables</td>
+</tr>
+<tr class="even">
+<td><strong>Subtotals</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Required (no front panel, no test points)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>~$110</strong></td>
+<td>minimum-viable build</td>
+</tr>
+<tr class="even">
+<td>With front-panel toggle and 3 LEDs</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>~$121</strong></td>
+<td>better operator UX</td>
+</tr>
+<tr class="odd">
+<td>Full BOM with banana-jack test points</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>~$140</strong></td>
+<td>full-featured build</td>
+</tr>
+</tbody>
+</table>
+<p>The Phase 0 setup BOM in the SDD is currently $49 (“ATX breakout + USB-C breakouts + cabling”), which underweighted the mechanical hardware. The chassis power BOM in this document is the more accurate number; updating SDD investment-summary numbers is editorial polish that can wait until the chassis is built and the actual costs are known.</p>
+<h2 id="bring-up-procedure">7. Bring-Up Procedure</h2>
+<p>Do not plug AC into the chassis until you have completed steps 1 through 5. Steps 6 onward require AC; observe the safety procedures in section 8 throughout.</p>
+<h3 id="unpowered-continuity-tests">7.1 Unpowered continuity tests</h3>
+<ol type="1">
+<li>Confirm the lid microswitch operates correctly: with the lid closed, COM-to-NO should read less than 1 Ω; with the lid open, COM-to-NO should read open circuit (typically more than 1 MΩ).</li>
+<li>Confirm the front-panel toggle (if installed) is wired correctly: with the toggle off, COM-to-the-other-pole should read open circuit; with the toggle on, COM-to-the-other-pole should read less than 1 Ω.</li>
+<li>Confirm earth-bond continuity from the IEC inlet’s earth pin (visible on the TX300) to the Hammond chassis: less than 0.1 Ω.</li>
+<li>Confirm no short between any two of: +5 V output, +12 V output, +3.3 V output, GND. All pairs should read open circuit.</li>
+<li>Confirm no short between earth and any DC rail. All pairs should read open circuit (TX300’s primary side is isolated from secondary by the transformer).</li>
+</ol>
+<h3 id="mains-only-test-no-dc-load">7.2 Mains-only test (no DC load)</h3>
+<ol start="6" type="1">
+<li>Disconnect any modules from the DC outputs. Plug the chassis into a switched power strip.</li>
+<li>Switch the power strip ON. The AC LIVE LED on the front panel should illuminate (driven from +5VSB).</li>
+<li>Confirm the TX300 fan does NOT spin (PS_ON# is floating; TX300 is in standby).</li>
+<li>Confirm no DC voltage is present on the +5 V or +12 V rails (DMM check at the breakout terminal blocks).</li>
+</ol>
+<h3 id="dc-at-no-load">7.3 DC at no load</h3>
+<ol start="10" type="1">
+<li>With the chassis lid closed, switch the front-panel toggle ON (or, if no toggle is installed, simply close the lid which engages the interlock). The TX300 fan should spin up; the +5 V and +12 V LEDs should illuminate.</li>
+<li>Measure rail voltages at the breakout terminal blocks: +5 V should read 4.95 to 5.05 V; +12 V should read 11.85 to 12.15 V; -12 V should read -11.7 to -12.3 V.</li>
+<li>Open the chassis lid (with the toggle still on, if applicable). The +5 V and +12 V LEDs should immediately extinguish, and the TX300 fan should spin down. AC LIVE LED stays on.</li>
+<li>Close the lid. Rails should re-enable.</li>
+<li>Switch the toggle OFF (if installed) or otherwise disengage PS_ON# to confirm the toggle path also disables rails. Rails should disable (LEDs off, fan stops). AC LIVE LED stays on.</li>
+</ol>
+<h3 id="dc-under-pi-5-only">7.4 DC under Pi 5 only</h3>
+<ol start="15" type="1">
+<li>Connect the Pi 5’s USB-C breakout to the +5 V fused output. Do not connect any other module.</li>
+<li>Toggle on. The Pi 5 should boot normally.</li>
+<li>Verify +5 V at the Pi 5’s USB-C input under load: should be no less than 4.85 V.</li>
+</ol>
+<h3 id="dc-at-full-chassis-phase-1">7.5 DC at full chassis (Phase 1+)</h3>
+<ol start="18" type="1">
+<li>Once Phase 1 modules are built and their per-module Pi Zeros are wired, repeat steps 15-17 with all modules connected.</li>
+</ol>
+<h2 id="safety-procedures">8. Safety Procedures</h2>
+<h3 id="daily-onoff">8.1 Daily on/off</h3>
+<ul>
+<li><strong>Power up:</strong> confirm the chassis lid is fully closed. Plug chassis into power strip. Switch power strip ON. (Switch front-panel toggle ON if installed.)</li>
+<li><strong>Power down:</strong> switch front-panel toggle OFF (if installed). Switch power strip OFF for full disconnect.</li>
+</ul>
+<h3 id="opening-the-chassis-lid">8.2 Opening the chassis lid</h3>
+<p>Required after any of: - Modifying internal wiring or connections. - Replacing fuses or LEDs. - Inspecting the lid interlock. - Replacing the TX300.</p>
+<p>Procedure:</p>
+<ol type="1">
+<li>Switch the front-panel toggle OFF (if installed).</li>
+<li>Switch the power strip OFF.</li>
+<li>Unplug the IEC C13 cord from the chassis (positive disconnect, in case the power strip switch is faulty).</li>
+<li>Wait 60 seconds for the TX300’s primary-side bulk capacitors to discharge through their internal bleed resistors.</li>
+<li>Verify zero voltage on the IEC inlet pins with a DMM (line-to-neutral and line-to-earth should both read 0 V).</li>
+<li>Open the lid.</li>
+</ol>
+<h3 id="working-in-the-chassis-with-lid-open">8.3 Working in the chassis with lid open</h3>
+<p>The DC zone is non-hazardous to touch (5 V, 12 V are safe), but the AC zone (TX300’s primary side, IEC inlet wiring) is potentially hot whenever the cord is plugged in. With the lid open and the AC cord connected, the lid interlock has disabled the DC outputs but mains is still present at the IEC inlet, the bulk caps may still hold charge, and any work in the AC zone is dangerous.</p>
+<p>Rule: never work in the AC zone with the cord plugged in. The DC zone (breakout, fuses, USB-C breakouts, front-panel hardware) is safe to modify with the cord plugged in but the toggle off.</p>
+<h3 id="lockout-tagout-for-shared-work">8.4 Lockout-tagout for shared work</h3>
+<p>If the chassis needs maintenance involving anyone other than the operator (e.g., a friend helping debug):</p>
+<ol type="1">
+<li>Unplug the chassis IEC cord from the wall outlet.</li>
+<li>Hang a tag on the cord saying “DO NOT PLUG IN — under maintenance.”</li>
+<li>Open the chassis as in section 8.2.</li>
+<li>Verify zero voltage with a DMM before touching any conductor.</li>
+</ol>
+<p>This is overkill for solo hobbyist work but matches the practice used in a professional setting and is worth practicing.</p>
+<h2 id="future-enhancements-v2.0-and-beyond">9. Future Enhancements (v2.0 and beyond)</h2>
+<ul>
+<li>Add panel-mount switched IEC inlet to the chassis end plate (replacing the external power strip), with integrated dual fuse holders. Current external-power-strip arrangement is safe but less polished.</li>
+<li>Add inrush current limiter (NTC thermistor in series with the line) on the AC side if multiple TX300s end up in the system later.</li>
+<li>Add per-rail current monitoring (INA226 or similar I²C current sense ICs) for telemetry during measurement runs.</li>
+<li>Add a chassis-side PoE injector network so per-module Pi Zeros can be powered over Ethernet, reducing the per-module USB-C breakout count.</li>
+<li>Move from plywood mounting to a dedicated rack-mount or DIN-rail enclosure system once module count and form-factor are stabilized.</li>
+</ul>
+<h2 id="references">10. References</h2>
+<ul>
+<li>Silverstone SST-TX300 manual (uploaded copy with electrical and mechanical specs).</li>
+<li><a href="../system-design/System_Design_Document.html#power-architecture">PMVB SDD section 11.5 (Power Architecture)</a> — high-level architecture context.</li>
+<li><a href="../setup/Phase_0_Orchestration_Setup.md">PMVB Phase 0 Orchestration Setup</a> — references this document for Step 7.</li>
+<li><a href="https://www.adafruit.com/product/1466">Adafruit ATX breakout 1466 product page</a></li>
+<li><a href="https://www.hammfg.com/electronics/small-case/1411">Hammond 1411P enclosure datasheet</a></li>
+<li>ATX 24-pin connector pinout: Intel ATX Specification (publicly documented).</li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 1E: Function Generator/AWG</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --card: #16213e;
+  --accent: #0f3460;
+  --highlight: #e94560;
+  --text: #d4d4d4;
+  --heading: #f0f0f0;
+  --dim: #888;
+  --green: #4ade80;
+  --amber: #fbbf24;
+  --blue: #60a5fa;
+  --red: #f87171;
+  --teal: #2dd4bf;
+  --code-bg: #0d1117;
+  --border: #333;
+  --doc-width: 1400px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  max-width: var(--doc-width);
+  margin: 0 auto;
+  padding: 2rem;
+}
+h1 {
+  color: var(--heading);
+  font-size: 2rem;
+  margin: 2rem 0 0.5rem;
+  border-bottom: 2px solid var(--highlight);
+  padding-bottom: 0.5rem;
+}
+h2 {
+  color: var(--heading);
+  font-size: 1.5rem;
+  margin: 2.5rem 0 0.5rem;
+  border-left: 4px solid var(--highlight);
+  padding-left: 0.75rem;
+}
+h3 {
+  color: var(--blue);
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.5rem;
+}
+h4 {
+  color: var(--teal);
+  font-size: 1rem;
+  margin: 1.2rem 0 0.3rem;
+}
+p { margin: 0.5rem 0; }
+ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+li { margin: 0.2rem 0; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--accent);
+  color: var(--heading);
+  font-weight: 600;
+}
+td { background: var(--card); }
+code {
+  font-family: 'Consolas', 'Fira Code', 'Cascadia Code', monospace;
+  background: var(--code-bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: var(--amber);
+}
+pre {
+  background: var(--code-bg);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  border-left: 3px solid var(--blue);
+}
+pre code {
+  padding: 0;
+  background: none;
+  color: var(--text);
+}
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+strong, b { color: var(--heading); }
+em, i { color: var(--text); }
+blockquote {
+  border-left: 3px solid var(--amber);
+  background: var(--card);
+  padding: 0.5rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0 6px 6px 0;
+}
+/* Inline TOC styling */
+#TOC, .toc {
+  background: var(--card);
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  border-left: 4px solid var(--blue);
+}
+#TOC ul, .toc ul {
+  list-style: none;
+  padding-left: 1.2rem;
+  margin: 0.25rem 0;
+}
+#TOC li, .toc li { margin: 0.15rem 0; }
+#TOC > ul, .toc > ul { padding-left: 0; }
+/* Mermaid container */
+.mermaid {
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: center;
+  overflow-x: auto;
+}
+/* Width slider control (mirrors FMCW pattern) */
+.width-control {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  background: var(--card);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--dim);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.width-control input[type="range"] { width: 120px; }
+/* Document metadata block */
+.meta {
+  color: var(--dim);
+  font-size: 0.9rem;
+  margin: 1rem 0 2rem;
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#16213e',
+          primaryColor: '#0f3460',
+          primaryTextColor: '#f0f0f0',
+          primaryBorderColor: '#60a5fa',
+          lineColor: '#d4d4d4',
+          secondaryColor: '#16213e',
+          tertiaryColor: '#1a1a2e'
+        }
+      });
+    }
+  });
+</script>
+</head>
+<body>
+<div class="width-control">
+  Width <input type="range" min="900" max="2200" value="1400"
+    oninput="document.documentElement.style.setProperty('--doc-width', this.value + 'px')">
+</div>
+<h1 id="module-1e-function-generator-arbitrary-waveform-generator">Module 1E: Function Generator / Arbitrary Waveform Generator</h1>
+<h2 id="module-design-document">Module Design Document</h2>
+<p><strong>Version:</strong> 1.0 (May 2026) <strong>Module ID:</strong> 1E <strong>Tier:</strong> 1 <strong>Status:</strong> In Design <strong>Parent SDD section:</strong> 7.5.5 of the <a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document</a></p>
+<hr />
+<h2 id="theory-of-operation">1. Theory of Operation</h2>
+<p>Module 1E generates audio-band analog waveforms for amplifier characterization, in-ear monitor testing, and any test sequence that needs a controlled stimulus into a DUT. The design is a Pico-MCU-driven dual DAC + op-amp output buffer in the simplest possible topology that still hits the target performance envelope (DC to ~50 kHz, ±10 V into 600 Ω, 12-bit amplitude resolution).</p>
+<h3 id="signal-generation-chain">Signal generation chain</h3>
+<p>A precomputed waveform sample table sits in the Pico’s flash. The Pico’s DMA engine streams samples from this table to the Microchip MCP4922 dual 12-bit DAC over SPI at up to 1 MSPS (per channel). The MCP4922 outputs are voltage-mode (range 0 to 4.096 V using its internal reference) and feed an op-amp output stage that level-shifts and amplifies the DAC signal to ±10 V single-ended, with selectable output impedance (50 Ω or 600 Ω) at a front-panel BNC connector.</p>
+<p>For a 1 kHz sine wave at 1 MSPS DAC update rate, the waveform has 1000 samples per cycle, far above the Nyquist requirement, and the resulting total harmonic distortion is dominated by the DAC’s INL/DNL and the op-amp’s distortion (both well under 0.1% across the audio band). The 50 kHz upper limit is a margin call: at 50 kHz the cycle has 20 samples, producing a stair-step output that the output low-pass filter (in the op-amp stage) smooths to within 1% THD.</p>
+<h3 id="why-mcp4922-instead-of-a-higher-rate-dac">Why MCP4922 instead of a higher-rate DAC</h3>
+<p>The MCP4922 is a deliberately conservative choice. It has no internal output amplifier (so we use external op-amp), modest SPI rate (max 20 MHz, comfortably driven by Pico SPI), and a well-characterized 12-bit linearity. An AD9744 (14-bit, 165 MSPS) would push module bandwidth into the MHz range but at substantially higher cost, more complex layout, and capability that isn’t needed for audio characterization. The MCP4922 is the right part for the bandwidth target.</p>
+<h3 id="output-impedance-switching">Output impedance switching</h3>
+<p>The output stage can present two source impedances:</p>
+<ul>
+<li><strong>50 Ω</strong>: for connection to oscilloscope inputs, function generator inputs on other lab gear, or any 50 Ω-input device.</li>
+<li><strong>600 Ω</strong>: the historical audio industry standard, useful for connection to balanced audio inputs or high-impedance loads where 50 Ω back-termination is not required.</li>
+</ul>
+<p>Switching is via a single SPDT reed relay that selects which series resistor sits between the op-amp output and the BNC.</p>
+<h3 id="synchronization-and-trigger">Synchronization and trigger</h3>
+<p>The module exposes one auxiliary digital output that can be configured as a sync pulse (rising edge at the start of each waveform period) or a continuous gate. This output ties to the chassis-wide trigger bus (see SDD section 11.4) so that captures on Module 2E can be synchronized to AWG output without software-arming jitter.</p>
+<h2 id="functional-block-diagram">2. Functional Block Diagram</h2>
+<div class="mermaid">flowchart LR
+    Host[Pi 5 host]
+    Pico[Pico 2 W<br/>+ DMA SPI driver<br/>+ SCPI parser]
+    PiZero[Pi Zero 2 W<br/>admin sidecar]
+    Switch[Chassis LAN switch]
+    DAC[MCP4922<br/>dual 12-bit DAC<br/>internal 4.096 V Vref]
+    OpAmp[MCP6232 op-amp<br/>level-shift and gain to ±10 V]
+    Filter[Output low-pass filter<br/>RC at ~80 kHz]
+    Relay[Output Z-switching reed relay<br/>50 Ω or 600 Ω series]
+    BNC[BNC output connector]
+    Sync[Sync output<br/>3.3 V CMOS to chassis trigger bus]
+    Host -->|USB-TMC| Pico
+    Switch <-->|admin| PiZero
+    Pico -->|SPI 20 MHz DMA| DAC
+    Pico --> Sync
+    DAC -->|0 to 4.096 V| OpAmp
+    OpAmp --> Filter
+    Filter --> Relay
+    Relay --> BNC</div>
+<h2 id="schematic-notes-high-level-full-schematic-in-kicad">3. Schematic Notes (high-level; full schematic in KiCad)</h2>
+<h3 id="output-stage">Output stage</h3>
+<p>The op-amp is configured as an inverting summing amplifier. Two inputs:</p>
+<ol type="1">
+<li><strong>Signal input</strong> from MCP4922 channel A (0 to 4.096 V), summed with gain such that 2.048 V centers the output at 0 V.</li>
+<li><strong>Bias offset</strong> from a precision divider on the +12 V rail providing 2.048 V (referenced to GND), summed at the same gain to provide the output midpoint.</li>
+</ol>
+<p>Resulting transfer function:</p>
+<pre><code>V_out = -G × (V_DAC - 2.048)</code></pre>
+<p>With G = 5 (set by feedback resistor and input resistor), V_out swings from -10.24 V (when V_DAC = 0) to +10.24 V (when V_DAC = 4.096), giving the full ±10 V output range.</p>
+<h3 id="op-amp-supply">Op-amp supply</h3>
+<p>The MCP6232 is rated for +1.8 V to +6.0 V single-supply, but for ±10 V output we need ±12 V dual supply. <strong>The MCP6232 is not the right part for this</strong>; we should instead use a rail-to-rail op-amp rated for ±15 V supply such as the <strong>OP07</strong> (precision, ±18 V) or <strong>TL072</strong> (audio, ±18 V). Update the schematic to use TL072 with the +12 V and -12 V rails from the chassis TX300 PSU.</p>
+<p>(SDD section 7.5.5 specified MCP6232 for output buffering; this design doc supersedes that for the op-amp choice. The SDD will be updated in v1.1 to match.)</p>
+<h3 id="output-filter">Output filter</h3>
+<p>An RC low-pass filter at the op-amp output rolls off above ~80 kHz to suppress DAC stair-step quantization noise without affecting the audio band. R = 10 Ω, C = 200 nF gives a corner near 80 kHz. The filter sits before the impedance-switching relay.</p>
+<h3 id="impedance-switching">Impedance switching</h3>
+<p>A <strong>Coto 9007 reed relay</strong> (12 V coil, 1 A contact, SPDT) selects between two series resistors: - 50 Ω: a Vishay PER-50 precision metal-film 50 Ω 0.1% resistor - 600 Ω: a Vishay PER-600 precision metal-film 600 Ω 0.1% resistor</p>
+<p>The relay is driven by a Pico GPIO through a 2N3904 transistor and a flyback diode (1N4148) across the coil.</p>
+<h3 id="decoupling">Decoupling</h3>
+<p>Every IC gets a 0.1 µF X7R ceramic right at the supply pin, plus a shared 10 µF tantalum bulk cap at the supply entry to the module.</p>
+<h2 id="pin-assignments">4. Pin Assignments</h2>
+<h3 id="pico-2-w-to-mcp4922">Pico 2 W to MCP4922</h3>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pico Pin</th>
+<th>GP</th>
+<th>Function</th>
+<th>MCP4922 Pin</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>GP2</td>
+<td>SPI0_SCK</td>
+<td>3 (SCK)</td>
+<td>up to 20 MHz</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>GP3</td>
+<td>SPI0_TX (MOSI)</td>
+<td>4 (SDI)</td>
+<td>DAC data in</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>GP5</td>
+<td>CS_DAC</td>
+<td>2 (CS̄)</td>
+<td>active low</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td>GP8</td>
+<td>LDAC</td>
+<td>5 (LDAC̄)</td>
+<td>tied low for synchronous update, or pulsed for deferred update</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pico-2-w-to-op-amp-output-stage">Pico 2 W to op-amp / output stage</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pico Pin</th>
+<th>GP</th>
+<th>Function</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>14</td>
+<td>GP10</td>
+<td>RELAY_DRIVE</td>
+<td>drives 2N3904 base for impedance switching relay</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>GP12</td>
+<td>SYNC_OUT</td>
+<td>sync pulse to chassis trigger bus</td>
+</tr>
+<tr class="odd">
+<td>17</td>
+<td>GP13</td>
+<td>TRIG_IN</td>
+<td>optional trigger input from chassis bus (for synchronized stimulus start)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pico-2-w-power">Pico 2 W power</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Pico Pin</th>
+<th>Function</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>39</td>
+<td>VSYS</td>
+<td>5 V from chassis (USB-bus-powered via Pi 5 USB hub)</td>
+</tr>
+<tr class="even">
+<td>38</td>
+<td>GND</td>
+<td>shared chassis ground</td>
+</tr>
+<tr class="odd">
+<td>40</td>
+<td>3V3_OUT</td>
+<td>for MCP4922 VDD and op-amp Vref divider</td>
+</tr>
+</tbody>
+</table>
+<h3 id="mcp4922-to-op-amp-summing-junction">MCP4922 to op-amp summing junction</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>MCP4922 Pin</th>
+<th>Function</th>
+<th>Connects to</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>14 (VOUTA)</td>
+<td>DAC channel A output</td>
+<td>input resistor R_in1 to op-amp summing node</td>
+</tr>
+<tr class="even">
+<td>12 (VOUTB)</td>
+<td>DAC channel B output</td>
+<td>reserved for second AWG channel (future)</td>
+</tr>
+<tr class="odd">
+<td>1 (VDD)</td>
+<td>+3.3 V supply</td>
+<td>from Pico 3V3_OUT</td>
+</tr>
+<tr class="even">
+<td>13 (VSS)</td>
+<td>GND</td>
+<td>chassis GND</td>
+</tr>
+<tr class="odd">
+<td>8 (VREFA)</td>
+<td>reference for channel A</td>
+<td>tied to VDD for internal Vref of 4.096 V</td>
+</tr>
+<tr class="even">
+<td>9 (VREFB)</td>
+<td>reference for channel B</td>
+<td>tied to VDD</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tl072-op-amp-output-stage">TL072 op-amp output stage</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>TL072 Pin</th>
+<th>Function</th>
+<th>Connects to</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>OUT (channel A)</td>
+<td>output filter and impedance-switching relay</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>IN- (channel A)</td>
+<td>summing junction (R_in1 from DAC, R_in2 from bias divider, R_fb to OUT)</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>IN+ (channel A)</td>
+<td>tied to GND</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>V-</td>
+<td>-12 V from TX300</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>IN+ (channel B)</td>
+<td>unused; tied to GND</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>IN- (channel B)</td>
+<td>unused; tied to OUT (channel B)</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>OUT (channel B)</td>
+<td>unused</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>V+</td>
+<td>+12 V from TX300</td>
+</tr>
+</tbody>
+</table>
+<h2 id="specifications-matching-sdd-table-7-27">5. Specifications (matching SDD Table 7-27)</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DAC</td>
+<td>MCP4922 dual 12-bit SPI</td>
+</tr>
+<tr class="even">
+<td>Channels</td>
+<td>2 (1 primary output, 1 sync or secondary)</td>
+</tr>
+<tr class="odd">
+<td>Sample rate (DAC update)</td>
+<td>up to 1 MSPS via Pico DMA</td>
+</tr>
+<tr class="even">
+<td>Standard waveforms</td>
+<td>Sine, square, triangle, ramp, noise, multitone</td>
+</tr>
+<tr class="odd">
+<td>Arbitrary waveform depth</td>
+<td>up to 32 K samples (16-bit)</td>
+</tr>
+<tr class="even">
+<td>Output range</td>
+<td>±10 V into 600 Ω (op-amp buffered)</td>
+</tr>
+<tr class="odd">
+<td>Output impedance</td>
+<td>50 Ω or 600 Ω, switchable via reed relay</td>
+</tr>
+<tr class="even">
+<td>Frequency range</td>
+<td>DC to ~50 kHz</td>
+</tr>
+<tr class="odd">
+<td>Frequency accuracy</td>
+<td>±20 ppm crystal; ±2 ppm with external 10 MHz reference</td>
+</tr>
+<tr class="even">
+<td>Amplitude resolution</td>
+<td>12-bit (~5 mV at 10 V FS)</td>
+</tr>
+<tr class="odd">
+<td>Output low-pass filter</td>
+<td>RC at ~80 kHz</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sample-applications">6. Sample Applications</h2>
+<h3 id="single-tone-sine-generation">6.1 Single-tone sine generation</h3>
+<pre class="python"><code>import pyvisa
+rm = pyvisa.ResourceManager(&#39;@py&#39;)
+awg = rm.open_resource(&#39;USB::0xCAFE::0x4001::PMVB1E::INSTR&#39;)
+awg.write(&#39;SOUR:FUNC SIN&#39;)
+awg.write(&#39;SOUR:FREQ 1000&#39;)
+awg.write(&#39;SOUR:VOLT 1.0&#39;)           # 1 V peak-to-peak
+awg.write(&#39;OUTP ON&#39;)
+input(&#39;Press Enter to stop...&#39;)
+awg.write(&#39;OUTP OFF&#39;)
+awg.close()</code></pre>
+<h3 id="swept-sine-for-thd-measurement-paired-with-module-2e">6.2 Swept sine for THD measurement (paired with Module 2E)</h3>
+<pre class="python"><code>import numpy as np
+from scipy.fft import rfft, rfftfreq
+
+awg = open_module(&#39;1E&#39;)
+scope = open_module(&#39;2E&#39;)
+
+frequencies = np.logspace(np.log10(20), np.log10(20000), 31)  # 20 Hz to 20 kHz, log-spaced
+results = []
+
+for f in frequencies:
+    awg.write(f&#39;SOUR:FUNC SIN; SOUR:FREQ {f}; SOUR:VOLT 1.0; OUTP ON&#39;)
+    scope.write(&#39;DIG:CONF 0, 5.0, AC; DIG:RATE 1000000; DIG:DEPTH 100000; DIG:ARM&#39;)
+    samples = np.array(scope.query_binary_values(&#39;DIG:DATA? 0&#39;, datatype=&#39;f&#39;))
+    spectrum = np.abs(rfft(samples))
+    freqs = rfftfreq(len(samples), 1/1e6)
+    fund_bin = np.argmin(np.abs(freqs - f))
+    fund = spectrum[fund_bin]
+    harms = [spectrum[np.argmin(np.abs(freqs - f*n))] for n in range(2, 6)]
+    thd = np.sqrt(sum(h**2 for h in harms)) / fund
+    results.append((f, thd))
+    awg.write(&#39;OUTP OFF&#39;)
+
+for f, thd in results:
+    print(f&#39;{f:8.1f} Hz: THD = {thd*100:.3f}%&#39;)</code></pre>
+<h3 id="multitone-for-imd-intermodulation-distortion">6.3 Multitone for IMD (intermodulation distortion)</h3>
+<pre class="python"><code>awg.write(&#39;SOUR:MULT:UPLD [1000, 1100], [0.5, 0.5]&#39;)   # SMPTE-style 60/7 ratio variant
+awg.write(&#39;SOUR:VOLT 1.0; OUTP ON&#39;)
+# Capture and FFT-analyze for sum/difference products near 100 Hz, 2.0 kHz, etc.</code></pre>
+<h3 id="white-noise-for-noise-floor-characterization">6.4 White noise for noise-floor characterization</h3>
+<pre class="python"><code>awg.write(&#39;SOUR:FUNC NOIS&#39;)
+awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
+# Capture, integrate over band, compute spectral density</code></pre>
+<h2 id="bill-of-materials">7. Bill of Materials</h2>
+<p>Cross-referenced to Mouser primary, with Digi-Key alternate part numbers where available. Last verified May 2026; check stock and pricing before ordering.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Manufacturer P/N</th>
+<th>Mouser P/N</th>
+<th>Digi-Key P/N</th>
+<th>Qty</th>
+<th>Unit Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raspberry Pi Pico 2 W</td>
+<td>Raspberry Pi SC1632</td>
+<td>358-SC1632</td>
+<td>2648-SC1632-ND</td>
+<td>1</td>
+<td>$7</td>
+<td>RP2350 host MCU</td>
+</tr>
+<tr class="even">
+<td>Raspberry Pi Zero 2 W</td>
+<td>Raspberry Pi SC0506</td>
+<td>358-SC0506</td>
+<td>1690-SC0506-ND</td>
+<td>1</td>
+<td>$15</td>
+<td>Linux sidecar</td>
+</tr>
+<tr class="odd">
+<td>32 GB microSD card (any reputable brand, U3 / V30)</td>
+<td>SanDisk Ultra 32GB</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>1</td>
+<td>$8</td>
+<td>Pi Zero boot</td>
+</tr>
+<tr class="even">
+<td>USB-Ethernet adapter (USB 2.0 to 100/1000)</td>
+<td>UGREEN 60195</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>1</td>
+<td>$10</td>
+<td>Pi Zero LAN attach (optional)</td>
+</tr>
+<tr class="odd">
+<td>MCP4922 dual 12-bit DAC</td>
+<td>Microchip MCP4922-E/P</td>
+<td>579-MCP4922-E/P</td>
+<td>MCP4922-E/P-ND</td>
+<td>1</td>
+<td>$4</td>
+<td>DIP-14, easy hand-solder</td>
+</tr>
+<tr class="even">
+<td>TL072 op-amp (precision, audio)</td>
+<td>Texas Instruments TL072IP</td>
+<td>595-TL072IP</td>
+<td>296-1775-5-ND</td>
+<td>1</td>
+<td>$0.80</td>
+<td>DIP-8</td>
+</tr>
+<tr class="odd">
+<td>2N3904 NPN BJT (relay driver)</td>
+<td>onsemi 2N3904BU</td>
+<td>863-2N3904BU</td>
+<td>2N3904FS-ND</td>
+<td>1</td>
+<td>$0.10</td>
+<td>TO-92</td>
+</tr>
+<tr class="even">
+<td>1N4148 small-signal diode (relay flyback)</td>
+<td>onsemi 1N4148</td>
+<td>512-1N4148</td>
+<td>1N4148FSCT-ND</td>
+<td>1</td>
+<td>$0.05</td>
+<td>DO-35</td>
+</tr>
+<tr class="odd">
+<td>Reed relay, 12 V coil, SPDT, 1 A</td>
+<td>Coto 9007-12-01</td>
+<td>906-9007-12-01</td>
+<td>306-1004-ND</td>
+<td>1</td>
+<td>$4</td>
+<td>output Z switching</td>
+</tr>
+<tr class="even">
+<td>Precision resistor 50 Ω 0.1% 1/4 W</td>
+<td>Vishay PER50R000B</td>
+<td>71-PER50R000B</td>
+<td>PER50R000BCT-ND</td>
+<td>1</td>
+<td>$1</td>
+<td>50 Ω output Z</td>
+</tr>
+<tr class="odd">
+<td>Precision resistor 600 Ω 0.1% 1/4 W</td>
+<td>Vishay CMF55600R00BHEB</td>
+<td>71-CMF55600R00BHEB</td>
+<td>n/a</td>
+<td>1</td>
+<td>$1</td>
+<td>600 Ω output Z</td>
+</tr>
+<tr class="even">
+<td>Output filter R: 10 Ω 1% 1/4 W</td>
+<td>Yageo MFR-25FBF52-10R</td>
+<td>603-MFR-25FBF5210R</td>
+<td>n/a</td>
+<td>1</td>
+<td>$0.10</td>
+<td>RC LP filter</td>
+</tr>
+<tr class="odd">
+<td>Output filter C: 200 nF X7R 50 V</td>
+<td>Kemet C320C204K5R5TA</td>
+<td>80-C320C204K5R5TA</td>
+<td>399-9839-ND</td>
+<td>1</td>
+<td>$0.30</td>
+<td>RC LP filter</td>
+</tr>
+<tr class="even">
+<td>Decoupling cap 0.1 µF X7R 50 V (qty 4)</td>
+<td>Kemet C320C104K5R5TA</td>
+<td>80-C320C104K5R5TA</td>
+<td>399-9837-ND</td>
+<td>4</td>
+<td>$0.20 ea</td>
+<td>per IC supply pin</td>
+</tr>
+<tr class="odd">
+<td>Bulk cap 10 µF tantalum 25 V</td>
+<td>Kemet T350E106K025AT</td>
+<td>80-T350E106K025AT</td>
+<td>399-3540-ND</td>
+<td>1</td>
+<td>$0.50</td>
+<td>module supply entry</td>
+</tr>
+<tr class="even">
+<td>Op-amp summing/feedback resistors 1% 1/4 W (R_in1, R_in2, R_fb)</td>
+<td>Vishay MFR-25FBF52 series</td>
+<td>603-MFR-25FBF52*</td>
+<td>n/a</td>
+<td>3</td>
+<td>$0.10 ea</td>
+<td>gain network</td>
+</tr>
+<tr class="odd">
+<td>Bias divider resistors 1% 1/4 W</td>
+<td>Yageo MFR-25FBF52 series</td>
+<td>603-MFR-25FBF52*</td>
+<td>n/a</td>
+<td>2</td>
+<td>$0.10 ea</td>
+<td>2.048 V reference from +12 V</td>
+</tr>
+<tr class="even">
+<td>BNC panel-mount jack</td>
+<td>Amphenol 31-220-1</td>
+<td>523-31-220-1</td>
+<td>ACX1244-ND</td>
+<td>1</td>
+<td>$4</td>
+<td>front-panel output</td>
+</tr>
+<tr class="odd">
+<td>3D-printed enclosure</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>1</td>
+<td>$1</td>
+<td>PETG, ~10 g print</td>
+</tr>
+<tr class="even">
+<td>Pin headers, hookup wire</td>
+<td>various</td>
+<td>various</td>
+<td>various</td>
+<td>n/a</td>
+<td>$2</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Perfboard</td>
+<td>Adafruit 1609 (or eq.)</td>
+<td>485-1609</td>
+<td>1528-1609-ND</td>
+<td>1</td>
+<td>$3</td>
+<td>hand-build substrate</td>
+</tr>
+<tr class="even">
+<td><strong>Total module BOM</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>~$48</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>(BOM totals match SDD Table 7-28 with the TL072 substitution noted in section 3.)</p>
+<h2 id="calibration-procedure">8. Calibration Procedure</h2>
+<p>After module assembly, calibrate against a Fluke 87V (or equivalent calibrated DMM) and a 10 MHz GPSDO reference (or external function generator’s calibrated output) using the following procedure:</p>
+<h3 id="dc-offset-calibration">8.1 DC offset calibration</h3>
+<ol type="1">
+<li>Configure: <code>SOUR:FUNC SIN; SOUR:FREQ 1; SOUR:VOLT 0; OUTP ON</code></li>
+<li>Wait for output to settle (10 s).</li>
+<li>Measure the DC level on the output BNC with the Fluke 87V.</li>
+<li>Adjust the bias divider trim until the measured DC level reads within ±5 mV of 0 V.</li>
+<li>Record the calibration constant and store via SCPI: <code>CALC:CAL:OFFS 0, &lt;millivolts&gt;</code>.</li>
+</ol>
+<h3 id="gain-calibration">8.2 Gain calibration</h3>
+<ol type="1">
+<li>Configure: <code>SOUR:FUNC SIN; SOUR:FREQ 1000; SOUR:VOLT 10.0</code> (peak-to-peak).</li>
+<li>Connect the output to a calibrated Fluke (or external scope) and measure the peak-to-peak voltage.</li>
+<li>Compute the gain error: <code>gain_correction = 10.0 / measured_pk_pk</code>.</li>
+<li>Store the calibration: <code>CALC:CAL:GAIN 0, &lt;gain_correction&gt;</code>.</li>
+</ol>
+<h3 id="frequency-calibration">8.3 Frequency calibration</h3>
+<p>If your module includes the optional external 10 MHz reference input (chassis trigger bus), feed a 10 MHz GPSDO into the reference port and compare against the on-Pico crystal. Update the firmware’s frequency-divider constant accordingly. Without an external reference, the Pico’s crystal is rated ±20 ppm, which is ±20 Hz at 1 kHz; for audio characterization this is below the threshold of audibility and rarely matters.</p>
+<h2 id="bring-up-checklist">9. Bring-Up Checklist</h2>
+<p>In order, on first power-up:</p>
+<ol type="1">
+<li><strong>Visual inspection.</strong> Check polarity of every electrolytic and tantalum cap. Check op-amp orientation (notch toward pin 1). Check relay coil polarity.</li>
+<li><strong>Power-on without load.</strong> Apply +5 V (Pico) and +12 V/-12 V (op-amp). Measure current draw: should be &lt;50 mA total at idle. If higher, pull power and find the short.</li>
+<li><strong>Pico boots.</strong> Watch the onboard LED; it should heartbeat. Pico USB enumerates as USB-TMC: <code>lsusb</code> on the host should show the PMVB device.</li>
+<li><strong>DAC SPI write test.</strong> Send <code>SOUR:VOLT 0.0</code> and verify MCP4922 VOUTA reads 2.048 V on a DMM (DAC midpoint).</li>
+<li><strong>Op-amp output test.</strong> With SOUR:VOLT 0.0, output BNC should read 0 V ± 10 mV. If not, debug the bias network.</li>
+<li><strong>Sweep test.</strong> <code>SOUR:FUNC SIN; SOUR:FREQ 1000; SOUR:VOLT 5.0; OUTP ON</code>. Output should be 5 Vpp sine at 1 kHz on a scope.</li>
+<li><strong>Frequency response.</strong> Sweep 20 Hz to 50 kHz and verify amplitude is flat to within ±0.5 dB across the band.</li>
+<li><strong>THD.</strong> At 1 kHz, 1 Vrms output, capture with Module 2E and verify THD &lt; 0.1%.</li>
+<li><strong>Impedance switch test.</strong> Toggle between 50 Ω and 600 Ω modes; measure output impedance with a known load and verify both ranges.</li>
+<li><strong>Calibration.</strong> Run section 8 procedure. Save calibration constants to Pico flash.</li>
+<li><strong>PyVISA-sim parity check.</strong> Run the same SCPI command sequence against the simulator backend and verify behavior matches.</li>
+</ol>
+<h2 id="known-issues-and-future-work">10. Known Issues and Future Work</h2>
+<p>(To be populated as the module is built.)</p>
+<ul>
+<li>The current schematic uses a TL072 op-amp instead of the MCP6232 specified in SDD section 7.5.5. The SDD will be updated in v1.1 to match this design document.</li>
+<li>The 50 kHz upper-frequency limit is conservative; with a careful output filter design, we could push to 100 kHz, but the marginal benefit for audio characterization is small.</li>
+<li>A second-channel variant (using MCP4922 channel B with a duplicate output stage) is a v1.1 enhancement for stereo or multi-tone work.</li>
+</ul>
+<h2 id="references">11. References</h2>
+<ul>
+<li><a href="https://www.microchip.com/en-us/product/MCP4922">Microchip MCP4922 datasheet</a></li>
+<li><a href="https://www.ti.com/product/TL072">Texas Instruments TL072 datasheet</a></li>
+<li><a href="https://www.cotorelay.com/product/9007-series/">Coto 9007 series reed relay datasheet</a></li>
+<li><a href="https://datasheets.raspberrypi.com/picow/pico-2-w-datasheet.pdf">Raspberry Pi Pico 2 W datasheet</a></li>
+<li><a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document, section 7.5.5</a></li>
+<li><a href="../setup/Phase_0_Orchestration_Setup.md">PMVB Phase 0 Orchestration Setup</a></li>
+</ul>
+</body>
+</html>
