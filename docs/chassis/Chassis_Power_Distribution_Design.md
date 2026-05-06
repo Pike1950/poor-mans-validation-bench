@@ -2,7 +2,9 @@
 
 ## v1.0 (May 2026)
 
-Companion to the [PMVB System Design Document section 11.5](../system-design/System_Design_Document.html#power-architecture). Documents the mechanical and electrical design for the Chassis Power Unit (CPU): a single integrated enclosure built around the Silverstone SST-TX300 PSU that supplies +5 V to the Pi 5 and per-module Pi Zeros, +12 V to the powered USB hub, and -12 V to the Module 1E op-amp output stage. The Pi 5, USB hub, LAN switch, and instrument modules sit on the bench external to this chassis and connect via DC cables that exit the chassis back panel.
+Companion to the [PMVB System Design Document section 11.5](../system-design/System_Design_Document.html#power-architecture). Documents the mechanical and electrical design for the Chassis Power Unit (CPU): a single integrated enclosure built around the Silverstone SST-TX300 PSU that supplies +5 V to the Pi 5, +12 V to the powered USB hub, and -12 V to the Module 1E op-amp output stage. The Pi 5, USB hub, LAN switch, and instrument modules sit on the bench external to this chassis and connect via DC cables that exit the chassis back panel.
+
+Per the v1.0 Path A architecture decision, instrument modules do not include per-module Pi Zero 2 W sidecars. Tier 1 modules are USB-bus-powered (5 V at ~100 mA per Pico) through the chassis USB hub. Tier 2 modules add a Tang Primer 25K FPGA powered from the Pi 5's 5 V via the USB hub or directly via a 5 V output line. The chassis power unit therefore supplies only one USB-C output (for the Pi 5) and one 12 V barrel output (for the powered USB hub).
 
 ---
 
@@ -13,35 +15,34 @@ Companion to the [PMVB System Design Document section 11.5](../system-design/Sys
 The chassis power system is a **single integrated enclosure** containing the TX300 PSU, the ATX breakout PCB, per-rail fuses, USB-C power breakouts, and (optionally) front-panel toggle and indicator LEDs. The Pi 5, USB hub, LAN switch, and modules sit external to this enclosure and connect through DC cables that exit a back-panel grommet.
 
 ```
-                                       External (on bench, low voltage):
-                                       +-----------------------------------------+
-                                       |                                         |
-                                       |  Pi 5 16 GB --- USB hub --- LAN switch  |
-                                       |    |              |                     |
-                                       |   USB-C        12 V barrel              |
-                                       |  Phase 1+ modules (1A, 1B, 1E, ...)     |
-                                       |                                         |
-                                       +--------------------+--------------------+
-                                                            |
-                                                            | Cables exit
-                                                            | through grommet
-+-- Hammond 1411P enclosure (Chassis Power Unit) -----------|------------------+
-|                                                           |                  |
-|  +-- AC Zone ----------+      +-- DC Zone ----------+     |                  |
-|  | TX300 PSU           |      | ATX breakout PCB    |     |                  |
-|  |  (mains-voltage     |      | Per-rail fuses      |-----+ USB-C pigtails   |
-|  |   parts: IEC inlet, |======| USB-C breakouts     |       12 V barrel pig  |
-|  |   primary cap, EMI  | 24p  | (optional toggle    |       (out via         |
-|  |   filter, transformer)     |  switch + LEDs)     |        grommet)        |
-|  | -- earth-bonded     |      |                     |                        |
-|  +---------------------+      +---------------------+                        |
-|         |                                                                    |
-|     IEC inlet                                                                |
-|     exposed via                                                              |
-|     end-plate cutout                                                         |
-|                                                                              |
-|     Lid interlock microswitch on main lid                                    |
-+--- Plug into switched power strip via standard IEC C13 cord -----------------+
+                              External (on bench, low voltage):
+                              +-------------------------------------+
+                              |                                     |
+                              |  Pi 5 16 GB --- USB hub --- modules |
+                              |    |              |                 |
+                              |   USB-C        12 V barrel          |
+                              |                                     |
+                              +-------------+-----------------------+
+                                            |
+                                            | Cables exit
+                                            | through grommet
++-- Hammond 1411P enclosure (Chassis -------|--------------+
+|   Power Unit)                             |              |
+|                                           |              |
+|  +-- AC Zone ----+    +-- DC Zone ----+   |              |
+|  | TX300 PSU     |    | ATX breakout  |   |              |
+|  |  (mains-volt) |    | Per-rail      |---+ 1x USB-C     |
+|  |  IEC inlet    |====| fuses         |     pigtail (Pi 5)|
+|  |  primary cap  |24p | 1x USB-C      |     1x 12V barrel |
+|  |  EMI filter   |    | breakout      |     pigtail (hub) |
+|  |  transformer  |    | (optional     |                   |
+|  |  earth-bonded |    |  toggle/LEDs) |                   |
+|  +---------------+    +---------------+                   |
+|       |                                                    |
+|   IEC inlet exposed via end-plate cutout                   |
+|                                                            |
+|   Lid interlock microswitch on main lid                    |
++--- Plug into switched power strip via standard IEC C13 ----+
 ```
 
 The "AC Zone" and "DC Zone" are not separate physical compartments — they are zones of the same enclosure, separated by physical distance and routed cabling. The AC Zone holds mains-voltage parts (TX300's primary side, IEC inlet, internal AC wiring); the DC Zone holds the post-transformer rails (5 V, 12 V, etc.) and their distribution hardware. The TX300's transformer provides 1800 Vac of galvanic isolation between the two zones (per its datasheet hi-pot spec).
@@ -97,7 +98,7 @@ flowchart TB
         Breakout --> LEDs
     end
     Strip -->|IEC C13 cord| IEC
-    USB_C -->|exits via back grommet| Pi5["External Pi 5 + Pi Zero modules"]
+    USB_C -->|exits via back grommet| Pi5["External Pi 5 (only USB-C output)"]
     Hub_Pig -->|exits via back grommet| HubLoad["External powered USB hub"]
 ```
 
@@ -149,7 +150,7 @@ Hammond 1430-PFG fan grille:
 
 1. Drill a 16 mm hole using a step bit.
 2. Install a Heyco 1300-X strain relief bushing (Mouser 800-1300-X, ~$2). It snaps into the hole without screws.
-3. The DC output cables (USB-C pigtails for Pi 5 and Pi Zeros, 12 V barrel pigtail for USB hub) pass through this grommet.
+3. The DC output cables (USB-C pigtail for Pi 5, 12 V barrel pigtail for USB hub) pass through this grommet.
 
 ### 3.3 Optional Mechanical Modifications (v1.0 polish)
 
@@ -204,7 +205,7 @@ Contains:
 Contains:
 - Adafruit ATX 1466 breakout PCB receiving the 24-pin from TX300.
 - Per-rail fuse panel (5×20 mm fuse holders mounted to the chassis floor or a small mounting bracket).
-- USB-C power breakout PCBs (one per Pi to be powered by this chassis: Pi 5 + Pi Zero × 3 = 4 for Phase 0).
+- USB-C power breakout PCB (single, for Pi 5 only; per-module Pi Zeros removed under Path A).
 - 12 V barrel-jack pigtail for USB hub feed.
 - Optional front-panel toggle, LEDs, and test-point banana jacks.
 
@@ -281,16 +282,14 @@ Heat-shrink tubing kit: SparkFun KIT-15583 or equivalent assortment, Mouser 474-
 
 ### 4.6 USB-C Power Breakouts
 
-For each Pi (Pi 5 and per-module Pi Zeros), one USB-C breakout PCB sits between the +5 V fused rail and the Pi's USB-C input.
+A single USB-C breakout PCB sits between the +5 V fused rail and the Pi 5's USB-C input. With Path A removing per-module Pi Zeros, Tier 1 and Tier 2 modules are USB-bus-powered through the chassis USB hub (which is itself fed from the +12 V rail) and do not need separate USB-C power feeds.
 
 Adafruit USB-C plug breakout (P/N 4090, with 5.1 kΩ CC resistors that signal "5 V capable" to USB-C downstream):
 - Mouser: 485-4090
 - Digi-Key: 1528-4090-ND
-- Approximately $3 each
+- Approximately $3
 
-Phase 0 needs 4 breakouts (Pi 5 + 3 Pi Zeros). Full v1.0 + v1.1 chassis populated needs 13 (Pi 5 + 12 Pi Zeros).
-
-Wiring: solder a short pigtail (16 AWG for the Pi 5, 20 AWG for Pi Zeros) from the breakout's V_BUS and GND pads to the +5 V fuse output and chassis GND respectively. The USB-C plug at the breakout's other end runs out through the back-panel grommet to the Pi being powered.
+Wiring: solder a short pigtail (16 AWG, since the Pi 5 can pull 5 A peak) from the breakout's V_BUS and GND pads to the +5 V fuse output and chassis GND respectively. The USB-C plug at the breakout's other end runs out through the back-panel grommet to the Pi 5.
 
 ### 4.7 USB Hub 12 V Feed
 
@@ -367,7 +366,7 @@ Cross-referenced to Mouser primary, with Digi-Key alternates where available. Pr
 | Bel panel-mount fuse holder 5×20 mm | Bel Fuse BK1/S506-5-R | 530-S506-5-R | F2402-ND | 4 | $3 | One per protected rail |
 | Slow-blow fuse T5A 5×20 mm | Bel BK1/GMC-5-R | 530-GMC-5-R | F2440-ND | 5 | $1 | +5 V rail; pack with spares |
 | Slow-blow fuse T3A 5×20 mm | Bel BK1/GMC-3-R | 530-GMC-3-R | F2438-ND | 5 | $1 | +12 V rail; pack with spares |
-| Adafruit USB-C plug breakout | Adafruit 4090 | 485-4090 | 1528-4090-ND | 4 | $3 | Pi 5 + 3 Pi Zeros for Phase 0 |
+| Adafruit USB-C plug breakout | Adafruit 4090 | 485-4090 | 1528-4090-ND | 1 | $3 | Pi 5 only (Path A) |
 | Adafruit 5.5 × 2.1 mm DC plug pigtail | Adafruit 369 | 485-369 | 1528-1235-ND | 1 | $2 | USB hub power feed |
 | 16 AWG stranded hookup wire (red, black) | Alpha 3050 series | 602-3050-2-RD/BK | n/a | 5 m | $5 | DC distribution |
 | 22 AWG stranded hookup wire (assorted colors) | Alpha 3050 series | 602-3050-* | n/a | 30 m | $20 | Signal and low-current |
@@ -380,12 +379,11 @@ Cross-referenced to Mouser primary, with Digi-Key alternates where available. Pr
 | Heat-shrink tubing kit | SparkFun KIT-15583 | 474-KIT-15583 | 1568-1078-ND | 1 | $10 | Insulate unused TX300 connectors |
 | Velcro cable ties | various | n/a | n/a | 1 pack | $3 | Bundle unused cables |
 | **Subtotals** | | | | | | |
-| Required (no front panel, no test points) | | | | | **~$110** | minimum-viable build |
-| With front-panel toggle and 3 LEDs | | | | | **~$121** | better operator UX |
-| Full BOM with banana-jack test points | | | | | **~$140** | full-featured build |
+| Required (no front panel, no test points) | | | | | **~$101** | minimum-viable build |
+| With front-panel toggle and 3 LEDs | | | | | **~$112** | better operator UX |
+| Full BOM with banana-jack test points | | | | | **~$131** | full-featured build |
 
-The Phase 0 setup BOM in the SDD is currently $49 ("ATX breakout + USB-C breakouts + cabling"), which underweighted the mechanical hardware. The chassis power BOM in this document is the more accurate number; updating SDD investment-summary numbers is editorial polish that can wait until the chassis is built and the actual costs are known.
-
+The chassis power BOM here supersedes any earlier per-line estimates in the SDD Phase 0 BOM. Investment-summary reconciliation in the SDD will follow the v1.0 Path A architecture sweep.
 ## 7. Bring-Up Procedure
 
 Do not plug AC into the chassis until you have completed steps 1 through 5. Steps 6 onward require AC; observe the safety procedures in section 8 throughout.
@@ -421,7 +419,7 @@ Do not plug AC into the chassis until you have completed steps 1 through 5. Step
 
 ### 7.5 DC at full chassis (Phase 1+)
 
-18. Once Phase 1 modules are built and their per-module Pi Zeros are wired, repeat steps 15-17 with all modules connected.
+18. Once Phase 1 modules are built, repeat steps 15-17 with all modules connected via the USB hub. (Modules are USB-bus-powered and do not require dedicated USB-C feeds from this chassis.)
 
 ## 8. Safety Procedures
 
@@ -469,7 +467,7 @@ This is overkill for solo hobbyist work but matches the practice used in a profe
 - Add panel-mount switched IEC inlet to the chassis end plate (replacing the external power strip), with integrated dual fuse holders. Current external-power-strip arrangement is safe but less polished.
 - Add inrush current limiter (NTC thermistor in series with the line) on the AC side if multiple TX300s end up in the system later.
 - Add per-rail current monitoring (INA226 or similar I²C current sense ICs) for telemetry during measurement runs.
-- Add a chassis-side PoE injector network so per-module Pi Zeros can be powered over Ethernet, reducing the per-module USB-C breakout count.
+- Add per-module Pi Zero 2 W admin sidecars in v2.0 if streaming captures (Module 2A continuous logic capture, Module 2D sustained Ethernet capture) require LAN-bandwidth data paths beyond USB-TMC's 12 Mbps. The sidecar pattern is documented in earlier SDD revisions and can be reinstated then.
 - Move from plywood mounting to a dedicated rack-mount or DIN-rail enclosure system once module count and form-factor are stabilized.
 
 ## 10. References

@@ -197,7 +197,7 @@ blockquote {
 <p><strong>Version:</strong> 1.0 (May 2026) <strong>Module ID:</strong> 1E <strong>Tier:</strong> 1 <strong>Status:</strong> In Design <strong>Parent SDD section:</strong> 7.5.5 of the <a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document</a></p>
 <hr />
 <h2 id="theory-of-operation">1. Theory of Operation</h2>
-<p>Module 1E generates audio-band analog waveforms for amplifier characterization, in-ear monitor testing, and any test sequence that needs a controlled stimulus into a DUT. The design is a Pico-MCU-driven dual DAC + op-amp output buffer in the simplest possible topology that still hits the target performance envelope (DC to ~50 kHz, ±10 V into 600 Ω, 12-bit amplitude resolution).</p>
+<p>Module 1E generates audio-band analog waveforms for amplifier characterization, in-ear monitor testing, and any test sequence that needs a controlled stimulus into a DUT. The module is built on a single Pico 2 W presenting as a USB-TMC instrument to the Pi 5 host; calibration constants live in the Pico’s onboard 4 MB flash. Per the v1.0 Path A architecture decision, no per-module Pi Zero 2 W sidecar is included. The design is a Pico-MCU-driven dual DAC + op-amp output buffer in the simplest possible topology that still hits the target performance envelope (DC to ~50 kHz, ±10 V into 600 Ω, 12-bit amplitude resolution).</p>
 <h3 id="signal-generation-chain">Signal generation chain</h3>
 <p>A precomputed waveform sample table sits in the Pico’s flash. The Pico’s DMA engine streams samples from this table to the Microchip MCP4922 dual 12-bit DAC over SPI at up to 1 MSPS (per channel). The MCP4922 outputs are voltage-mode (range 0 to 4.096 V using its internal reference) and feed an op-amp output stage that level-shifts and amplifies the DAC signal to ±10 V single-ended, with selectable output impedance (50 Ω or 600 Ω) at a front-panel BNC connector.</p>
 <p>For a 1 kHz sine wave at 1 MSPS DAC update rate, the waveform has 1000 samples per cycle, far above the Nyquist requirement, and the resulting total harmonic distortion is dominated by the DAC’s INL/DNL and the op-amp’s distortion (both well under 0.1% across the audio band). The 50 kHz upper limit is a margin call: at 50 kHz the cycle has 20 samples, producing a stair-step output that the output low-pass filter (in the op-amp stage) smooths to within 1% THD.</p>
@@ -215,17 +215,14 @@ blockquote {
 <h2 id="functional-block-diagram">2. Functional Block Diagram</h2>
 <div class="mermaid">flowchart LR
     Host[Pi 5 host]
-    Pico[Pico 2 W<br/>+ DMA SPI driver<br/>+ SCPI parser]
-    PiZero[Pi Zero 2 W<br/>admin sidecar]
-    Switch[Chassis LAN switch]
+    Pico[Pico 2 W<br/>+ DMA SPI driver<br/>+ SCPI parser<br/>+ cal constants in flash]
     DAC[MCP4922<br/>dual 12-bit DAC<br/>internal 4.096 V Vref]
-    OpAmp[MCP6232 op-amp<br/>level-shift and gain to ±10 V]
+    OpAmp[TL072 op-amp<br/>level-shift and gain to ±10 V]
     Filter[Output low-pass filter<br/>RC at ~80 kHz]
     Relay[Output Z-switching reed relay<br/>50 Ω or 600 Ω series]
     BNC[BNC output connector]
     Sync[Sync output<br/>3.3 V CMOS to chassis trigger bus]
     Host -->|USB-TMC| Pico
-    Switch <-->|admin| PiZero
     Pico -->|SPI 20 MHz DMA| DAC
     Pico --> Sync
     DAC -->|0 to 4.096 V| OpAmp
@@ -604,33 +601,6 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>RP2350 host MCU</td>
 </tr>
 <tr class="even">
-<td>Raspberry Pi Zero 2 W</td>
-<td>Raspberry Pi SC0506</td>
-<td>358-SC0506</td>
-<td>1690-SC0506-ND</td>
-<td>1</td>
-<td>$15</td>
-<td>Linux sidecar</td>
-</tr>
-<tr class="odd">
-<td>32 GB microSD card (any reputable brand, U3 / V30)</td>
-<td>SanDisk Ultra 32GB</td>
-<td>n/a</td>
-<td>n/a</td>
-<td>1</td>
-<td>$8</td>
-<td>Pi Zero boot</td>
-</tr>
-<tr class="even">
-<td>USB-Ethernet adapter (USB 2.0 to 100/1000)</td>
-<td>UGREEN 60195</td>
-<td>n/a</td>
-<td>n/a</td>
-<td>1</td>
-<td>$10</td>
-<td>Pi Zero LAN attach (optional)</td>
-</tr>
-<tr class="odd">
 <td>MCP4922 dual 12-bit DAC</td>
 <td>Microchip MCP4922-E/P</td>
 <td>579-MCP4922-E/P</td>
@@ -639,7 +609,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$4</td>
 <td>DIP-14, easy hand-solder</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>TL072 op-amp (precision, audio)</td>
 <td>Texas Instruments TL072IP</td>
 <td>595-TL072IP</td>
@@ -648,7 +618,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$0.80</td>
 <td>DIP-8</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>2N3904 NPN BJT (relay driver)</td>
 <td>onsemi 2N3904BU</td>
 <td>863-2N3904BU</td>
@@ -657,7 +627,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$0.10</td>
 <td>TO-92</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>1N4148 small-signal diode (relay flyback)</td>
 <td>onsemi 1N4148</td>
 <td>512-1N4148</td>
@@ -666,7 +636,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$0.05</td>
 <td>DO-35</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Reed relay, 12 V coil, SPDT, 1 A</td>
 <td>Coto 9007-12-01</td>
 <td>906-9007-12-01</td>
@@ -675,7 +645,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$4</td>
 <td>output Z switching</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Precision resistor 50 Ω 0.1% 1/4 W</td>
 <td>Vishay PER50R000B</td>
 <td>71-PER50R000B</td>
@@ -684,7 +654,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$1</td>
 <td>50 Ω output Z</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Precision resistor 600 Ω 0.1% 1/4 W</td>
 <td>Vishay CMF55600R00BHEB</td>
 <td>71-CMF55600R00BHEB</td>
@@ -693,7 +663,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$1</td>
 <td>600 Ω output Z</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Output filter R: 10 Ω 1% 1/4 W</td>
 <td>Yageo MFR-25FBF52-10R</td>
 <td>603-MFR-25FBF5210R</td>
@@ -702,7 +672,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$0.10</td>
 <td>RC LP filter</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Output filter C: 200 nF X7R 50 V</td>
 <td>Kemet C320C204K5R5TA</td>
 <td>80-C320C204K5R5TA</td>
@@ -711,7 +681,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$0.30</td>
 <td>RC LP filter</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Decoupling cap 0.1 µF X7R 50 V (qty 4)</td>
 <td>Kemet C320C104K5R5TA</td>
 <td>80-C320C104K5R5TA</td>
@@ -720,7 +690,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$0.20 ea</td>
 <td>per IC supply pin</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Bulk cap 10 µF tantalum 25 V</td>
 <td>Kemet T350E106K025AT</td>
 <td>80-T350E106K025AT</td>
@@ -729,7 +699,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$0.50</td>
 <td>module supply entry</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Op-amp summing/feedback resistors 1% 1/4 W (R_in1, R_in2, R_fb)</td>
 <td>Vishay MFR-25FBF52 series</td>
 <td>603-MFR-25FBF52*</td>
@@ -738,7 +708,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$0.10 ea</td>
 <td>gain network</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Bias divider resistors 1% 1/4 W</td>
 <td>Yageo MFR-25FBF52 series</td>
 <td>603-MFR-25FBF52*</td>
@@ -747,7 +717,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$0.10 ea</td>
 <td>2.048 V reference from +12 V</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>BNC panel-mount jack</td>
 <td>Amphenol 31-220-1</td>
 <td>523-31-220-1</td>
@@ -756,7 +726,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$4</td>
 <td>front-panel output</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>3D-printed enclosure</td>
 <td>n/a</td>
 <td>n/a</td>
@@ -765,7 +735,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$1</td>
 <td>PETG, ~10 g print</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Pin headers, hookup wire</td>
 <td>various</td>
 <td>various</td>
@@ -774,7 +744,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$2</td>
 <td></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Perfboard</td>
 <td>Adafruit 1609 (or eq.)</td>
 <td>485-1609</td>
@@ -783,18 +753,18 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 <td>$3</td>
 <td>hand-build substrate</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>Total module BOM</strong></td>
 <td></td>
 <td></td>
 <td></td>
 <td></td>
-<td><strong>~$48</strong></td>
+<td><strong>~$18</strong></td>
 <td></td>
 </tr>
 </tbody>
 </table>
-<p>(BOM totals match SDD Table 7-28 with the TL072 substitution noted in section 3.)</p>
+<p>(BOM total matches SDD Table 7-28 with the TL072 substitution noted in section 3 and the v1.0 Path A architecture decision that removes the Pi Zero per-module sidecar.)</p>
 <h2 id="calibration-procedure">8. Calibration Procedure</h2>
 <p>After module assembly, calibrate against a Fluke 87V (or equivalent calibrated DMM) and a 10 MHz GPSDO reference (or external function generator’s calibrated output) using the following procedure:</p>
 <h3 id="dc-offset-calibration">8.1 DC offset calibration</h3>

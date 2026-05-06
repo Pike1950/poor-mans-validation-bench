@@ -18,7 +18,7 @@ A modular SCPI instrument platform that mirrors NI PXIe rack-and-module test arc
 
 ## Module Catalog
 
-Every module pairs a Pico 2 W bridge (USB-TMC primary instrument transport) with a Pi Zero 2 W admin sidecar (LAN access for storage, ssh, and module-level config). Tier 2 modules add a Tang Primer 25K FPGA; Tier 3 modules use a larger FPGA platform.
+In v1.0 (per the Path A architecture decision), every module is built on a Pico 2 W bridge presenting as a USB-TMC instrument over the chassis powered USB hub. Tier 2 modules add a Tang Primer 25K FPGA the Pico masters over SPI. Tier 3 modules (deferred) add a larger FPGA platform plus a per-module Pi Zero 2 W streaming sidecar drawn from a three-board reserve already on hand. The same reserve covers a future v2.0 streaming variant of Module 2A or 2D when continuous-capture data rates outgrow USB-TMC's 12 Mbps.
 
 | ID | Tier | Function | Status |
 |----|------|----------|--------|
@@ -43,7 +43,7 @@ Every module pairs a Pico 2 W bridge (USB-TMC primary instrument transport) with
 
 Two control planes per module: a VISA/SCPI plane for headless test sequencing (pytest, vendor-portable, deterministic) and an MCP plane that exposes the same instrument surface as LLM-callable tools for agent-orchestrated bench sessions. Both planes consume the same per-module YAML command schema; firmware parsers and PyVISA-sim simulation backends are generated mechanically from the YAML.
 
-Every module includes a Pico 2 W (USB-TMC bridge) and a Pi Zero 2 W (admin sidecar). Tier 1 modules add an analog or digital front end appropriate to the function; the Pico runs the SCPI parser in firmware and the Pi Zero handles per-module Linux storage, ssh debug access, and configuration files. Tier 2 modules additionally include a Sipeed Tang Primer 25K FPGA where the instrument logic lives; the Pico bridges to the FPGA over SPI. Tier 3 modules replace the Tang Primer 25K with a larger FPGA (Tang Mega 138K Pro or Alinx AX7325B) for high-speed interface analysis.
+Every module is built around a Pico 2 W running the SCPI parser in bare-metal C and presenting as a USB-TMC instrument. Tier 1 modules add an analog or digital front end appropriate to the function. Tier 2 modules add a Sipeed Tang Primer 25K FPGA where the instrument logic lives; the Pico bridges to the FPGA over SPI at approximately 30 MHz. Tier 3 modules (deferred) replace the Tang Primer 25K with a larger FPGA (Tang Mega 138K Pro or Alinx AX7325B) for high-speed interface analysis and add a Pi Zero 2 W streaming sidecar (drawn from a three-board reserve already on hand) for sustained-capture data paths beyond USB-TMC's 12 Mbps. v1.0 Tier 1 and Tier 2 modules do not include a Pi Zero; persistent state lives in the Pico's onboard 4 MB flash and bench-level admin services run on the Pi 5 orchestration head.
 
 See section 4 of the [System Design Document](https://pike1950.github.io/poor-mans-validation-bench/docs/system-design/System_Design_Document.html#functional-block-diagram) for the full architecture diagram.
 

@@ -12,7 +12,7 @@
 
 ## 1. Theory of Operation
 
-Module 1E generates audio-band analog waveforms for amplifier characterization, in-ear monitor testing, and any test sequence that needs a controlled stimulus into a DUT. The design is a Pico-MCU-driven dual DAC + op-amp output buffer in the simplest possible topology that still hits the target performance envelope (DC to ~50 kHz, ±10 V into 600 Ω, 12-bit amplitude resolution).
+Module 1E generates audio-band analog waveforms for amplifier characterization, in-ear monitor testing, and any test sequence that needs a controlled stimulus into a DUT. The module is built on a single Pico 2 W presenting as a USB-TMC instrument to the Pi 5 host; calibration constants live in the Pico's onboard 4 MB flash. Per the v1.0 Path A architecture decision, no per-module Pi Zero 2 W sidecar is included. The design is a Pico-MCU-driven dual DAC + op-amp output buffer in the simplest possible topology that still hits the target performance envelope (DC to ~50 kHz, ±10 V into 600 Ω, 12-bit amplitude resolution).
 
 ### Signal generation chain
 
@@ -42,17 +42,14 @@ The module exposes one auxiliary digital output that can be configured as a sync
 ```mermaid
 flowchart LR
     Host[Pi 5 host]
-    Pico[Pico 2 W<br/>+ DMA SPI driver<br/>+ SCPI parser]
-    PiZero[Pi Zero 2 W<br/>admin sidecar]
-    Switch[Chassis LAN switch]
+    Pico[Pico 2 W<br/>+ DMA SPI driver<br/>+ SCPI parser<br/>+ cal constants in flash]
     DAC[MCP4922<br/>dual 12-bit DAC<br/>internal 4.096 V Vref]
-    OpAmp[MCP6232 op-amp<br/>level-shift and gain to ±10 V]
+    OpAmp[TL072 op-amp<br/>level-shift and gain to ±10 V]
     Filter[Output low-pass filter<br/>RC at ~80 kHz]
     Relay[Output Z-switching reed relay<br/>50 Ω or 600 Ω series]
     BNC[BNC output connector]
     Sync[Sync output<br/>3.3 V CMOS to chassis trigger bus]
     Host -->|USB-TMC| Pico
-    Switch <-->|admin| PiZero
     Pico -->|SPI 20 MHz DMA| DAC
     Pico --> Sync
     DAC -->|0 to 4.096 V| OpAmp
@@ -236,9 +233,6 @@ Cross-referenced to Mouser primary, with Digi-Key alternate part numbers where a
 | Item | Manufacturer P/N | Mouser P/N | Digi-Key P/N | Qty | Unit Cost | Notes |
 |---|---|---|---|---|---|---|
 | Raspberry Pi Pico 2 W | Raspberry Pi SC1632 | 358-SC1632 | 2648-SC1632-ND | 1 | $7 | RP2350 host MCU |
-| Raspberry Pi Zero 2 W | Raspberry Pi SC0506 | 358-SC0506 | 1690-SC0506-ND | 1 | $15 | Linux sidecar |
-| 32 GB microSD card (any reputable brand, U3 / V30) | SanDisk Ultra 32GB | n/a | n/a | 1 | $8 | Pi Zero boot |
-| USB-Ethernet adapter (USB 2.0 to 100/1000) | UGREEN 60195 | n/a | n/a | 1 | $10 | Pi Zero LAN attach (optional) |
 | MCP4922 dual 12-bit DAC | Microchip MCP4922-E/P | 579-MCP4922-E/P | MCP4922-E/P-ND | 1 | $4 | DIP-14, easy hand-solder |
 | TL072 op-amp (precision, audio) | Texas Instruments TL072IP | 595-TL072IP | 296-1775-5-ND | 1 | $0.80 | DIP-8 |
 | 2N3904 NPN BJT (relay driver) | onsemi 2N3904BU | 863-2N3904BU | 2N3904FS-ND | 1 | $0.10 | TO-92 |
@@ -256,9 +250,9 @@ Cross-referenced to Mouser primary, with Digi-Key alternate part numbers where a
 | 3D-printed enclosure | n/a | n/a | n/a | 1 | $1 | PETG, ~10 g print |
 | Pin headers, hookup wire | various | various | various | n/a | $2 | |
 | Perfboard | Adafruit 1609 (or eq.) | 485-1609 | 1528-1609-ND | 1 | $3 | hand-build substrate |
-| **Total module BOM** | | | | | **~$48** | |
+| **Total module BOM** | | | | | **~$18** | |
 
-(BOM totals match SDD Table 7-28 with the TL072 substitution noted in section 3.)
+(BOM total matches SDD Table 7-28 with the TL072 substitution noted in section 3 and the v1.0 Path A architecture decision that removes the Pi Zero per-module sidecar.)
 
 ## 8. Calibration Procedure
 
