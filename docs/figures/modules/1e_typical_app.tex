@@ -178,16 +178,11 @@
   \fill[pmvbFg] (bufb_tap) circle (0.5mm);
   %
   % =========================================================================
-  % Bottom annotation + caption
+  % Bottom annotation (caption is rendered in the design doc, not in SVG)
   % =========================================================================
   \node[pmvb annotation, below=14mm of dac.south]
-    (anno) {C1 = 10\,$\mu$F tantalum (bulk decoupling)\\
-            C2 = 0.1\,$\mu$F ceramic (HF decoupling)\\
-            Place both within 4\,mm of $V_{DD}$ pin (DS22250A \S6.2)};
-  %
-  \node[font=\sffamily\scriptsize\bfseries, text=pmvbFg,
-        below=4mm of anno]
-    {Figure 1E-3: Module 1E typical application schematic
-     (Pico 2 W $\to$ MCP4922 $\to$ MCP6232 unity-gain buffer $\to$ BNC).};
+    {C1 = 10\,$\mu$F tantalum (bulk decoupling)\\
+     C2 = 0.1\,$\mu$F ceramic (HF decoupling)\\
+     Place both within 4\,mm of $V_{DD}$ pin (DS22250A \S6.2)};
 \end{circuitikz}
 \end{document}

@@ -43,17 +43,23 @@ Module 1E is documented across three figures: a system-level view showing where 
 
 **Figure 1E-1: Module 1E system context (system block diagram)**
 
-![Module 1E in the v1.0 PMVB chassis](../figures/modules/1e_system_context.svg)
+<img src="../figures/modules/1e_system_context.svg"
+     alt="Module 1E in the v1.0 PMVB chassis"
+     style="width: 100%; height: auto; display: block; margin: 0 auto;">
 
 **Figure 1E-2: MCP4922 internal functional block diagram**
 
-![MCP4922 internal block diagram, redrawn from datasheet DS22250A](../figures/modules/1e_mcp4922_internal.svg)
+<img src="../figures/modules/1e_mcp4922_internal.svg"
+     alt="MCP4922 internal block diagram, redrawn from datasheet DS22250A"
+     style="width: 100%; height: auto; display: block; margin: 0 auto;">
 
 *Source: MCP4902/4912/4922 Datasheet, DS22250A, page 1. Microchip Technology Inc. Used under fair-use citation for technical reference.*
 
 **Figure 1E-3: Module 1E typical application schematic**
 
-![Pico 2 W → MCP4922 → MCP6232 unity-gain buffer → BNC](../figures/modules/1e_typical_app.svg)
+<img src="../figures/modules/1e_typical_app.svg"
+     alt="Pico 2 W → MCP4922 → MCP6232 unity-gain buffer → BNC"
+     style="width: 100%; height: auto; display: block; margin: 0 auto;">
 
 *Schematic shows the SPI command path, the V_DD bypass network per DS22250A §6.2, and a unity-gain buffer stage. The full ±10 V output topology with TL072 level-shift and gain stage is documented in section 3 below.*
 

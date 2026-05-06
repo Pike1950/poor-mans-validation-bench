@@ -30,15 +30,7 @@
   \node (img) at (0, 0)
     {\includegraphics[width=110mm]{external/mcp4922_datasheet_block_diagram.png}};
   %
-  % --- Caption (figure number + source attribution) -----------------------
-  \node[font=\sffamily\scriptsize\bfseries, text=pmvbFg,
-        below=4mm of img.south]
-    (caption)
-    {Figure 1E-2: MCP4922 internal functional block diagram.};
-  %
-  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted,
-        below=1mm of caption.south]
-    {Source: MCP4902/4912/4922 Datasheet, DS22250A, page 1.\\
-     Microchip Technology Inc. Used under fair-use citation for technical reference.};
+  % Caption and attribution are rendered in the design doc, not embedded
+  % in the SVG.
 \end{tikzpicture}
 \end{document}
