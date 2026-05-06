@@ -39,24 +39,23 @@ The module exposes one auxiliary digital output that can be configured as a sync
 
 ## 2. Functional Block Diagram
 
-```mermaid
-flowchart LR
-    Host[Pi 5 host]
-    Pico[Pico 2 W<br/>+ DMA SPI driver<br/>+ SCPI parser<br/>+ cal constants in flash]
-    DAC[MCP4922<br/>dual 12-bit DAC<br/>internal 4.096 V Vref]
-    OpAmp[TL072 op-amp<br/>level-shift and gain to ±10 V]
-    Filter[Output low-pass filter<br/>RC at ~80 kHz]
-    Relay[Output Z-switching reed relay<br/>50 Ω or 600 Ω series]
-    BNC[BNC output connector]
-    Sync[Sync output<br/>3.3 V CMOS to chassis trigger bus]
-    Host -->|USB-TMC| Pico
-    Pico -->|SPI 20 MHz DMA| DAC
-    Pico --> Sync
-    DAC -->|0 to 4.096 V| OpAmp
-    OpAmp --> Filter
-    Filter --> Relay
-    Relay --> BNC
-```
+Module 1E is documented across three figures: a system-level view showing where the module sits in the PMVB chassis, a redrawn datasheet figure for the MCP4922 internals, and a typical-application schematic showing the SPI bus, bypass network, and output buffer stage.
+
+**Figure 1E-1: Module 1E system context (system block diagram)**
+
+![Module 1E in the v1.0 PMVB chassis](../figures/modules/1e_system_context.svg)
+
+**Figure 1E-2: MCP4922 internal functional block diagram**
+
+![MCP4922 internal block diagram, redrawn from datasheet DS22250A](../figures/modules/1e_mcp4922_internal.svg)
+
+*Source: MCP4902/4912/4922 Datasheet, DS22250A, page 1. Microchip Technology Inc. Used under fair-use citation for technical reference.*
+
+**Figure 1E-3: Module 1E typical application schematic**
+
+![Pico 2 W → MCP4922 → MCP6232 unity-gain buffer → BNC](../figures/modules/1e_typical_app.svg)
+
+*Schematic shows the SPI command path, the V_DD bypass network per DS22250A §6.2, and a unity-gain buffer stage. The full ±10 V output topology with TL072 level-shift and gain stage is documented in section 3 below.*
 
 ## 3. Schematic Notes (high-level; full schematic in KiCad)
 
