@@ -283,7 +283,7 @@ blockquote {
 <ul>
 <li><a href="#form-factor">11.1 Form Factor</a></li>
 <li><a href="#powered-usb-hub">11.2 Powered USB Hub</a></li>
-<li><a href="#gigabit-lan-switch">11.3 Gigabit LAN Switch</a></li>
+<li><a href="#gigabit-lan-switch">11.3 Gigabit LAN Switch (v2.0 only)</a></li>
 <li><a href="#shared-trigger-bus">11.4 Shared Trigger Bus</a></li>
 <li><a href="#power-architecture">11.5 Power Architecture</a></li>
 <li><a href="#thermal">11.6 Thermal</a></li>
@@ -345,13 +345,13 @@ blockquote {
 <h3 id="top-level-architecture">4.1 Top-Level Architecture</h3>
 <p>The platform decomposes into three physical layers.</p>
 <p>The orchestration layer is a single Raspberry Pi 5 hosting the test framework (PyVISA, pytest), the time-series database (InfluxDB), the dashboard server (Grafana), the report generator (Jinja2 with Matplotlib), and the MCP gateway. The Pi 5 carries no instrument hardware of its own; it is a pure software orchestrator and data sink.</p>
-<p>The transport layer connects the orchestration layer to the modules through a single primary bus. A powered USB hub (4 to 8 ports, 5 V at 2.4 A per port) hosts USB-TMC instrument bridges built on Raspberry Pi Pico 2 W; the SCPI command and measurement-data path runs over USB-TMC for every module in the chassis. An optional shared trigger bus, implemented as one or two GPIO lines daisy-chained between modules that require it, provides sub-microsecond synchronization for measurements that cannot tolerate software-arming jitter. (A gigabit Ethernet switch is still present in the chassis to host the orchestration head, the InfluxDB and Grafana endpoints for external clients, and any future Pi Zero 2 W streaming sidecars added in v2.0; in v1.0 it does not carry per-module admin traffic.)</p>
+<p>The transport layer connects the orchestration layer to the modules through a single primary bus. A powered USB hub (4 to 8 ports, 5 V at 2.4 A per port) hosts USB-TMC instrument bridges built on Raspberry Pi Pico 2 W; the SCPI command and measurement-data path runs over USB-TMC for every module in the chassis. An optional shared trigger bus, implemented as one or two GPIO lines daisy-chained between modules that require it, provides sub-microsecond synchronization for measurements that cannot tolerate software-arming jitter. (External clients reach the Pi 5's InfluxDB, Grafana, and MCP gateway endpoints over the Pi 5's onboard wired Ethernet port; a dedicated chassis LAN switch is not required in v1.0 and is added in v2.0 only if per-module Pi Zero 2 W streaming sidecars are reactivated.)</p>
 <p>The module layer attaches to the transport layer in three tiers. Tier 1 is microcontroller-based modules built on Pico 2 W that present as USB-TMC instruments. Tier 2 is FPGA-based modules built on the Sipeed Tang Primer 25K, bridged to the chassis through a Pico 2 W (USB-TMC, primary instrument transport) that masters the FPGA register file over SPI. Tier 3 is high-speed interface modules deferred until a larger FPGA is acquired; under v1.0 the v2.0 reserve Pi Zero 2 W boards on hand are earmarked for Tier 3 streaming captures when those modules are eventually built.</p>
 <p><strong>Figure 4-1: Top-Level System Block Diagram</strong></p>
 <div class="mermaid">flowchart TB
     Pi5["Raspberry Pi 5<br/>(Orchestration Head)<br/>PyVISA · pytest · InfluxDB · Grafana · MCP Gateway"]
     Pi5 --> Hub["Powered USB Hub<br/>5V / 2.4A · 4–8 ports"]
-    Pi5 -.-> Switch["Gigabit LAN Switch<br/>5–8 ports<br/>(external clients · v2.0 sidecar reserve)"]
+    Pi5 -.-> LAN(["Wired Ethernet to bench network<br/>(InfluxDB · Grafana · MCP for external clients)"])
     subgraph T1["Tier 1 Module (instances: 1A · 1B · 1C · 1D · 1E · 1F · 1G · 1H)"]
         direction TB
         T1P["Pico 2 W<br/>USB-TMC bridge<br/>+ analog or digital front end"]
@@ -368,7 +368,7 @@ blockquote {
     T1P -.-> Trig
     F -.-> Trig
 </div>
-<p><em>Tier 3 modules (3A, 3B, 3C) are deferred and follow the Pico + FPGA pattern with a larger FPGA, plus a per-module Pi Zero 2 W sidecar (drawn from the v2.0 reserve) for sustained-capture data paths that exceed USB-TMC bandwidth; they are documented in section 7.7 and omitted from this diagram for clarity.</em></p>
+<p><em>Tier 3 modules (3A, 3B, 3C) are deferred and follow the Pico + FPGA pattern with a larger FPGA, plus a per-module Pi Zero 2 W sidecar (drawn from the v2.0 reserve) for sustained-capture data paths that exceed USB-TMC bandwidth. Tier 3 buildout is when a chassis LAN switch becomes necessary so the streaming sidecars and the Pi 5 can coexist on a single bench network. Tier 3 is documented in section 7.7 and omitted from this diagram for clarity.</em></p>
 <h3 id="representative-control-flow">4.2 Representative Control Flow</h3>
 <p>The control flow for a representative measurement, “characterize the noise floor of an external preamplifier,” exercises every architectural layer.</p>
 <p>A pytest test, or equivalently an MCP-connected agent session, initiates the measurement. Both paths converge on the same per-module SCPI command set, so the orchestration logic is independent of the initiator. PyVISA dispatches <code>OUTP ON</code> and <code>SOUR:VOLT 0.0</code> to Module 1D (Source-Measure Unit Lite) and a sweep of <code>MEAS:VOLT:DC?</code> queries to Module 1B (Voltage Measurement Unit), with optional parameter sweeps under pytest fixture control. Each measurement returns through the SCPI plane to the orchestration layer, which writes a row to InfluxDB tagged by instrument, channel, DUT identifier, run identifier, and timestamp.</p>
@@ -3545,7 +3545,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <p>Reports are written to <code>reports/&lt;run_id&gt;/</code> on the Pi 5 with both <code>.pdf</code> and <code>.html</code> outputs. The HTML form is suitable for direct browsing or upload into a static-site portfolio.</p>
 <h2 id="chassis-and-mechanical-design-rationale">11. Chassis and Mechanical Design Rationale</h2>
 <h3 id="form-factor">11.1 Form Factor</h3>
-<p>The v1.0 chassis form factor is loose-on-bench: modules sit individually on the workbench surface in 3D-printed enclosures, connected to the orchestration layer through the powered USB hub and the LAN switch. There is no shared backplane or structural rack.</p>
+<p>The v1.0 chassis form factor is loose-on-bench: modules sit individually on the workbench surface in 3D-printed enclosures, connected to the orchestration layer through the powered USB hub. There is no shared backplane or structural rack.</p>
 <p>This decision is intentional. A loose-on-bench chassis is the cheapest path to a working bench, allows incremental module addition without retooling, accommodates the variable depth of Tier 2 modules (which have three host devices stacked) without forcing a fixed-depth slot, and minimizes mechanical bring-up effort. The downside (it does not photograph as well as a rack-mount form factor) is acknowledged.</p>
 <p>A v2.0 form factor (DIN-rail or 3U Eurocard chassis) is reserved for after the module catalog stabilizes. The v2.0 enclosure design must accommodate the existing module dimensions; the architectural rule is that no module redesign is permitted to fit a future enclosure.</p>
 <h3 id="powered-usb-hub">11.2 Powered USB Hub</h3>
@@ -3557,14 +3557,15 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <li>Power input: 12 V DC barrel jack, 5 A minimum supply (60 W headroom for 8 ports at full draw)</li>
 </ul>
 <p>A representative example is the Sabrent HB-UM43 or Plugable USB3-HUB7C. Cost approximately $25.</p>
-<h3 id="gigabit-lan-switch">11.3 Gigabit LAN Switch</h3>
-<p>The chassis LAN switch hosts the orchestration head's external Ethernet, exposes InfluxDB and Grafana to bench-network clients, and provides spare ports for the v2.0 reserve Pi Zero 2 W streaming sidecars (Tier 3 modules and any v2.0 streaming variant of Module 2A or 2D). It does not carry SCPI traffic in v1.0 (USB-TMC is the canonical instrument transport). Required specifications:</p>
+<h3 id="gigabit-lan-switch">11.3 Gigabit LAN Switch (v2.0 only)</h3>
+<p>v1.0 does not include a chassis LAN switch. The Pi 5's onboard wired Ethernet port connects directly to the bench network (workstation, home router, or whatever else InfluxDB, Grafana, and the MCP gateway need to be reachable from). USB-TMC is the canonical SCPI transport, and there is no per-module LAN traffic in v1.0 to aggregate.</p>
+<p>A switch is added in v2.0 when the per-module Pi Zero 2 W streaming sidecars come back into the chassis (Tier 3 modules and any v2.0 streaming variant of Module 2A or 2D). At that point the switch's required specifications are:</p>
 <ul>
-<li>Port count: 5 to 8 (one for the Pi 5, one per workstation or external client, plus spare ports for v2.0 sidecars)</li>
+<li>Port count: 5 to 8 (one for the Pi 5, one per workstation or external client, one per active Pi Zero streaming sidecar)</li>
 <li>Speed: gigabit Ethernet on every port</li>
-<li>Switching: unmanaged is sufficient for v1.0; managed (with VLAN support) is reserved for if the bench network later needs isolation from a home network</li>
+<li>Switching: unmanaged is sufficient; managed (with VLAN support) is reserved for if the bench network later needs isolation from a home network</li>
 </ul>
-<p>A representative example is the TP-Link TL-SG108 (8-port unmanaged gigabit). Cost approximately $25.</p>
+<p>A representative example is the TP-Link TL-SG108 (8-port unmanaged gigabit). Cost approximately $25, included in the v2.0 BOM rather than v1.0.</p>
 <h3 id="shared-trigger-bus">11.4 Shared Trigger Bus</h3>
 <p>The optional shared trigger bus is a single GPIO line wired between modules that need sub-microsecond synchronization. Implementation:</p>
 <ul>
@@ -3680,7 +3681,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <li>InfluxDB 1.8 with the schema from section 10.2</li>
 <li>Grafana 10 OSS with template-variable dashboards (no live data yet)</li>
 <li>MCP gateway scaffolding (no module servers yet)</li>
-<li>Powered USB hub and gigabit LAN switch installed</li>
+<li>Powered USB hub installed; Pi 5 wired Ethernet connected directly to the bench network (no chassis LAN switch in v1.0)</li>
 <li>A representative simulator-backed test passes end-to-end (writes to InfluxDB, renders a Grafana panel, generates a Jinja2 report)</li>
 </ul>
 <p><strong>Table 13-1: Phase 0 BOM</strong></p>
@@ -3716,10 +3717,6 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <td>Powered USB hub</td>
 <td>$25</td>
 </tr>
-<tr class="even">
-<td>Gigabit LAN switch</td>
-<td>$25</td>
-</tr>
 <tr class="odd">
 <td>Cabling and incidentals</td>
 <td>$15</td>
@@ -3742,7 +3739,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr>
 <td><strong>Phase 0 total</strong></td>
-<td><strong>~$277</strong></td>
+<td><strong>~$252</strong></td>
 </tr>
 </tbody>
 </table>
@@ -3923,8 +3920,12 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <td>$60</td>
 </tr>
 <tr class="even">
+<td>Chassis gigabit LAN switch (TP-Link TL-SG108 or equivalent)</td>
+<td>$25</td>
+</tr>
+<tr class="odd">
 <td><strong>Phase 4 total</strong></td>
-<td><strong>~$362</strong></td>
+<td><strong>~$387</strong></td>
 </tr>
 </tbody>
 </table>
@@ -3940,7 +3941,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <tbody>
 <tr class="odd">
 <td>Phase 0 (orchestration + PSU)</td>
-<td>~$277</td>
+<td>~$252</td>
 </tr>
 <tr class="even">
 <td>Phase 1 (Tier 1 core)</td>
@@ -3965,11 +3966,11 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>v1.0 + v1.1 subtotal</strong></td>
-<td><strong>~$824</strong></td>
+<td><strong>~$799</strong></td>
 </tr>
 <tr class="even">
-<td>Phase 4 (Tier 3, optional)</td>
-<td>~$362</td>
+<td>Phase 4 (Tier 3, optional, includes chassis LAN switch)</td>
+<td>~$387</td>
 </tr>
 <tr class="odd">
 <td><strong>All phases total</strong></td>

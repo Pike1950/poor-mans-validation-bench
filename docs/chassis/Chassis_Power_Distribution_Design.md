@@ -2,7 +2,7 @@
 
 ## v1.0 (May 2026)
 
-Companion to the [PMVB System Design Document section 11.5](../system-design/System_Design_Document.html#power-architecture). Documents the mechanical and electrical design for the Chassis Power Unit (CPU): a single integrated enclosure built around the Silverstone SST-TX300 PSU that supplies +5 V to the Pi 5, +12 V to the powered USB hub, and -12 V to the Module 1E op-amp output stage. The Pi 5, USB hub, LAN switch, and instrument modules sit on the bench external to this chassis and connect via DC cables that exit the chassis back panel.
+Companion to the [PMVB System Design Document section 11.5](../system-design/System_Design_Document.html#power-architecture). Documents the mechanical and electrical design for the Chassis Power Unit (CPU): a single integrated enclosure built around the Silverstone SST-TX300 PSU that supplies +5 V to the Pi 5, +12 V to the powered USB hub, and -12 V to the Module 1E op-amp output stage. The Pi 5, USB hub, and instrument modules sit on the bench external to this chassis and connect via DC cables that exit the chassis back panel. (A chassis LAN switch is not part of the v1.0 baseline; the Pi 5 connects to the bench network directly via its onboard wired Ethernet port.)
 
 Per the v1.0 Path A architecture decision, instrument modules do not include per-module Pi Zero 2 W sidecars. Tier 1 modules are USB-bus-powered (5 V at ~100 mA per Pico) through the chassis USB hub. Tier 2 modules add a Tang Primer 25K FPGA powered from the Pi 5's 5 V via the USB hub or directly via a 5 V output line. The chassis power unit therefore supplies only one USB-C output (for the Pi 5) and one 12 V barrel output (for the powered USB hub).
 
@@ -12,7 +12,7 @@ Per the v1.0 Path A architecture decision, instrument modules do not include per
 
 ### 1.1 Single-Enclosure Chassis Power Unit
 
-The chassis power system is a **single integrated enclosure** containing the TX300 PSU, the ATX breakout PCB, per-rail fuses, USB-C power breakouts, and (optionally) front-panel toggle and indicator LEDs. The Pi 5, USB hub, LAN switch, and modules sit external to this enclosure and connect through DC cables that exit a back-panel grommet.
+The chassis power system is a **single integrated enclosure** containing the TX300 PSU, the ATX breakout PCB, per-rail fuses, USB-C power breakouts, and (optionally) front-panel toggle and indicator LEDs. The Pi 5, USB hub, and modules sit external to this enclosure and connect through DC cables that exit a back-panel grommet.
 
 ```
                               External (on bench, low voltage):
