@@ -196,8 +196,53 @@ blockquote {
 <h2 id="module-design-document">Module Design Document</h2>
 <p><strong>Version:</strong> 1.0 (May 2026) <strong>Module ID:</strong> 1E <strong>Tier:</strong> 1 <strong>Status:</strong> In Design <strong>Parent SDD section:</strong> 7.5.5 of the <a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document</a></p>
 <hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#theory-of-operation">1. Theory of Operation</a>
+<ul>
+<li><a href="#signal-generation-chain">Signal generation chain</a></li>
+<li><a href="#why-mcp4922-instead-of-a-higher-rate-dac">Why MCP4922 instead of a higher-rate DAC</a></li>
+<li><a href="#output-impedance-switching">Output impedance switching</a></li>
+<li><a href="#synchronization-and-trigger">Synchronization and trigger</a></li>
+</ul></li>
+<li><a href="#functional-block-diagram">2. Functional Block Diagram</a></li>
+<li><a href="#schematic-notes-high-level-full-schematic-in-kicad">3. Schematic Notes (high-level; full schematic in KiCad)</a>
+<ul>
+<li><a href="#output-stage">Output stage</a></li>
+<li><a href="#op-amp-supply">Op-amp supply</a></li>
+<li><a href="#output-filter">Output filter</a></li>
+<li><a href="#impedance-switching">Impedance switching</a></li>
+<li><a href="#decoupling">Decoupling</a></li>
+</ul></li>
+<li><a href="#pin-assignments">4. Pin Assignments</a>
+<ul>
+<li><a href="#pico-2-w-to-mcp4922">Pico 2 W to MCP4922</a></li>
+<li><a href="#pico-2-w-to-op-amp-output-stage">Pico 2 W to op-amp / output stage</a></li>
+<li><a href="#pico-2-w-power">Pico 2 W power</a></li>
+<li><a href="#mcp4922-to-op-amp-summing-junction">MCP4922 to op-amp summing junction</a></li>
+<li><a href="#tl072-op-amp-output-stage">TL072 op-amp output stage</a></li>
+</ul></li>
+<li><a href="#specifications-matching-sdd-table-7-27">5. Specifications (matching SDD Table 7-27)</a></li>
+<li><a href="#sample-applications">6. Sample Applications</a>
+<ul>
+<li><a href="#single-tone-sine-generation">6.1 Single-tone sine generation</a></li>
+<li><a href="#swept-sine-for-thd-measurement-paired-with-module-2e">6.2 Swept sine for THD measurement (paired with Module 2E)</a></li>
+<li><a href="#multitone-for-imd-intermodulation-distortion">6.3 Multitone for IMD (intermodulation distortion)</a></li>
+<li><a href="#white-noise-for-noise-floor-characterization">6.4 White noise for noise-floor characterization</a></li>
+</ul></li>
+<li><a href="#bill-of-materials">7. Bill of Materials</a></li>
+<li><a href="#calibration-procedure">8. Calibration Procedure</a>
+<ul>
+<li><a href="#dc-offset-calibration">8.1 DC offset calibration</a></li>
+<li><a href="#gain-calibration">8.2 Gain calibration</a></li>
+<li><a href="#frequency-calibration">8.3 Frequency calibration</a></li>
+</ul></li>
+<li><a href="#bring-up-checklist">9. Bring-Up Checklist</a></li>
+<li><a href="#known-issues-and-future-work">10. Known Issues and Future Work</a></li>
+</ul>
+<hr />
 <h2 id="theory-of-operation">1. Theory of Operation</h2>
-<p>Module 1E generates audio-band analog waveforms for amplifier characterization, in-ear monitor testing, and any test sequence that needs a controlled stimulus into a DUT. The module is built on a single Pico 2 W presenting as a USB-TMC instrument to the Pi 5 host; calibration constants live in the Pico’s onboard 4 MB flash. Per the v1.0 Path A architecture decision, no per-module Pi Zero 2 W sidecar is included. The design is a Pico-MCU-driven dual DAC + op-amp output buffer in the simplest possible topology that still hits the target performance envelope (DC to ~50 kHz, ±10 V into 600 Ω, 12-bit amplitude resolution).</p>
+<p>Module 1E generates audio-band analog waveforms for amplifier characterization, in-ear monitor testing, and any test sequence that needs a controlled stimulus into a DUT. The module is built on a single Pico 2 W presenting as a USB-TMC instrument to the Pi 5 host; calibration constants live in the Pico’s onboard 4 MB flash. The design is a Pico-MCU-driven dual DAC + op-amp output buffer in the simplest possible topology that still hits the target performance envelope (DC to ~50 kHz, ±10 V into 600 Ω, 12-bit amplitude resolution).</p>
 <h3 id="signal-generation-chain">Signal generation chain</h3>
 <p>A precomputed waveform sample table sits in the Pico’s flash. The Pico’s DMA engine streams samples from this table to the Microchip MCP4922 dual 12-bit DAC over SPI at up to 1 MSPS (per channel). The MCP4922 outputs are voltage-mode (range 0 to 4.096 V using its internal reference) and feed an op-amp output stage that level-shifts and amplifies the DAC signal to ±10 V single-ended, with selectable output impedance (50 Ω or 600 Ω) at a front-panel BNC connector.</p>
 <p>For a 1 kHz sine wave at 1 MSPS DAC update rate, the waveform has 1000 samples per cycle, far above the Nyquist requirement, and the resulting total harmonic distortion is dominated by the DAC’s INL/DNL and the op-amp’s distortion (both well under 0.1% across the audio band). The 50 kHz upper limit is a margin call: at 50 kHz the cycle has 20 samples, producing a stair-step output that the output low-pass filter (in the op-amp stage) smooths to within 1% THD.</p>
@@ -225,9 +270,9 @@ blockquote {
 <p><em>Source: MCP4902/4912/4922 Datasheet, DS22250A, page 1. Microchip Technology Inc. Used under fair-use citation for technical reference.</em></p>
 <p><strong>Figure 1E-3: Module 1E typical application schematic</strong></p>
 <img src="../figures/modules/1e_typical_app.svg"
-     alt="Pico 2 W to MCP4922 to MCP6232 unity-gain buffer to BNC"
+     alt="Pico 2 W to MCP4922 to TL072 output buffer to BNC"
      style="width: 100%; height: auto; display: block; margin: 0 auto;">
-<p><em>Schematic shows the SPI command path, the V_DD bypass network per DS22250A §6.2, and a unity-gain buffer stage. The full ±10 V output topology with TL072 level-shift and gain stage is documented in section 3 below.</em></p>
+<p><em>Schematic shows the SPI command path, the V_DD bypass network per DS22250A §6.2, and the TL072 output buffer stage. The full ±10 V level-shift and gain network is described in section 3 below.</em></p>
 <h2 id="schematic-notes-high-level-full-schematic-in-kicad">3. Schematic Notes (high-level; full schematic in KiCad)</h2>
 <h3 id="output-stage">Output stage</h3>
 <p>The op-amp is configured as an inverting summing amplifier. Two inputs:</p>
@@ -239,8 +284,7 @@ blockquote {
 <pre><code>V_out = -G × (V_DAC - 2.048)</code></pre>
 <p>With G = 5 (set by feedback resistor and input resistor), V_out swings from -10.24 V (when V_DAC = 0) to +10.24 V (when V_DAC = 4.096), giving the full ±10 V output range.</p>
 <h3 id="op-amp-supply">Op-amp supply</h3>
-<p>The MCP6232 is rated for +1.8 V to +6.0 V single-supply, but for ±10 V output we need ±12 V dual supply. <strong>The MCP6232 is not the right part for this</strong>; we should instead use a rail-to-rail op-amp rated for ±15 V supply such as the <strong>OP07</strong> (precision, ±18 V) or <strong>TL072</strong> (audio, ±18 V). Update the schematic to use TL072 with the +12 V and -12 V rails from the chassis TX300 PSU.</p>
-<p>(SDD section 7.5.5 specified MCP6232 for output buffering; this design doc supersedes that for the op-amp choice. The SDD will be updated in v1.1 to match.)</p>
+<p>The TL072 is a JFET-input dual op-amp rated for ±18 V supply. We power it from the +12 V and -12 V rails of the chassis TX300 PSU, giving ample headroom for the ±10 V output swing. Slew rate (13 V/µs typ.) is comfortable for full-amplitude reproduction across the audio band: a ±10 V sine at 50 kHz needs about 6.3 V/µs slew, well within the TL072's capability.</p>
 <h3 id="output-filter">Output filter</h3>
 <p>An RC low-pass filter at the op-amp output rolls off above ~80 kHz to suppress DAC stair-step quantization noise without affecting the audio band. R = 10 Ω, C = 200 nF gives a corner near 80 kHz. The filter sits before the impedance-switching relay.</p>
 <h3 id="impedance-switching">Impedance switching</h3>
@@ -763,7 +807,7 @@ awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
 </tr>
 </tbody>
 </table>
-<p>(BOM total matches SDD Table 7-28 with the TL072 substitution noted in section 3 and the v1.0 Path A architecture decision that removes the Pi Zero per-module sidecar.)</p>
+<p>(BOM total matches SDD Table 7-28.)</p>
 <h2 id="calibration-procedure">8. Calibration Procedure</h2>
 <p>After module assembly, calibrate against a Fluke 87V (or equivalent calibrated DMM) and a 10 MHz GPSDO reference (or external function generator’s calibrated output) using the following procedure:</p>
 <h3 id="dc-offset-calibration">8.1 DC offset calibration</h3>

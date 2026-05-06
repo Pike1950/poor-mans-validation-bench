@@ -1,0 +1,210 @@
+% =============================================================================
+% Figure 4-1: Top-Level System Block Diagram
+% =============================================================================
+% Headline figure for the SDD. Shows the v1.0 PMVB platform as three layers:
+%   1. External consumers (Workstation, MCP client) on the bench network
+%   2. Orchestration head (Pi 5) with the VISA/SCPI plane and MCP plane
+%      shown as labeled internal bands
+%   3. Module fabric: USB hub + Tier 1, Tier 2, Tier 3 envelopes with
+%      example front-panel I/O connecting to DUT blocks
+%
+% Compile:  pdflatex fig_4_1_top_level.tex
+% Convert:  pdftocairo -svg fig_4_1_top_level.pdf
+% =============================================================================
+\documentclass[border=8pt]{standalone}
+%
+\input{../style/pmvb-figures.sty}
+%
+\begin{document}
+\begin{tikzpicture}[pmvb figure]
+  %
+  % =========================================================================
+  % TOP ROW: external clients on the bench network
+  % =========================================================================
+  \node[pmvb subsystem, minimum width=34mm, minimum height=18mm]
+    (workstn) at (-7, 7)
+    {\textbf{Workstation}\\\scriptsize pytest authoring\\\scriptsize Grafana browser};
+  %
+  \node[pmvb subsystem, minimum width=34mm, minimum height=18mm]
+    (mcpcln) at (7, 7)
+    {\textbf{MCP Client}\\\scriptsize LLM agent\\\scriptsize bench session};
+  %
+  % =========================================================================
+  % MIDDLE: Pi 5 orchestration head with the two control planes shown as
+  % labeled internal bands
+  % =========================================================================
+  \node[pmvb subsystem, minimum width=104mm, minimum height=34mm]
+    (pi5) at (0, 2.5) {};
+  %
+  % Pi 5 title at the top of the box
+  \node[font=\sffamily\bfseries\small, text=pmvbFg]
+    at ([yshift=-4mm]pi5.north) {Raspberry Pi 5};
+  \node[font=\sffamily\scriptsize, text=pmvbFg]
+    at ([yshift=-8mm]pi5.north) {Orchestration Head};
+  %
+  % VISA/SCPI plane band (left half of Pi 5)
+  \node[pmvb internal, minimum width=46mm, minimum height=14mm,
+        anchor=west]
+    at ([xshift=4mm, yshift=-7mm]pi5.west)
+    (visa_plane) {};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbBlue]
+    at ([yshift=-3mm]visa_plane.north) {VISA/SCPI plane};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, align=center]
+    at ([yshift=2mm]visa_plane.south)
+    {pytest \textbullet{} PyVISA\\InfluxDB \textbullet{} Grafana};
+  %
+  % MCP plane band (right half of Pi 5)
+  \node[pmvb internal, minimum width=46mm, minimum height=14mm,
+        anchor=east, draw=pmvbViolet]
+    at ([xshift=-4mm, yshift=-7mm]pi5.east)
+    (mcp_plane) {};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbViolet]
+    at ([yshift=-3mm]mcp_plane.north) {MCP plane};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, align=center]
+    at ([yshift=2mm]mcp_plane.south)
+    {MCP gateway\\(LLM-callable tools)};
+  %
+  % =========================================================================
+  % LAN / wired Ethernet from external clients to Pi 5 planes
+  % L-shaped routing: Workstation goes DOWN then RIGHT (entering visa_plane
+  % from its left edge); MCP Client goes DOWN then LEFT (entering mcp_plane
+  % from its right edge).
+  % =========================================================================
+  \draw[pmvb digital bi]
+    (workstn.south) --
+    (workstn.south |- visa_plane.center) --
+    (visa_plane.west);
+  %
+  \draw[pmvb digital bi]
+    (mcpcln.south) --
+    (mcpcln.south |- mcp_plane.center) --
+    (mcp_plane.east);
+  %
+  % LAN annotation: just above Pi 5's top edge, tight to the box
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at (0, 4.5) {wired Ethernet (bench network)};
+  %
+  % =========================================================================
+  % Pi 5 to USB Hub
+  % =========================================================================
+  \node[pmvb subsystem, minimum width=70mm, minimum height=14mm]
+    (hub) at (0, -2)
+    {\textbf{Powered USB Hub}\\\scriptsize 4--8 ports \textbullet{} 5\,V at 2.4\,A/port};
+  %
+  \draw[pmvb digital bi]
+    (pi5.south) --
+    node[right=0.5mm]{\pmvblabel{USB 2.0}}
+    (hub.north);
+  %
+  % =========================================================================
+  % Tier envelopes (T1, T2, T3 side by side)
+  % =========================================================================
+  %
+  % --- Tier 1 envelope ---
+  \node[pmvb subsystem, minimum width=64mm, minimum height=46mm]
+    (t1) at (-7.5, -8) {};
+  \node[font=\sffamily\bfseries\small, text=pmvbFg]
+    at ([yshift=-4mm]t1.north) {Tier 1};
+  \node[font=\sffamily\scriptsize, text=pmvbFg]
+    at ([yshift=-8mm]t1.north) {MCU-based \textbullet{} $\times 8$};
+  \node[pmvb ic, minimum width=46mm, minimum height=10mm]
+    at ([yshift=2mm]t1.center) (t1_pico)
+    {\textbf{Pico 2 W}\\\scriptsize + analog/digital front end};
+  %
+  % --- Tier 2 envelope ---
+  \node[pmvb subsystem, minimum width=64mm, minimum height=46mm]
+    (t2) at (0, -8) {};
+  \node[font=\sffamily\bfseries\small, text=pmvbFg]
+    at ([yshift=-4mm]t2.north) {Tier 2};
+  \node[font=\sffamily\scriptsize, text=pmvbFg]
+    at ([yshift=-8mm]t2.north) {FPGA-based \textbullet{} $\times 5$};
+  \node[pmvb ic, minimum width=46mm, minimum height=8mm]
+    at ([yshift=4mm]t2.center) (t2_pico) {Pico 2 W};
+  \node[pmvb ic, minimum width=46mm, minimum height=8mm]
+    at ([yshift=-7mm]t2.center) (t2_fpga) {Tang Primer 25K};
+  \draw[pmvb digital]
+    (t2_pico) -- node[right]{\pmvblabel{SPI 30 MHz}} (t2_fpga);
+  %
+  % --- Tier 3 envelope (deferred, dashed gray) ---
+  \node[pmvb subsystem, minimum width=64mm, minimum height=46mm,
+        draw=pmvbMuted, dashed]
+    (t3) at (7.5, -8) {};
+  \node[font=\sffamily\bfseries\small, text=pmvbMuted]
+    at ([yshift=-4mm]t3.north) {Tier 3};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-8mm]t3.north) {deferred \textbullet{} Phase 4};
+  \node[font=\sffamily\scriptsize, text=pmvbMuted, align=center]
+    at (t3.center)
+    {Tang Mega 138K Pro\\or AX7325B\\$+$ Pi Zero streaming sidecar};
+  %
+  % =========================================================================
+  % USB-TMC bus: hub -> junction -> three tier envelopes
+  % =========================================================================
+  \coordinate (bus_jct) at ($(hub.south) + (0, -2.4)$);
+  %
+  \draw[pmvb bus, -]
+    (hub.south) --
+    node[pmvb bus width]{$\times 8$}
+    (bus_jct);
+  %
+  \draw[pmvb bus] (bus_jct) -| (t1.north);
+  \draw[pmvb bus] (bus_jct) -- (t2.north);
+  \draw[pmvb bus, draw=pmvbMuted, dashed] (bus_jct) -| (t3.north);
+  %
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ($(hub.south) + (1.6, -1.2)$) {USB-TMC};
+  %
+  % =========================================================================
+  % Front-panel I/O: BNC directly below each tier (centered), DUT directly
+  % below the BNC. Internal wire from the front-end IC down through the
+  % tier south edge to the BNC, then to the DUT.
+  % =========================================================================
+  %
+  % --- Tier 1 BNC + DUT ---
+  \node[pmvb connector, scale=0.7]
+    at ($(t1.south) + (0, -7mm)$) (t1_bnc) {BNC};
+  \node[pmvb subsystem, minimum width=24mm, minimum height=12mm,
+        fill=pmvbBg, draw=pmvbMuted]
+    at ($(t1_bnc.south) + (0, -1.0)$) (dut1) {DUT};
+  %
+  \draw[pmvb analog] (t1_pico.south) -- (t1_bnc.north);
+  \draw[pmvb analog] (t1_bnc.south) -- (dut1.north);
+  %
+  % --- Tier 2 BNC + DUT ---
+  \node[pmvb connector, scale=0.7]
+    at ($(t2.south) + (0, -7mm)$) (t2_bnc) {BNC};
+  \node[pmvb subsystem, minimum width=24mm, minimum height=12mm,
+        fill=pmvbBg, draw=pmvbMuted]
+    at ($(t2_bnc.south) + (0, -1.0)$) (dut2) {DUT};
+  %
+  \draw[pmvb analog] (t2_fpga.south) -- (t2_bnc.north);
+  \draw[pmvb analog] (t2_bnc.south) -- (dut2.north);
+  %
+  % =========================================================================
+  % Optional trigger bus: VERTICAL line in the gap between T1 and T2,
+  % with horizontal taps going LEFT into T1.east and RIGHT into T2.west
+  % at the tier center y. Annotation sits below, in the open area between
+  % DUT1 and DUT2.
+  % =========================================================================
+  \coordinate (trig_x)      at ($(t1.east)!.5!(t2.west)$);
+  \coordinate (trig_top)    at (trig_x |- t1.north);
+  \coordinate (trig_bottom) at (trig_x |- t1.south);
+  \coordinate (trig_tap)    at (trig_x |- t1.center);
+  %
+  \draw[pmvb optional, -] (trig_top) -- (trig_bottom);
+  \draw[pmvb optional] (trig_tap) -- (t1.east);
+  \draw[pmvb optional] (trig_tap) -- (t2.west);
+  %
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted, align=center]
+    at ($(trig_bottom) + (0, -8mm)$)
+    {Optional shared\\trigger bus};
+  %
+  % =========================================================================
+  % Caption (below everything)
+  % =========================================================================
+  \node[font=\sffamily\scriptsize\bfseries, text=pmvbFg,
+        below=18mm of dut2.south]
+    {Figure 4-1: PMVB v1.0 top-level system block diagram.};
+  %
+\end{tikzpicture}
+\end{document}

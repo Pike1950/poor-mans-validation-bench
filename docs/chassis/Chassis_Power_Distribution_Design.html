@@ -195,7 +195,7 @@ blockquote {
 <h1 id="chassis-power-distribution-design-document">Chassis Power Distribution Design Document</h1>
 <h2 id="v1.0-may-2026">v1.0 (May 2026)</h2>
 <p>Companion to the <a href="../system-design/System_Design_Document.html#power-architecture">PMVB System Design Document section 11.5</a>. Documents the mechanical and electrical design for the Chassis Power Unit (CPU): a single integrated enclosure built around the Silverstone SST-TX300 PSU that supplies +5 V to the Pi 5, +12 V to the powered USB hub, and -12 V to the Module 1E op-amp output stage. The Pi 5, USB hub, and instrument modules sit on the bench external to this chassis and connect via DC cables that exit the chassis back panel. (A chassis LAN switch is not part of the v1.0 baseline; the Pi 5 connects to the bench network directly via its onboard wired Ethernet port.)</p>
-<p>Per the v1.0 Path A architecture decision, instrument modules do not include per-module Pi Zero 2 W sidecars. Tier 1 modules are USB-bus-powered (5 V at ~100 mA per Pico) through the chassis USB hub. Tier 2 modules add a Tang Primer 25K FPGA powered from the Pi 5’s 5 V via the USB hub or directly via a 5 V output line. The chassis power unit therefore supplies only one USB-C output (for the Pi 5) and one 12 V barrel output (for the powered USB hub).</p>
+<p>Tier 1 modules are USB-bus-powered (5 V at ~100 mA per Pico) through the chassis USB hub. Tier 2 modules add a Tang Primer 25K FPGA powered from the Pico's GPIO header. The chassis power unit therefore supplies one USB-C output (for the Pi 5) and one 12 V barrel output (for the powered USB hub).</p>
 <hr />
 <h2 id="design-philosophy-and-topology">1. Design Philosophy and Topology</h2>
 <h3 id="single-enclosure-chassis-power-unit">1.1 Single-Enclosure Chassis Power Unit</h3>
@@ -335,7 +335,7 @@ blockquote {
 <h3 id="ac-zone">4.1 AC Zone</h3>
 <p>Contains: - TX300 PSU (mains-voltage internal parts). - Internal IEC C13 cord stub if needed (not required if the TX300’s existing cord-side connector is exposed directly through the end-plate cutout). - Earth bonding wire from TX300 chassis to Hammond chassis. - Unused TX300 output cables (EPS, PCI-E 6-pin, SATA, Molex, Floppy) bundled and tied off (see section 4.5).</p>
 <h3 id="dc-zone">4.2 DC Zone</h3>
-<p>Contains: - Adafruit ATX 1466 breakout PCB receiving the 24-pin from TX300. - Per-rail fuse panel (5×20 mm fuse holders mounted to the chassis floor or a small mounting bracket). - USB-C power breakout PCB (single, for Pi 5 only; per-module Pi Zeros removed under Path A). - 12 V barrel-jack pigtail for USB hub feed. - Optional front-panel toggle, LEDs, and test-point banana jacks.</p>
+<p>Contains: - Adafruit ATX 1466 breakout PCB receiving the 24-pin from TX300. - Per-rail fuse panel (5×20 mm fuse holders mounted to the chassis floor or a small mounting bracket). - USB-C power breakout PCB (single, for Pi 5 only). - 12 V barrel-jack pigtail for USB hub feed. - Optional front-panel toggle, LEDs, and test-point banana jacks.</p>
 <h3 id="per-rail-fuse-panel">4.3 Per-Rail Fuse Panel</h3>
 <p>The breakout PCB has built-in polyfuses, but they are slow-acting and reset themselves. Adding discrete glass fuses gives faster failure response and a clearly visible blown-fuse indicator.</p>
 <p>Per-rail recommended values:</p>
@@ -372,7 +372,7 @@ Breakout GND header     --&gt; wire --&gt; Lid microswitch NO</code></pre>
 </ol>
 <p>Heat-shrink tubing kit: SparkFun KIT-15583 or equivalent assortment, Mouser 474-KIT-15583, ~$10. Velcro tie strap: any hardware store, ~$3.</p>
 <h3 id="usb-c-power-breakouts">4.6 USB-C Power Breakouts</h3>
-<p>A single USB-C breakout PCB sits between the +5 V fused rail and the Pi 5’s USB-C input. With Path A removing per-module Pi Zeros, Tier 1 and Tier 2 modules are USB-bus-powered through the chassis USB hub (which is itself fed from the +12 V rail) and do not need separate USB-C power feeds.</p>
+<p>A single USB-C breakout PCB sits between the +5 V fused rail and the Pi 5's USB-C input. Tier 1 and Tier 2 modules are USB-bus-powered through the chassis USB hub (itself fed from the +12 V rail) and do not need separate USB-C power feeds.</p>
 <p>Adafruit USB-C plug breakout (P/N 4090, with 5.1 kΩ CC resistors that signal “5 V capable” to USB-C downstream): - Mouser: 485-4090 - Digi-Key: 1528-4090-ND - Approximately $3</p>
 <p>Wiring: solder a short pigtail (16 AWG, since the Pi 5 can pull 5 A peak) from the breakout’s V_BUS and GND pads to the +5 V fuse output and chassis GND respectively. The USB-C plug at the breakout’s other end runs out through the back-panel grommet to the Pi 5.</p>
 <h3 id="usb-hub-12-v-feed">4.7 USB Hub 12 V Feed</h3>
@@ -665,7 +665,7 @@ Breakout GND header     --&gt; wire --&gt; Lid microswitch NO</code></pre>
 <td>1528-4090-ND</td>
 <td>1</td>
 <td>$3</td>
-<td>Pi 5 only (Path A)</td>
+<td>Pi 5 only</td>
 </tr>
 <tr class="odd">
 <td>Adafruit 5.5 × 2.1 mm DC plug pigtail</td>
@@ -804,7 +804,7 @@ Breakout GND header     --&gt; wire --&gt; Lid microswitch NO</code></pre>
 </tr>
 </tbody>
 </table>
-<p>The chassis power BOM here supersedes any earlier per-line estimates in the SDD Phase 0 BOM. Investment-summary reconciliation in the SDD will follow the v1.0 Path A architecture sweep. ## 7. Bring-Up Procedure</p>
+<p>The chassis power BOM here supersedes any earlier per-line estimates in the SDD Phase 0 BOM.</p>
 <p>Do not plug AC into the chassis until you have completed steps 1 through 5. Steps 6 onward require AC; observe the safety procedures in section 8 throughout.</p>
 <h3 id="unpowered-continuity-tests">7.1 Unpowered continuity tests</h3>
 <ol type="1">
@@ -873,7 +873,7 @@ Breakout GND header     --&gt; wire --&gt; Lid microswitch NO</code></pre>
 <li>Add panel-mount switched IEC inlet to the chassis end plate (replacing the external power strip), with integrated dual fuse holders. Current external-power-strip arrangement is safe but less polished.</li>
 <li>Add inrush current limiter (NTC thermistor in series with the line) on the AC side if multiple TX300s end up in the system later.</li>
 <li>Add per-rail current monitoring (INA226 or similar I²C current sense ICs) for telemetry during measurement runs.</li>
-<li>Add per-module Pi Zero 2 W admin sidecars in v2.0 if streaming captures (Module 2A continuous logic capture, Module 2D sustained Ethernet capture) require LAN-bandwidth data paths beyond USB-TMC’s 12 Mbps. The sidecar pattern is documented in earlier SDD revisions and can be reinstated then.</li>
+<li>Tier 3 module buildout adds per-module Pi Zero 2 W streaming sidecars and a chassis LAN switch; the +5 V rail has the headroom for them on the existing TX300 (~9 A spare).</li>
 <li>Move from plywood mounting to a dedicated rack-mount or DIN-rail enclosure system once module count and form-factor are stabilized.</li>
 </ul>
 <h2 id="references">10. References</h2>

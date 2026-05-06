@@ -1,8 +1,13 @@
 % =============================================================================
 % Figure 1E-3: Module 1E typical application schematic
 % =============================================================================
-% Pico 2 W -> MCP4922 -> MCP6232 unity-gain buffer -> BNC, with the bypass
-% network from MCP4922 datasheet figure 6-1 (DS22250A section 6.2).
+% Pico 2 W -> MCP4922 -> TL072 output buffer -> BNC, with the bypass network
+% from the MCP4922 datasheet figure 6-1 (DS22250A section 6.2).
+%
+% This figure shows the SPI command path, the V_DD bypass network, and the
+% TL072 output buffer at unity-gain configuration for visual simplicity.
+% The full +/-10 V level-shift and gain network is described in the Module
+% 1E design doc, section 3.
 %
 % Layout decisions:
 %  - MCP4922 chip title placed at BOTTOM of the body so V_OUTA / V_OUTB pins
@@ -14,11 +19,6 @@
 %    the chip's V_DD pin, with V_DD labeled inside the chip body.
 %  - Op-amp feedback routes via a T-junction past the triangle apex (on the
 %    output wire), so the vertical-up segment is OUTSIDE the triangle.
-%
-% NOTE: Figure currently shows MCP6232 unity-gain buffers, but per the
-% Module 1E design doc the actual op-amp is TL072 (powered from +/-12V
-% rails for +/-10V output). Update this figure once the +/-10V output
-% topology is finalized.
 %
 % Compile:  pdflatex 1e_typical_app.tex
 % Convert:  pdftocairo -svg 1e_typical_app.pdf

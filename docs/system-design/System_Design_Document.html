@@ -350,8 +350,8 @@ blockquote {
 <h3 id="top-level-architecture">4.1 Top-Level Architecture</h3>
 <p>The platform decomposes into three physical layers.</p>
 <p>The orchestration layer is a single Raspberry Pi 5 hosting the test framework (PyVISA, pytest), the time-series database (InfluxDB), the dashboard server (Grafana), the report generator (Jinja2 with Matplotlib), and the MCP gateway. The Pi 5 carries no instrument hardware of its own; it is a pure software orchestrator and data sink.</p>
-<p>The transport layer connects the orchestration layer to the modules through a single primary bus. A powered USB hub (4 to 8 ports, 5 V at 2.4 A per port) hosts USB-TMC instrument bridges built on Raspberry Pi Pico 2 W; the SCPI command and measurement-data path runs over USB-TMC for every module in the chassis. An optional shared trigger bus, implemented as one or two GPIO lines daisy-chained between modules that require it, provides sub-microsecond synchronization for measurements that cannot tolerate software-arming jitter. (External clients reach the Pi 5's InfluxDB, Grafana, and MCP gateway endpoints over the Pi 5's onboard wired Ethernet port; a dedicated chassis LAN switch is not required in v1.0 and is added in v2.0 only if per-module Pi Zero 2 W streaming sidecars are reactivated.)</p>
-<p>The module layer attaches to the transport layer in three tiers. Tier 1 is microcontroller-based modules built on Pico 2 W that present as USB-TMC instruments. Tier 2 is FPGA-based modules built on the Sipeed Tang Primer 25K, bridged to the chassis through a Pico 2 W (USB-TMC, primary instrument transport) that masters the FPGA register file over SPI. Tier 3 is high-speed interface modules deferred until a larger FPGA is acquired; under v1.0 the v2.0 reserve Pi Zero 2 W boards on hand are earmarked for Tier 3 streaming captures when those modules are eventually built.</p>
+<p>The transport layer connects the orchestration layer to the modules through a single primary bus. A powered USB hub (4 to 8 ports, 5 V at 2.4 A per port) hosts USB-TMC instrument bridges built on Raspberry Pi Pico 2 W; the SCPI command and measurement-data path runs over USB-TMC for every module in the chassis. An optional shared trigger bus, implemented as one or two GPIO lines daisy-chained between modules that require it, provides sub-microsecond synchronization for measurements that cannot tolerate software-arming jitter. External clients reach the Pi 5's InfluxDB, Grafana, and MCP gateway endpoints over the Pi 5's onboard wired Ethernet port.</p>
+<p>The module layer attaches to the transport layer in three tiers. Tier 1 is microcontroller-based modules built on Pico 2 W that present as USB-TMC instruments. Tier 2 is FPGA-based modules built on the Sipeed Tang Primer 25K, bridged to the chassis through a Pico 2 W (USB-TMC, primary instrument transport) that masters the FPGA register file over SPI. Tier 3 is high-speed interface modules deferred until a larger FPGA is acquired.</p>
 <p><strong>Figure 4-1: Top-Level System Block Diagram</strong></p>
 <div class="mermaid">flowchart TB
     Pi5["Raspberry Pi 5<br/>(Orchestration Head)<br/>PyVISA · pytest · InfluxDB · Grafana · MCP Gateway"]
@@ -373,7 +373,7 @@ blockquote {
     T1P -.-> Trig
     F -.-> Trig
 </div>
-<p><em>Tier 3 modules (3A, 3B, 3C) are deferred and follow the Pico + FPGA pattern with a larger FPGA, plus a per-module Pi Zero 2 W sidecar (drawn from the v2.0 reserve) for sustained-capture data paths that exceed USB-TMC bandwidth. Tier 3 buildout is when a chassis LAN switch becomes necessary so the streaming sidecars and the Pi 5 can coexist on a single bench network. Tier 3 is documented in section 7.7 and omitted from this diagram for clarity.</em></p>
+<p><em>Tier 3 modules (3A, 3B, 3C) are deferred and follow a similar Pico + FPGA pattern with a larger FPGA; they are documented in section 7.7 and omitted from this diagram for clarity.</em></p>
 <h3 id="representative-control-flow">4.2 Representative Control Flow</h3>
 <p>The control flow for a representative measurement, “characterize the noise floor of an external preamplifier,” exercises every architectural layer.</p>
 <p>A pytest test, or equivalently an MCP-connected agent session, initiates the measurement. Both paths converge on the same per-module SCPI command set, so the orchestration logic is independent of the initiator. PyVISA dispatches <code>OUTP ON</code> and <code>SOUR:VOLT 0.0</code> to Module 1D (Source-Measure Unit Lite) and a sweep of <code>MEAS:VOLT:DC?</code> queries to Module 1B (Voltage Measurement Unit), with optional parameter sweeps under pytest fixture control. Each measurement returns through the SCPI plane to the orchestration layer, which writes a row to InfluxDB tagged by instrument, channel, DUT identifier, run identifier, and timestamp.</p>
@@ -578,11 +578,6 @@ blockquote {
 <td>USB-TMC, USB 2.0 full-speed (12 Mbps)</td>
 <td>Pico 2 W bridge to Tang Primer 25K</td>
 </tr>
-<tr class="even">
-<td>Transport, Tier 3 (instrument), v2.0+</td>
-<td>USB-TMC for control plane; Pi Zero 2 W LAN streaming for bulk capture</td>
-<td>Larger FPGA + Pi Zero sidecar drawn from v2.0 reserve</td>
-</tr>
 <tr class="odd">
 <td>Synchronization, v1.0</td>
 <td>Software arming</td>
@@ -701,12 +696,8 @@ blockquote {
 <td>I²C up to 1 MHz, SPI up to 50 MHz, UART up to 12 Mbps, CEC 400 bps</td>
 </tr>
 <tr class="even">
-<td>Throughput to host, SCPI path</td>
+<td>Throughput to host</td>
 <td>12 Mbps (USB-TMC over Pico 2 W bridge)</td>
-</tr>
-<tr class="odd">
-<td>Throughput to host, streaming path (v2.0)</td>
-<td>~200 Mbps via wired LAN with a Pi Zero 2 W streaming sidecar drawn from the three-board reserve; v1.0 modules are bounded by the 12 Mbps USB-TMC path</td>
 </tr>
 </tbody>
 </table>
@@ -887,7 +878,7 @@ blockquote {
 <hr />
 <h3 id="module-tier-1-microcontroller-based-modules">7.5 Module Tier 1: Microcontroller-Based Modules</h3>
 <p>Tier 1 modules use the Raspberry Pi Pico 2 W (RP2350 dual Cortex-M33 with optional dual Hazard3 RISC-V cores, 520 KB SRAM, 4 MB external flash, native USB device controller, 2.4 GHz Wi-Fi and BLE) as their host platform. All Tier 1 modules present to the orchestration layer as USB-TMC instruments through the chassis-wide powered USB hub. The Pico 2 W runs bare-metal C firmware built against the Pico SDK and TinyUSB; the SCPI parser is generated mechanically from each module’s YAML command schema (see section 8).</p>
-<p>Per the v1.0 Path A architecture decision, Tier 1 modules do not include a per-module Pi Zero 2 W sidecar. Each Tier 1 module is a single Pico 2 W with its own analog or digital front end. Persistent state (calibration constants, module identity) lives in the Pico's onboard 4 MB flash. ssh debug access and bench-level admin services run from the Pi 5 orchestration head; the three Pi Zero 2 W boards on hand are reserved for future v2.0 streaming-capture sidecars (Module 2A continuous logic capture, Module 2D sustained Ethernet capture) where USB-TMC at 12 Mbps becomes a bottleneck.</p>
+<p>Each Tier 1 module is a single Pico 2 W with its own analog or digital front end. Persistent state (calibration constants, module identity) lives in the Pico's onboard 4 MB flash. ssh debug access and bench-level admin services run from the Pi 5 orchestration head.</p>
 <h4 id="module-1a-digital-io-controller">7.5.1 Module 1A: Digital I/O Controller</h4>
 <p>Module 1A provides programmable digital I/O, PWM generation, and frequency measurement on a Pico 2 W with no external peripherals. The eight GPIO lines are independently configurable as inputs or outputs at 3.3 V CMOS levels, and are 5 V tolerant via the chassis-supplied bidirectional level shifter when 5 V interfacing is required. Two PWM outputs are driven by the RP2350’s PWM peripheral; one dedicated frequency-counter input uses a PIO state machine implementing reciprocal counting with a 32-bit accumulator.</p>
 <p><strong>Block Diagram, Module 1A</strong></p>
@@ -1964,7 +1955,7 @@ def test_firestick_remote_codes(ir):
 </table>
 <h3 id="module-tier-2-fpga-based-modules">7.6 Module Tier 2: FPGA-Based Modules</h3>
 <p>Tier 2 modules implement instrument logic in HDL on the Sipeed Tang Primer 25K. The Tang Primer 25K hosts a Gowin GW5A-LV25MG121 FPGA with approximately 23,040 LUT4, 1,008 Kbit BSRAM, and 180 Kbit distributed shift-register memory. The dev board provides USB-C power, JTAG programming, an onboard 50 MHz oscillator, and 88 user-accessible I/O pins through expansion headers.</p>
-<p>Per the v1.0 Path A architecture decision, each Tier 2 module bundles two devices alongside the FPGA. The Pico 2 W is the canonical SCPI bridge: it presents as a USB-TMC instrument to the chassis-wide powered USB hub, runs the SCPI parser in bare-metal C against the module’s YAML command schema, and acts as SPI master to the FPGA’s instrument register file at approximately 30 MHz. Calibration constants and module identity live in the Pico’s onboard 4 MB flash. The canonical instrument data path is FPGA to Pico to USB-TMC to Pi 5; per-module Pi Zero 2 W sidecars are reserved for a future v2.0 architecture pass when streaming captures (Module 2A continuous logic capture, Module 2D sustained Ethernet capture) require LAN-bandwidth data paths beyond USB-TMC’s 12 Mbps.</p>
+<p>Each Tier 2 module pairs the Tang Primer 25K FPGA with a Pico 2 W. The Pico 2 W is the canonical SCPI bridge: it presents as a USB-TMC instrument to the chassis-wide powered USB hub, runs the SCPI parser in bare-metal C against the module's YAML command schema, and acts as SPI master to the FPGA's instrument register file at approximately 30 MHz. Calibration constants and module identity live in the Pico's onboard 4 MB flash. The canonical instrument data path is FPGA to Pico to USB-TMC to Pi 5.</p>
 <p>FPGA resource estimates for each Tier 2 module are conservative and target less than 50 percent fabric utilization to leave headroom for module evolution and shared infrastructure (clock domain crossings, register file, SPI slave, debug ports). Memory budgets target less than 80 percent BSRAM utilization for the same reason.</p>
 <h4 id="module-2a-logic-analyzer">7.6.1 Module 2A: Logic Analyzer</h4>
 <p>Module 2A captures sixteen single-ended digital channels at sample rates up to 100 MHz with configurable triggers and post-capture protocol decoding. Triggers include edge, level, multi-channel pattern, and sequence (state-machine triggers up to 8 states deep). Captures land in BSRAM as a circular buffer; the Pico bridge transfers captures to the host on demand at USB-TMC throughput.</p>
@@ -2502,7 +2493,7 @@ def test_i2c_eeprom_write_read(prot):
 </tbody>
 </table>
 <h4 id="module-2d-ethernet-mac-and-network-analyzer">7.6.4 Module 2D: Ethernet MAC and Network Analyzer</h4>
-<p>Module 2D implements an Ethernet MAC with capture, statistics, and bridge functions, paired with an external PHY (PmodNIC100 or equivalent) connected to the Tang Primer 25K via MII or RMII. The PHY provides 100BASE-TX or 1000BASE-T line-side encoding; the FPGA implements the MAC layer with full-frame capture and CRC validation. A bridge mode connects two Ethernet ports through the FPGA, capturing every frame that crosses the bridge into BSRAM. At line rates that exceed the BSRAM capture buffer’s drain rate over USB-TMC the bridge becomes a sampler rather than a tap; sustained capture at full line rate requires the v2.0 streaming variant, which adds a Pi Zero 2 W LAN sidecar (drawn from the v2.0 reserve) to off-load capture data over wired Ethernet.</p>
+<p>Module 2D implements an Ethernet MAC with capture, statistics, and bridge functions, paired with an external PHY (PmodNIC100 or equivalent) connected to the Tang Primer 25K via MII or RMII. The PHY provides 100BASE-TX or 1000BASE-T line-side encoding; the FPGA implements the MAC layer with full-frame capture and CRC validation. A bridge mode connects two Ethernet ports through the FPGA, capturing every frame that crosses the bridge into BSRAM. At line rates that exceed the BSRAM capture buffer's drain rate over USB-TMC the bridge becomes a sampler rather than a tap.</p>
 <p>A 10BASE-T raw FPGA-only implementation (Manchester-encoded line driver with pulse transformer, no external PHY) was considered as a separate phase but has been dropped from the v1.0 scope. The external-PHY path provides materially more useful line rates and is closer to the bring-up patterns Brad will encounter in real DUTs.</p>
 <p><strong>Block Diagram, Module 2D</strong></p>
 <div class="mermaid">flowchart LR
@@ -2902,10 +2893,10 @@ def test_amp_thd_at_1khz(awg, scope):
 </tr>
 </tbody>
 </table>
-<p>Module 2E exceeds the $50 to $80 Tier 2 BOM target due to the analog front end. The exception is intentional and was approved as part of the v1.0 catalog scoping; the AFE complexity and the AD9226 IC drive cost beyond Tier 2 norms but the module sits architecturally within Tier 2 (single Tang Primer 25K plus Pico bridge per the Path A baseline).</p>
+<p>Module 2E exceeds the $50 to $80 Tier 2 BOM target due to the analog front end. The exception is intentional and was approved as part of the v1.0 catalog scoping; the AFE complexity and the AD9226 IC drive cost beyond Tier 2 norms but the module sits architecturally within Tier 2 (single Tang Primer 25K plus Pico bridge).</p>
 <h3 id="module-tier-3-high-speed-interfaces">7.7 Module Tier 3: High-Speed Interfaces</h3>
-<p>Tier 3 modules target multi-megabit and multi-gigabit interfaces that exceed the Tang Primer 25K’s I/O capacity and the Pico bridge’s USB-TMC throughput. These modules are deferred from the v1.0 build pending acquisition of a larger FPGA platform with multi-gigabit transceivers (Sipeed Tang Mega 138K Pro at approximately $200, or Alinx AX7325B with Xilinx Kintex-7 325T at approximately $450). Tier 3 capture rates exceed what USB-TMC at 12 Mbps can drain, so each Tier 3 module reactivates a per-module Pi Zero 2 W streaming sidecar (drawn from the v2.0 reserve of three Pi Zero 2 W boards already on hand) to off-load bulk capture data over wired LAN.</p>
-<p>The architectural pattern reverts to the original Pico-plus-FPGA-plus-Pi-Zero topology at Tier 3: the Pico continues as the SCPI USB-TMC bridge and command-plane SPI master, the FPGA owns the high-speed line capture, and the Pi Zero handles the streaming data path off-chassis to the Pi 5 over the chassis LAN switch. v1.0 Tier 1 and Tier 2 modules do not include a Pi Zero; the v2.0 reserve is sized for the Tier 3 buildout (and for a future v2.0 streaming variant of Module 2A or 2D).</p>
+<p>Tier 3 modules target multi-megabit and multi-gigabit interfaces that exceed the Tang Primer 25K's I/O capacity and the Pico bridge's USB-TMC throughput. These modules are deferred pending acquisition of a larger FPGA platform with multi-gigabit transceivers (Sipeed Tang Mega 138K Pro at approximately $200, or Alinx AX7325B with Xilinx Kintex-7 325T at approximately $450). At Tier 3, capture rates exceed what USB-TMC at 12 Mbps can drain, so each Tier 3 module adds a Pi Zero 2 W streaming sidecar that off-loads bulk capture data over wired LAN. A chassis LAN switch is added at the same time so the streaming sidecars and the Pi 5 can coexist on a single bench network.</p>
+<p>The Tier 3 topology is Pico-plus-FPGA-plus-Pi-Zero: the Pico is the SCPI USB-TMC bridge and command-plane SPI master, the FPGA owns the high-speed line capture, and the Pi Zero handles the streaming data path off-chassis to the Pi 5.</p>
 <h4 id="module-3a-usb-2.0-protocol-analyzer">7.7.1 Module 3A: USB 2.0 Protocol Analyzer</h4>
 <p>Module 3A captures USB high-speed traffic at 480 Mbps, decodes packets, and identifies protocol errors. The FPGA implements a USB high-speed receive-only PHY interface (using ULPI or UTMI+ depending on the FPGA platform), captures SETUP, IN, OUT, and SOF packets, and applies a configurable filter to limit capture to relevant traffic. Captured data streams over the Pi Zero SPI bus to the Pi Zero’s SD card or LAN-attached storage, since 480 Mbps far exceeds USB-TMC’s 12 Mbps full-speed link.</p>
 <p><strong>Block Diagram, Module 3A</strong></p>
@@ -3450,7 +3441,7 @@ scpigen --target pyvisa-sim modules/1B/commands.yaml &gt; sim/1B/responses.yaml<
 <h3 id="synchronization-rule">9.6 Synchronization Rule</h3>
 <p>Time-critical synchronization between modules (sub-microsecond arming) is not a job for the MCP plane. The agent issues <code>module_X_arm</code> to one module and <code>module_Y_arm</code> to another; the actual arming happens at the host’s clock resolution (millisecond-class). When sub-microsecond sync is required, the modules must be wired to the chassis shared trigger bus and the arm commands must specify external triggering. The MCP plane only initiates and reports the result of the trigger; the trigger event itself happens between the modules over the GPIO bus.</p>
 <h3 id="transport-and-authentication">9.7 Transport and Authentication</h3>
-<p>The MCP gateway accepts connections over HTTP on the orchestration layer’s LAN interface. Authentication uses a shared bearer token configured at gateway startup. The gateway rejects connections without a valid token. All MCP traffic flows through the gateway on the Pi 5; per-module Pi Zero sidecars (when added in v2.0) do not host MCP endpoints.</p>
+<p>The MCP gateway accepts connections over HTTP on the orchestration layer's LAN interface. Authentication uses a shared bearer token configured at gateway startup. The gateway rejects connections without a valid token. All MCP traffic flows through the gateway on the Pi 5.</p>
 <h2 id="software-stack-and-data-flow">10. Software Stack and Data Flow</h2>
 <h3 id="software-stack">10.1 Software Stack</h3>
 <p>The orchestration layer hosts the full software stack on the Pi 5. The components and their responsibilities are:</p>
@@ -3564,9 +3555,9 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <p>A representative example is the Sabrent HB-UM43 or Plugable USB3-HUB7C. Cost approximately $25.</p>
 <h3 id="gigabit-lan-switch">11.3 Gigabit LAN Switch (v2.0 only)</h3>
 <p>v1.0 does not include a chassis LAN switch. The Pi 5's onboard wired Ethernet port connects directly to the bench network (workstation, home router, or whatever else InfluxDB, Grafana, and the MCP gateway need to be reachable from). USB-TMC is the canonical SCPI transport, and there is no per-module LAN traffic in v1.0 to aggregate.</p>
-<p>A switch is added in v2.0 when the per-module Pi Zero 2 W streaming sidecars come back into the chassis (Tier 3 modules and any v2.0 streaming variant of Module 2A or 2D). At that point the switch's required specifications are:</p>
+<p>A switch is added when Tier 3 modules are built and bring per-module Pi Zero 2 W streaming sidecars into the chassis. At that point the switch's required specifications are:</p>
 <ul>
-<li>Port count: 5 to 8 (one for the Pi 5, one per workstation or external client, one per active Pi Zero streaming sidecar)</li>
+<li>Port count: 5 to 8 (one for the Pi 5, one per workstation or external client, one per active streaming sidecar)</li>
 <li>Speed: gigabit Ethernet on every port</li>
 <li>Switching: unmanaged is sufficient; managed (with VLAN support) is reserved for if the bench network later needs isolation from a home network</li>
 </ul>
@@ -3596,10 +3587,10 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
     Picos --> AFETier1["Tier 1 front ends<br/>3.3 V from Pico onboard LDO"]
     Tangs --> AFETier2["Tier 2 instrument logic<br/>powered from Tang Primer 3.3 V LDO"]
 </div>
-<p><em>Single AC input replaces the prior 14-wall-wart architecture. Per the v1.0 Path A baseline, the +5 V rail feeds only the Pi 5 (no per-module Pi Zero sidecars in v1.0). Estimated peak loads at full v1.0+v1.1 population: ~5 A on +5 V (Pi 5 alone) and ~3 A on +12 V (USB hub serving 12 Picos plus 5 Tang Primer 25Ks fed off the Pico GPIO header at modest current). TX300 rated capacity (14 A and 22 A respectively) provides comfortable margin and headroom for the v2.0 reserve Pi Zero streaming sidecars when added.</em></p>
+<p><em>Single AC input replaces the prior wall-wart architecture. Estimated peak loads at full v1.0+v1.1 population: ~5 A on +5 V (Pi 5) and ~3 A on +12 V (USB hub serving 12 Picos plus 5 Tang Primer 25Ks fed off the Pico GPIO header at modest current). TX300 rated capacity (14 A and 22 A respectively) provides comfortable margin.</em></p>
 
 
-<p>The chassis power architecture uses a single Silverstone TX300 300 W TFX-form-factor ATX power supply (80+ Bronze rated) as the chassis-wide DC source. The TX300's +5 V rail (14 A available) feeds the Raspberry Pi 5 through a chassis-mounted terminal block and a single USB-C power breakout. The +12 V rail (22 A available) feeds the powered USB hub via its barrel jack, which redistributes 5 V at 2.4 A per port to the per-module Pico 2 W bridges. Per the v1.0 Path A architecture decision the +5 V rail does not feed any per-module Pi Zero 2 W boards; the three Pi Zeros on hand are reserved for v2.0 streaming sidecars and Tier 3 buildout (see section 7.7), at which point they will tap the same +5 V rail with substantial headroom remaining (~9 A spare on the 14 A rail).</p>
+<p>The chassis power architecture uses a single Silverstone TX300 300 W TFX-form-factor ATX power supply (80+ Bronze rated) as the chassis-wide DC source. The TX300's +5 V rail (14 A available) feeds the Raspberry Pi 5 through a chassis-mounted terminal block and a single USB-C power breakout. The +12 V rail (22 A available) feeds the powered USB hub via its barrel jack, which redistributes 5 V at 2.4 A per port to the per-module Pico 2 W bridges. The +5 V rail has ~9 A spare for the Tier 3 streaming sidecars when those modules are added.</p>
 <p>Tier 2 modules that include a Tang Primer 25K source the Tang Primer's 5 V from the Pico's GPIO header (the Tang Primer draws under 500 mA in instrument-class workloads), which keeps the per-module wiring simple and avoids a separate distribution path for the FPGAs.</p>
 <p>Total chassis wall-power footprint:</p>
 <ul>
@@ -3635,7 +3626,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </ul>
 <p>The calibration sources do not have to be lab-grade; what matters is that they are documented, traceable to a primary standard (NIST through Fluke’s calibration certificate, GPS through the Leo Bodnar’s GPS lock), and dated.</p>
 <h3 id="calibration-constants">12.3 Calibration Constants</h3>
-<p>Each module stores its calibration constants in the Pico 2 W's onboard 4 MB flash (Tier 1 and Tier 2 modules in v1.0). Tier 3 modules and any v2.0 streaming-sidecar variants additionally cache calibration data on the Pi Zero's SD card to support post-capture rescaling of bulk streams. Calibration constants include:</p>
+<p>Each module stores its calibration constants in the Pico 2 W's onboard 4 MB flash. Calibration constants include:</p>
 <ul>
 <li>Per-channel offset (volts, amperes, etc.)</li>
 <li>Per-channel gain (dimensionless multiplier)</li>
@@ -3784,7 +3775,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </table>
 <p>Phase 1 verification milestone: the audio analyzer recipe (without 2E digitizer; using 1B for slow integration only) measures the Bravo Audio Ocean’s idle DC offset and verifies it is within spec.</p>
 <h3 id="phase-1.5-module-1c-and-tier-2-bridge-bring-up">13.3 Phase 1.5: Module 1C and Tier 2 Bridge Bring-Up</h3>
-<p>Phase 1.5 adds Module 1C (USB HID Analyzer) and stands up the Tier 2 bridge architecture (one Tang Primer 25K plus one Pico bridge per the Path A baseline) without yet implementing instrument logic.</p>
+<p>Phase 1.5 adds Module 1C (USB HID Analyzer) and stands up the Tier 2 bridge architecture (one Tang Primer 25K plus one Pico bridge) without yet implementing instrument logic.</p>
 <p><strong>Table 13-3: Phase 1.5 BOM</strong></p>
 <table>
 <thead>
