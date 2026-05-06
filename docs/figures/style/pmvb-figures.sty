@@ -1,0 +1,327 @@
+% =============================================================================
+% pmvb-figures.sty -- Poor Man's Validation Bench figure style sheet
+% =============================================================================
+% Defines the house style for all TikZ figures in PMVB design documents.
+%
+% Usage in figure source:
+%     \documentclass[border=4pt]{standalone}
+%     \usepackage{pmvb-figures}
+%
+% Two color modes:
+%     \pmvbDarkMode   -- dark background (default; matches SDD HTML theme)
+%     \pmvbLightMode  -- white background (for printed portfolio PDFs)
+% =============================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{pmvb-figures}[2026/05/06 PMVB figure styles]
+%
+% --- Required packages ------------------------------------------------------
+\RequirePackage{tikz}
+\RequirePackage[american,siunitx]{circuitikz}
+\RequirePackage{xcolor}
+\RequirePackage{etoolbox}
+%
+% --- TikZ libraries ---------------------------------------------------------
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{positioning}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{fit}
+\usetikzlibrary{backgrounds}
+\usetikzlibrary{calc}
+\usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{patterns}
+%
+% =============================================================================
+% Color palette (FMCW dark theme, matches SDD HTML)
+% =============================================================================
+\definecolor{pmvbBg}{HTML}{0d1117}
+\definecolor{pmvbFg}{HTML}{e6edf3}
+\definecolor{pmvbMuted}{HTML}{94a3b8}
+\definecolor{pmvbBlue}{HTML}{3b82f6}
+\definecolor{pmvbBlueFill}{HTML}{1f2937}
+\definecolor{pmvbGreen}{HTML}{10b981}
+\definecolor{pmvbGreenFill}{HTML}{1e293b}
+\definecolor{pmvbAmber}{HTML}{f59e0b}
+\definecolor{pmvbRed}{HTML}{ef4444}
+\definecolor{pmvbViolet}{HTML}{a78bfa}
+%
+\definecolor{pmvbBgLight}{HTML}{ffffff}
+\definecolor{pmvbFgLight}{HTML}{0f172a}
+\definecolor{pmvbMutedLight}{HTML}{475569}
+\definecolor{pmvbBlueFillLight}{HTML}{dbeafe}
+\definecolor{pmvbGreenFillLight}{HTML}{d1fae5}
+%
+% =============================================================================
+% Mode selectors
+% =============================================================================
+\newcommand{\pmvbDarkMode}{%
+  \pagecolor{pmvbBg}%
+  \color{pmvbFg}%
+}
+%
+\newcommand{\pmvbLightMode}{%
+  \colorlet{pmvbBg}{pmvbBgLight}%
+  \colorlet{pmvbFg}{pmvbFgLight}%
+  \colorlet{pmvbMuted}{pmvbMutedLight}%
+  \colorlet{pmvbBlueFill}{pmvbBlueFillLight}%
+  \colorlet{pmvbGreenFill}{pmvbGreenFillLight}%
+  \pagecolor{pmvbBgLight}%
+  \color{pmvbFgLight}%
+}
+%
+\AtBeginDocument{\pmvbDarkMode}
+%
+% =============================================================================
+% Node styles
+% -----------------------------------------------------------------------------
+% IMPORTANT: each \tikzset{...} block below must be a single argument with NO
+% blank lines inside, otherwise \par is inserted and pgfkeys errors out.
+% =============================================================================
+%
+% --- Subsystem (system-level block: a board, a chip, a whole module) ---
+\tikzset{
+  pmvb subsystem/.style={
+    rectangle,
+    rounded corners=2pt,
+    draw=pmvbBlue,
+    line width=0.8pt,
+    fill=pmvbBlueFill,
+    text=pmvbFg,
+    minimum width=28mm,
+    minimum height=12mm,
+    align=center,
+    font=\sffamily\small,
+    inner sep=4pt,
+  },
+}
+%
+% --- IC / hardware part (functional-level block) ---
+\tikzset{
+  pmvb ic/.style={
+    rectangle,
+    rounded corners=1pt,
+    draw=pmvbGreen,
+    line width=0.6pt,
+    fill=pmvbGreenFill,
+    text=pmvbFg,
+    minimum width=24mm,
+    minimum height=10mm,
+    align=center,
+    font=\sffamily\footnotesize,
+    inner sep=3pt,
+  },
+}
+%
+% --- Internal block (inside an IC's functional block diagram) ---
+\tikzset{
+  pmvb internal/.style={
+    rectangle,
+    draw=pmvbFg,
+    line width=0.5pt,
+    fill=pmvbBg,
+    text=pmvbFg,
+    minimum width=18mm,
+    minimum height=7mm,
+    align=center,
+    font=\sffamily\scriptsize,
+    inner sep=2pt,
+  },
+}
+%
+% --- Pin pad (the box-with-X at IC die boundary in datasheet diagrams) ---
+\tikzset{
+  pmvb pin/.style={
+    rectangle,
+    draw=pmvbFg,
+    line width=0.4pt,
+    fill=pmvbBg,
+    minimum size=2.5mm,
+    inner sep=0pt,
+    path picture={
+      \draw[pmvbFg, line width=0.3pt]
+        (path picture bounding box.south west) -- (path picture bounding box.north east)
+        (path picture bounding box.north west) -- (path picture bounding box.south east);
+    },
+  },
+}
+%
+% --- Connector (front panel, BNC, banana jack) ---
+\tikzset{
+  pmvb connector/.style={
+    circle,
+    draw=pmvbFg,
+    line width=0.6pt,
+    fill=pmvbBg,
+    text=pmvbFg,
+    minimum size=8mm,
+    font=\sffamily\scriptsize,
+    inner sep=1pt,
+  },
+}
+%
+% --- Annotation (no border, small muted italic text) ---
+\tikzset{
+  pmvb annotation/.style={
+    text=pmvbMuted,
+    font=\sffamily\scriptsize\itshape,
+    align=center,
+  },
+}
+%
+% --- Subsystem grouping box (used with \node[fit=...]) ---
+\tikzset{
+  pmvb group/.style={
+    rectangle,
+    rounded corners=4pt,
+    draw=pmvbMuted,
+    line width=0.4pt,
+    dashed,
+    text=pmvbMuted,
+    inner sep=8pt,
+    font=\sffamily\scriptsize,
+  },
+}
+%
+% =============================================================================
+% Edge styles
+% -----------------------------------------------------------------------------
+% Edge styles encode the *kind* of signal flowing on the line.
+% =============================================================================
+%
+\tikzset{
+  pmvb digital/.style={
+    -Stealth,
+    draw=pmvbBlue,
+    line width=0.8pt,
+    font=\sffamily\scriptsize,
+  },
+}
+%
+\tikzset{
+  pmvb analog/.style={
+    -Stealth,
+    draw=pmvbAmber,
+    line width=0.8pt,
+    font=\sffamily\scriptsize,
+  },
+}
+%
+\tikzset{
+  pmvb power/.style={
+    -Stealth,
+    draw=pmvbRed,
+    line width=1.0pt,
+    font=\sffamily\scriptsize,
+  },
+}
+%
+\tikzset{
+  pmvb control/.style={
+    -Stealth,
+    draw=pmvbViolet,
+    line width=0.7pt,
+    dashed,
+    font=\sffamily\scriptsize,
+  },
+}
+%
+\tikzset{
+  pmvb bus/.style={
+    -Stealth,
+    draw=pmvbBlue,
+    line width=1.4pt,
+    double=pmvbBg,
+    double distance=0.6pt,
+    font=\sffamily\scriptsize,
+  },
+}
+%
+% Style for the "xN" bus-width annotation (overlaid on a bus line).
+% Dark fill masks the underlying double-line so the white text reads cleanly.
+\tikzset{
+  pmvb bus width/.style={
+    fill=pmvbBg,
+    rounded corners=1pt,
+    inner sep=2pt,
+    font=\sffamily\bfseries\scriptsize,
+    text=pmvbFg,
+  },
+}
+%
+\tikzset{
+  pmvb optional/.style={
+    -Stealth,
+    draw=pmvbMuted,
+    line width=0.6pt,
+    dashed,
+    font=\sffamily\scriptsize,
+  },
+}
+%
+% --- Bidirectional variants ---
+\tikzset{
+  pmvb digital bi/.style={
+    pmvb digital,
+    Stealth-Stealth,
+  },
+}
+%
+\tikzset{
+  pmvb analog bi/.style={
+    pmvb analog,
+    Stealth-Stealth,
+  },
+}
+%
+% =============================================================================
+% Diagram-level convenience
+% =============================================================================
+\tikzset{
+  pmvb figure/.style={
+    >=Stealth,
+    every node/.append style={font=\sffamily},
+    node distance=10mm and 14mm,
+  },
+}
+%
+% =============================================================================
+% Helper macros
+% =============================================================================
+\newcommand{\pmvblabel}[1]{\textcolor{pmvbMuted}{\sffamily\scriptsize\itshape #1}}
+%
+\newcommand{\pmvbsubsystem}[3]{%
+  node[pmvb subsystem] (#1) {{\bfseries #2}\\\scriptsize #3}%
+}
+%
+\newcommand{\pmvbic}[3]{%
+  node[pmvb ic] (#1) {{\bfseries #2}\\\scriptsize #3}%
+}
+%
+% NOTE on bus-width annotations: TikZ's path parser doesn't reliably expand
+% \newcommand macros at mid-path positions, so for the "xN" overlay use the
+% inline node-in-path syntax directly:
+%     \draw[pmvb bus] (A) -- node[pmvb bus width]{$\times 16$} (B);
+% The pmvb bus width style is defined above.
+%
+% -----------------------------------------------------------------------------
+% \opamptri{name}{coord}{dir}
+%   Draws an op-amp triangle. Apex points right (dir=1) or left (dir=-1).
+%   Defines coordinates: <name>_p, <name>_n, <name>_out for wiring.
+%   Place any label as a separate \node call after the macro.
+%
+%   The {coord} argument MUST include its own parentheses, e.g.
+%       \opamptri{bufa}{(0.6, -0.5)}{1}
+%       \opamptri{tl072}{($(m1e.center) + (4mm, -14mm)$)}{1}
+%   This lets callers use either simple coords or calc expressions.
+% -----------------------------------------------------------------------------
+\newcommand{\opamptri}[3]{%
+  \begin{scope}[shift={#2}, xscale=#3]
+    \draw[pmvbFg, line width=0.6pt, fill=pmvbBg]
+      (0, 0) -- (-10mm, 7mm) -- (-10mm, -7mm) -- cycle;
+    \coordinate (#1_p)   at (-10mm,  4mm);
+    \coordinate (#1_n)   at (-10mm, -4mm);
+    \coordinate (#1_out) at (0,      0);
+  \end{scope}
+}
+%
+\endinput

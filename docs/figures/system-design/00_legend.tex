@@ -1,0 +1,188 @@
+% =============================================================================
+% PMVB Figure Legend
+% =============================================================================
+% Decoder for the box and wire conventions used across all TikZ-rendered
+% figures in PMVB design documents (system block diagrams, functional block
+% diagrams, schematics, power trees).
+%
+% Sequence diagrams (Mermaid) and timing diagrams (WaveDrom) render in their
+% native styles and are documented separately.
+%
+% Compile:  pdflatex 00_legend.tex
+% Convert:  pdftocairo -svg 00_legend.pdf
+% =============================================================================
+\documentclass[border=8pt]{standalone}
+%
+\input{../style/pmvb-figures.sty}
+%
+\begin{document}
+\begin{tikzpicture}[pmvb figure]
+  %
+  % =========================================================================
+  % Constants for layout
+  % =========================================================================
+  % Left column x-coord: where visual examples are anchored (west)
+  % Right column x-coord: where descriptive text starts (anchor west)
+  \def\colA{0}        % left column: visual element
+  \def\colB{4.5}      % right column: description text
+  \def\rowstep{0.9}   % vertical spacing between rows (cm)
+  %
+  % =========================================================================
+  % Title bar
+  % =========================================================================
+  \node[font=\sffamily\bfseries, text=pmvbFg, anchor=west]
+    at (\colA, 0) {Figure Legend};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted, anchor=west]
+    at (\colA, -0.45)
+    {Decoder for box and wire conventions used in PMVB block diagrams and schematics};
+  %
+  \draw[pmvbMuted, line width=0.4pt]
+    (\colA, -0.85) -- (\colB + 9, -0.85);
+  %
+  % =========================================================================
+  % Section: Boxes & Shapes
+  % =========================================================================
+  \node[font=\sffamily\bfseries\small, text=pmvbFg, anchor=west]
+    at (\colA, -1.3) {Boxes \& Shapes};
+  %
+  % --- Row 1: Subsystem ---
+  \node[pmvb subsystem, minimum width=24mm, minimum height=10mm, anchor=west]
+    at (\colA, -2.0) {};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -2.0)
+    {\textbf{Subsystem} -- a physical unit at platform level: a board (Pi 5), a
+     piece of bench equipment (USB hub), or an entire module envelope.};
+  %
+  % --- Row 2: IC ---
+  \node[pmvb ic, minimum width=24mm, minimum height=10mm, anchor=west]
+    at (\colA, -3.0) {};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -3.0)
+    {\textbf{IC / hardware part} -- a single chip or discrete part: an MCU,
+     a DAC, a relay, an op-amp package, an FPGA.};
+  %
+  % --- Row 3: Internal block ---
+  \node[pmvb internal, minimum width=24mm, minimum height=10mm, anchor=west]
+    at (\colA, -4.0) {};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -4.0)
+    {\textbf{Internal functional block} -- a stage inside an IC's functional
+     block diagram (Interface Logic, DAC Register, String DAC, Output Logic).};
+  %
+  % --- Row 4: Connector ---
+  \node[pmvb connector, anchor=west]
+    at (\colA + 0.7, -5.0) {BNC};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -5.0)
+    {\textbf{Connector} -- a physical input or output port: BNC, banana jack,
+     USB-C, IEC inlet, terminal block.};
+  %
+  % --- Row 5: Op-amp triangle ---
+  \opamptri{leg_oa}{(\colA + 1.5, -6.0)}{1}
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -6.0)
+    {\textbf{Op-amp / amplifier triangle} -- analog amplifier stage (in-IC
+     or discrete). Coordinates \texttt{\_p}, \texttt{\_n}, \texttt{\_out}
+     name the +/- inputs and the apex output.};
+  %
+  % =========================================================================
+  % Section: Wires & Edges
+  % =========================================================================
+  \node[font=\sffamily\bfseries\small, text=pmvbFg, anchor=west]
+    at (\colA, -7.3) {Wires \& Edges};
+  %
+  % --- Row 6: Digital signal ---
+  \draw[pmvb digital] (\colA, -8.0) -- ++(2.4, 0);
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -8.0)
+    {\textbf{Digital signal} -- single-bit logic line: SPI MOSI/MISO/SCK,
+     GPIO, USB-TMC command/data, $\overline{\text{CS}}$.};
+  %
+  % --- Row 7: Multi-bit bus, with width annotation ---
+  % Macro \pmvbbus{N} doesn't expand cleanly into a TikZ path's mid-position,
+  % so we inline the node-in-path here directly. (The macro is still useful
+  % when its expansion happens at a syntactic boundary other than mid-path.)
+  \draw[pmvb bus] (0, -8.9) -- node[pmvb bus width]{$\times 16$} (2.4, -8.9);
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -8.9)
+    {\textbf{Multi-bit bus} -- aggregated parallel link with optional
+     ``$\times N$'' width annotation overlaid on the line (USB-TMC fabric,
+     parallel ADC/DAC bus, FPGA capture stream).};
+  %
+  % --- Row 8: Analog signal ---
+  \draw[pmvb analog] (\colA, -9.8) -- ++(2.4, 0);
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -9.8)
+    {\textbf{Analog signal} -- continuous voltage or current path: DAC output,
+     op-amp output, sensor input, BNC analog stimulus.};
+  %
+  % --- Row 9: Power rail (no arrow head) ---
+  \draw[pmvbFg, line width=1.0pt, draw=pmvbRed] (\colA, -10.7) -- ++(2.4, 0);
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -10.7)
+    {\textbf{Power rail} -- supply voltage line. No arrow head (passive
+     distribution, not a directional signal). Use red for $V_{DD}$/+5V/+12V,
+     and a ground glyph for $V_{SS}$/GND.};
+  %
+  % --- Row 10: Control signal (dashed violet) ---
+  \draw[pmvb control] (\colA, -11.6) -- ++(2.4, 0);
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -11.6)
+    {\textbf{Control / strobe} -- synchronous control or load-enable line:
+     $\overline{\text{LDAC}}$, $\overline{\text{SHDN}}$, trigger arm, latch
+     enable.};
+  %
+  % --- Row 11: Optional / deferred (dashed gray) ---
+  \draw[pmvb optional] (\colA, -12.5) -- ++(2.4, 0);
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -12.5)
+    {\textbf{Optional / deferred} -- conditional or future connection:
+     shared trigger bus, v2.0 streaming sidecar link, planned upgrade path.};
+  %
+  % =========================================================================
+  % Section: Text styles
+  % =========================================================================
+  \node[font=\sffamily\bfseries\small, text=pmvbFg, anchor=west]
+    at (\colA, -13.8) {Text Styles};
+  %
+  % --- Row 12: Primary label ---
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg, anchor=west]
+    at (\colA, -14.5) {Pico 2 W};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -14.5)
+    {\textbf{Primary label} (off-white, bold or regular sans) -- subsystem
+     names, IC names, pin labels.};
+  %
+  % --- Row 13: Wire annotation ---
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted, anchor=west]
+    at (\colA, -15.4) {SCPI commands + data};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -15.4)
+    {\textbf{Wire annotation} (gray italic, via \texttt{\textbackslash pmvblabel})
+     -- explanatory text on edges: bus names, voltage ranges, frequencies,
+     bit widths.};
+  %
+  % --- Row 14: Power label ---
+  \node[font=\sffamily\scriptsize, text=pmvbRed, anchor=west]
+    at (\colA, -16.3) {+3.3 V};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left,
+        text width=10cm]
+    at (\colB, -16.3)
+    {\textbf{Power label} (red text) -- voltage rail identifiers placed
+     adjacent to a power node or rail.};
+  %
+\end{tikzpicture}
+\end{document}

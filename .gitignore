@@ -51,6 +51,16 @@ docs/_build/
 *.uf2
 *.hex
 
+# LaTeX build intermediates (TikZ figure compilation)
+*.aux
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.synctex(busy)
+docs/figures/**/*.log
+docs/figures/**/*.pdf
+# (Source .tex and rendered .svg are committed; everything else is regen'd by build-all.ps1)
+
 # Local config
 .env
 *.local

@@ -1,0 +1,113 @@
+% =============================================================================
+% Figure 1E-1: Module 1E system context
+% =============================================================================
+% Shows where Module 1E sits in the v1.0 PMVB chassis.
+% This is a SYSTEM block diagram (subsystems, physical interconnects).
+%
+% Module 1E box exposes its three internal stages:
+%   Pico 2 W  ->  MCP4922  ->  TL072 op-amp  ->  BNC (outside module box)
+%
+% Compile:  pdflatex 1e_system_context.tex
+% Convert:  pdftocairo -svg 1e_system_context.pdf
+% =============================================================================
+\documentclass[border=8pt]{standalone}
+%
+\input{../style/pmvb-figures.sty}
+%
+\begin{document}
+\begin{tikzpicture}[pmvb figure]
+  %
+  % --- Subsystems --------------------------------------------------------
+  \node[pmvb subsystem]
+    (pi5) at (0, 0)
+    {\textbf{Raspberry Pi 5}\\\scriptsize Orchestration Head\\\scriptsize PyVISA \textbullet{} pytest\\\scriptsize InfluxDB \textbullet{} Grafana};
+  %
+  \node[pmvb subsystem, right=32mm of pi5]
+    (hub)
+    {\textbf{Powered USB Hub}\\\scriptsize 4--8 ports\\\scriptsize 5\,V at 2.4\,A/port};
+  %
+  % Module 1E box -- taller to fit three internal stages (Pico, DAC, op-amp)
+  \node[pmvb subsystem, minimum width=52mm, minimum height=68mm,
+        right=32mm of hub]
+    (m1e) {};
+  %
+  % --- Module 1E title labels at the top of the box ----
+  \node[font=\sffamily\bfseries\small, text=pmvbFg]
+    at ([yshift=-3.5mm]m1e.north) {Module 1E};
+  \node[font=\sffamily\scriptsize, text=pmvbFg]
+    at ([yshift=-7.5mm]m1e.north) {Function Generator / AWG};
+  %
+  % --- Module 1E internal stages (vertical chain) ------------------------
+  \node[pmvb ic, minimum width=36mm, minimum height=8mm]
+    at ([yshift=12mm]m1e.center) (m1e_pico) {Pico 2 W};
+  %
+  \node[pmvb ic, minimum width=36mm, minimum height=8mm]
+    at ([yshift=0mm]m1e.center) (m1e_dac) {MCP4922};
+  %
+  % TL072 op-amp triangle, apex pointing right (toward BNC).
+  % Placed below MCP4922 with apex 6mm right of module center for clearance.
+  \opamptri{tl072}{($(m1e.center) + (6mm, -16mm)$)}{1}
+  \node[font=\sffamily\scriptsize, text=pmvbFg]
+    at ($(tl072_out) + (-6mm, 0)$) {TL072};
+  %
+  % --- Internal wiring inside Module 1E ----------------------------------
+  \draw[pmvb digital]
+    (m1e_pico) -- node[right]{\pmvblabel{SPI + DMA}} (m1e_dac);
+  %
+  % MCP4922 -> TL072 + input. Four-segment routing: DOWN, LEFT, DOWN, RIGHT
+  % so the wire enters the op-amp's + (non-inverting) input from the LEFT
+  % side with the final horizontal segment landing at tl072_p.y.
+  %   lc0 = south + (0, -3mm)         - short DOWN drop from MCP4922 south
+  %   lc1 = lc0   + (-12mm, 0)         - top-left corner after LEFT segment
+  %   lc2 = (lc1.x, tl072_p.y)         - bottom-left corner before final RIGHT
+  \coordinate (lc0) at ($(m1e_dac.south) + (0, -3mm)$);
+  \coordinate (lc1) at ($(lc0) + (-12mm, 0)$);
+  \coordinate (lc2) at (lc1 |- tl072_p);
+  \draw[pmvb analog]
+    (m1e_dac.south) --
+    (lc0) --
+    (lc1) --
+    node[left]{\pmvblabel{0--$V_{REF}$}}
+    (lc2) --
+    (tl072_p);
+  %
+  % --- BNC output connector, OUTSIDE Module 1E box -----------------------
+  % Place BNC at fixed offset right of m1e.east (12mm clearance), at the
+  % same y as tl072_out so the output wire is straight horizontal.
+  \coordinate (bnc_pos) at ($(m1e.east) + (12mm, 0)$);
+  \node[pmvb connector] (bnc)
+    at (bnc_pos |- tl072_out) {BNC};
+  \node[pmvb annotation, below=0.5mm of bnc] {OUT};
+  %
+  % --- Output arrow from TL072 apex to BNC: straight horizontal ----------
+  \draw[pmvb analog]
+    (tl072_out) --
+    node[above=0.5mm]{\pmvblabel{$\pm$10\,V}}
+    (bnc.west);
+  %
+  % --- Trigger bus annotation below the module ---------------------------
+  \node[pmvb annotation, below=14mm of m1e]
+    (trig) {Optional: shared trigger bus\\to other modules};
+  \draw[pmvb optional] (m1e.south) -- (trig.north);
+  %
+  % --- Edges between subsystems ------------------------------------------
+  \draw[pmvb digital bi]
+    (pi5.east) -- node[above]{\pmvblabel{USB 2.0}} (hub.west);
+  %
+  % USB-TMC bus wire with stacked labels (\\ requires align=center).
+  \draw[pmvb bus]
+    (hub.east) --
+    node[above=0.5mm]{\pmvblabel{USB-TMC}}
+    node[below=0.5mm,
+         align=center,
+         font=\sffamily\scriptsize\itshape,
+         text=pmvbMuted]
+      {SCPI commands\\+ data}
+    (m1e.west);
+  %
+  % --- Caption (below everything) ----------------------------------------
+  \node[font=\sffamily\scriptsize\bfseries, text=pmvbFg,
+        below=8mm of trig.south]
+    {Figure 1E-1: Module 1E in the v1.0 PMVB chassis (system block diagram).};
+\end{tikzpicture}
+\end{document}

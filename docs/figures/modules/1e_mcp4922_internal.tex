@@ -1,0 +1,44 @@
+% =============================================================================
+% Figure 1E-2: MCP4922 internal functional block diagram
+% =============================================================================
+% Embeds the official Microchip block diagram from the MCP4902/4912/4922
+% datasheet (DS22250A, page 1).
+%
+% The image must live at the path referenced below. By default it expects
+% the public-facing copy under docs/figures/modules/external/, NOT the
+% gitignored Reference Photos/ folder, so that GitHub Pages can render it.
+%
+% If you have not yet copied the image, run from project root:
+%   mkdir -p docs/figures/modules/external
+%   cp "Reference Photos/ICs/MCP4922/Screenshot 2026-05-06 104037.png" \
+%      docs/figures/modules/external/mcp4922_datasheet_block_diagram.png
+%
+% Compile:  pdflatex 1e_mcp4922_internal.tex
+% Convert:  pdftocairo -svg 1e_mcp4922_internal.pdf
+% =============================================================================
+\documentclass[border=8pt]{standalone}
+%
+\input{../style/pmvb-figures.sty}
+\usepackage{graphicx}
+%
+\begin{document}
+\begin{tikzpicture}[pmvb figure]
+  %
+  % --- Embedded datasheet figure ------------------------------------------
+  % The image is placed at the origin. width=110mm gives a comfortable size
+  % for embedding in the SDD HTML; adjust if you need a different scale.
+  \node (img) at (0, 0)
+    {\includegraphics[width=110mm]{external/mcp4922_datasheet_block_diagram.png}};
+  %
+  % --- Caption (figure number + source attribution) -----------------------
+  \node[font=\sffamily\scriptsize\bfseries, text=pmvbFg,
+        below=4mm of img.south]
+    (caption)
+    {Figure 1E-2: MCP4922 internal functional block diagram.};
+  %
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted,
+        below=1mm of caption.south]
+    {Source: MCP4902/4912/4922 Datasheet, DS22250A, page 1.\\
+     Microchip Technology Inc. Used under fair-use citation for technical reference.};
+\end{tikzpicture}
+\end{document}
