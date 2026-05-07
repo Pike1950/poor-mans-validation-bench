@@ -1,21 +1,25 @@
 % =============================================================================
 % Chassis functional block diagram (PMVB v1.0)
 % =============================================================================
-% Shows the chassis architecture as two parallel fabrics:
+% Shows the chassis architecture as two parallel fabrics + the analog/digital
+% module split:
 %
 %   1. ANALOG POWER fabric (right column):
 %        TX300 IEC -> TX300 PSU -> GeeekPi D-1188 -> per-rail fuses
-%        -> 4-wire back-wall harness -> module bay
+%        -> 4-wire back-wall harness -> ANALOG modules only
 %
 %   2. USB-TMC CONTROL fabric (left/center columns):
 %        Pi 5 (external) -> USB 3.0 -> Sabrent hub (chassis backplane)
-%        -> USB-A x 13 -> module bay
+%        -> USB-A -> ALL modules (analog + digital)
+%
+% Module bay is split into two groups by rail consumption:
+%   - Analog modules (x8): 1B, 1D, 1E, 1F, 1G, 1H, 2B, 2E -- receive USB
+%     AND analog harness rails
+%   - Digital modules (x5): 1A, 1C, 2A, 2C, 2D -- receive USB only,
+%     internal logic powered from Pico's onboard 3.3 V LDO
 %
 % Three external supplies (Pi 5 charger, Sabrent hub brick, TX300 IEC inlet)
-% feed the three top-level subsystems independently. Front-panel diagnostic
-% strip (banana jacks + LEDs) is a side feature documented in sections 3.7
-% / 4.6 / 4.7; not shown here to keep the block diagram focused on the
-% architecturally load-bearing flow.
+% feed the three top-level subsystems independently.
 %
 % Compile:  pdflatex chassis_block_diagram.tex
 % Convert:  pdftocairo -svg chassis_block_diagram.pdf
@@ -93,23 +97,32 @@
   \draw[pmvb power] (fuses.south) -- (harness.north);
   %
   % =========================================================================
-  % BOTTOM: Module bay (full width)
+  % BOTTOM ROW: Module bay split into Digital (left) and Analog (right) groups
   % =========================================================================
-  \node[pmvb subsystem, minimum width=140mm, minimum height=18mm]
-    (modules) at (0, -12.5)
-    {\textbf{14 module bays at 22.5\,mm pitch}\\\scriptsize each = Pico 2\,W + module PCB\\\scriptsize Phoenix MC 1,5/4-G power input + USB-C to hub};
+  % Digital modules: USB-only consumers (1A, 1C, 2A, 2C, 2D)
+  \node[pmvb subsystem, minimum width=70mm, minimum height=22mm,
+        draw=pmvbBlue]
+    (digital_mods) at (-5.5, -13)
+    {\textbf{Digital modules ($\times 5$)}\\\scriptsize 1A / 1C / 2A / 2C / 2D\\\scriptsize Pico 2\,W + digital front-end\\\scriptsize USB-only (no analog harness tap)};
   %
-  % --- Hub -> modules (USB-TMC bus, straight down from hub center) ---
+  % Analog modules: USB + analog harness consumers
+  \node[pmvb subsystem, minimum width=70mm, minimum height=22mm,
+        draw=pmvbAmber]
+    (analog_mods) at (5.5, -13)
+    {\textbf{Analog modules ($\times 8$)}\\\scriptsize 1B / 1D / 1E / 1F / 1G / 1H / 2B / 2E\\\scriptsize Pico 2\,W + op-amp / DAC / ADC front-end\\\scriptsize USB + Phoenix MC harness tap};
+  %
+  % --- Hub -> modules: bus splits to both groups ---
   \draw[pmvb bus]
-    (hub.south) --
-    node[pmvb bus width]{$\times 13$}
-    (modules.north);
+    (hub.south) -- ++(0, -2.5) -| (digital_mods.north)
+    node[pos=0.32, above=0.5mm]{\pmvblabel{USB-A $\times 5$}};
+  \draw[pmvb bus]
+    (hub.south) -- ++(0, -2.5) -| (analog_mods.north)
+    node[pos=0.32, above=0.5mm, xshift=20mm]{\pmvblabel{USB-A $\times 8$}};
   %
-  % --- Harness -> modules (Phoenix MC, routed via right column down to bay) ---
+  % --- Harness -> ONLY analog modules (Phoenix MC tap per slot) ---
   \draw[pmvb power]
-    (harness.south) --
-    node[right=0.5mm]{\pmvblabel{Phoenix MC 1,5/4-ST}}
-    (modules.north -| harness.south);
+    (harness.south) -- node[right]{\pmvblabel{Phoenix MC 1,5/4-ST $\times 8$}}
+    (analog_mods.north -| harness.south);
   %
 \end{tikzpicture}
 \end{document}
