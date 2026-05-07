@@ -248,4 +248,190 @@ Firmware enforces mutually exclusive relay energizing.
 | Frequency accuracy | ±20 ppm crystal; ±2 ppm with external 10 MHz reference via chassis trigger bus |
 | Amplitude resolution | 12-bit (~5 mV at 20 V FS span) |
 | Slew rate | 1400 V/µs (AD8056-limited) |
-| 
+| THD (typical, audio band) | < 0.1 % (limited by DAC INL/DNL) |
+| Reconstruction filter | 5th-order Butterworth, ~12 MHz cutoff, ~50 dB image rejection at 40 MHz |
+
+## 6. Sample Applications
+
+### 6.1 Single-tone sine generation
+
+```python
+import pyvisa
+rm = pyvisa.ResourceManager('@py')
+awg = rm.open_resource('USB::0xCAFE::0x4001::PMVB1E::INSTR')
+awg.write('OUTP:IMP 50')             # select 50 Ω output impedance
+awg.write('SOUR:FUNC SIN')
+awg.write('SOUR:FREQ 1000')
+awg.write('SOUR:VOLT 1.0')           # 1 V peak-to-peak
+awg.write('OUTP ON')
+input('Press Enter to stop...')
+awg.write('OUTP OFF')
+awg.close()
+```
+
+### 6.2 Swept sine for THD measurement (paired with Module 2E)
+
+```python
+import numpy as np
+from scipy.fft import rfft, rfftfreq
+
+awg = open_module('1E')
+scope = open_module('2E')
+
+awg.write('OUTP:IMP 50')
+frequencies = np.logspace(np.log10(20), np.log10(20000), 31)
+results = []
+
+for f in frequencies:
+    awg.write(f'SOUR:FUNC SIN; SOUR:FREQ {f}; SOUR:VOLT 1.0; OUTP ON')
+    scope.write('DIG:CONF 0, 5.0, AC; DIG:RATE 1000000; DIG:DEPTH 100000; DIG:ARM')
+    samples = np.array(scope.query_binary_values('DIG:DATA? 0', datatype='f'))
+    spectrum = np.abs(rfft(samples))
+    freqs = rfftfreq(len(samples), 1/1e6)
+    fund_bin = np.argmin(np.abs(freqs - f))
+    fund = spectrum[fund_bin]
+    harms = [spectrum[np.argmin(np.abs(freqs - f*n))] for n in range(2, 6)]
+    thd = np.sqrt(sum(h**2 for h in harms)) / fund
+    results.append((f, thd))
+    awg.write('OUTP OFF')
+
+for f, thd in results:
+    print(f'{f:8.1f} Hz: THD = {thd*100:.3f}%')
+```
+
+### 6.3 Multitone for IMD (intermodulation distortion)
+
+```python
+awg.write('OUTP:IMP 50')
+awg.write('SOUR:MULT:UPLD [1000, 1100], [0.5, 0.5]')   # SMPTE-style 60/7 ratio variant
+awg.write('SOUR:VOLT 1.0; OUTP ON')
+# Capture and FFT-analyze for sum/difference products near 100 Hz, 2.0 kHz, etc.
+```
+
+### 6.4 White noise for noise-floor characterization
+
+```python
+awg.write('OUTP:IMP 50')
+awg.write('SOUR:FUNC NOIS')
+awg.write('SOUR:VOLT 0.5; OUTP ON')
+# Capture, integrate over band, compute spectral density
+```
+
+### 6.5 Clock generation for digital characterization
+
+A square wave at 1–10 MHz is useful for clocking external digital interfaces during characterization, or as a stimulus to a clock-recovery circuit for jitter measurement.
+
+```python
+awg.write('OUTP:IMP 50')              # 50 Ω back-termination for digital signal integrity
+awg.write('SOUR:FUNC SQU')
+awg.write('SOUR:FREQ 5000000')        # 5 MHz
+awg.write('SOUR:VOLT 3.3')            # 3.3 V swing for CMOS receivers
+awg.write('OUTP ON')
+```
+
+### 6.6 Bias-mode voltage injection
+
+For applying a controlled voltage to a digital pin or high-impedance test point without risk of frying the DUT, switch to 10 kΩ output impedance and set a DC level. Fault current at any short is capped at V/10kΩ (e.g., 1 mA at 10 V), well below the input clamp-diode rating of any 3.3 V or 5 V CMOS digital input.
+
+```python
+awg.write('OUTP:IMP 10K')             # 10 kΩ current-limited mode
+awg.write('SOUR:FUNC DC')
+awg.write('SOUR:VOLT 2.5')            # 2.5 V DC bias
+awg.write('OUTP ON')
+```
+
+## 7. Bill of Materials
+
+Cross-referenced to Digi-Key (primary; Mouser was not accessible during this audit), with Microcenter for the Pico 2 W. Last verified May 2026.
+
+| Item | Manufacturer P/N | Supplier | Supplier P/N | Qty | Unit Cost | Notes |
+|---|---|---|---|---|---|---|
+| Raspberry Pi Pico 2 W | Raspberry Pi SC1633 | Microcenter | SKU 687384 | 1 | $5.99 | RP2350 host MCU; Microcenter sale price |
+| 12-bit 210 MSPS DAC | Analog Devices AD9742ARUZ | Digi-Key | AD9742ARUZ | 1 | $14.80 | 28-TSSOP, hand-solderable |
+| Dual VFB op-amp 1400 V/µs | Analog Devices AD8056ARZ | Digi-Key | AD8056ARZ-ND | 1 | $6.27 | SOIC-8, channel A used; channel B reserved |
+| Reed relay SPST-NO 5 V coil | Coto Technology 9007-05-01 | Digi-Key | 306-1004-ND (or current equivalent) | 3 | $2.09 | three for SP3T impedance switching |
+| 2N3904 NPN BJT (relay driver) | onsemi 2N3904BU | Digi-Key | 2N3904FS-ND | 3 | $0.10 | TO-92, one per relay |
+| 1N4148 small-signal diode (relay flyback) | onsemi 1N4148 | Digi-Key | 1N4148FSCT-ND | 3 | $0.05 | DO-35, one per relay |
+| Precision resistor 25.0 Ω 0.1 % 0805 (DAC term) | Vishay PTN0805E25R0BST1 | Digi-Key | PTN0805E25R0BST1 | 2 | (verify direct) | 25 Ω matched pair across IOUTA/IOUTB |
+| Precision resistor 50 Ω 1 % 0805 | Yageo RC0805FR-0750RL | Digi-Key | (verify direct) | 1 | ~$0.10 | 50 Ω output Z |
+| Precision resistor 600 Ω 1 % 0805 | Yageo RC0805FR-07600RL | Digi-Key | (verify direct) | 1 | ~$0.10 | 600 Ω output Z |
+| Precision resistor 10 kΩ 1 % 0805 | Yageo RC0805FR-0710KL | Digi-Key | RC0805FR-0710KL | 1 | ~$0.10 | 10 kΩ output Z |
+| FSADJ resistor 1.91 kΩ 0.1 % 0805 | Vishay TNPW08051K91BEEA | Digi-Key | (verify direct) | 1 | (verify direct) | sets AD9742 full-scale current |
+| Reconstruction filter inductor 1 µH 0805 ±5 % | Coilcraft 0805LS-102XJRC | Digi-Key | (search direct) | 6 | $2.01 | three per channel; one channel built initially |
+| Reconstruction filter cap 470 pF C0G 0603 ±5 % | Murata GCM1885C1H471JA16D | Digi-Key | (search direct) | 4 | (verify direct) | two per channel |
+| Op-amp gain network resistors 1 % 0805 | Yageo RC0805FR-07 series | Digi-Key | (verify direct) | 4 | ~$0.10 | R_in1, R_in2, R_fb, R_ref |
+| Bypass cap 0.1 µF X7R 0603 50 V | Yageo CC0603KRX7R9BB104 | Digi-Key | 311-1366-1-ND (or equiv) | 10 | $0.08 | per IC supply pin |
+| Bulk cap 10 µF X5R 0805 10 V | Yageo CC0805KKX5R8BB106 (or Murata GRM21BR71A106KA73L) | Digi-Key | (search direct) | 4 | (verify direct) | DAC, op-amp, +12V, -12V supply rails |
+| BNC panel-mount jack 50 Ω | Amphenol RF 031-5538 | Digi-Key | 031-5538 | 1 | (verify direct) | front-panel output |
+| 3D-printed enclosure | n/a | n/a | n/a | 1 | ~$1 | PETG print, ~10 g |
+| Hookup wire, headers, perfboard or custom PCB | various | various | various | n/a | TBD | full schematic in KiCad; PCB fab quote pending |
+| **Module BOM total (verified portions, single-quantity Digi-Key/Microcenter)** | | | | | **~$53** | excludes PCB fab and items still pending direct verification |
+
+Items marked "(verify direct)" are commodity passives and connectors whose prices were not extracted from Digi-Key's JS-rendered pages during the BOM audit. They are in stock at Digi-Key and individually cost less than $5; total impact on the module BOM is under $15.
+
+## 8. Calibration Procedure
+
+After module assembly, calibrate against a Fluke 87V (or equivalent calibrated DMM) and a 10 MHz GPSDO reference (or external function generator's calibrated output) using the following procedure.
+
+### 8.1 DC offset calibration
+
+1. Configure: `OUTP:IMP 50; SOUR:FUNC DC; SOUR:VOLT 0.0; OUTP ON`.
+2. Wait for output to settle (1 s).
+3. Measure the DC level on the output BNC with the Fluke 87V.
+4. Adjust the op-amp's CMRR-trim resistor until the measured DC level reads within ±5 mV of 0 V (or store the offset as a software calibration constant).
+5. Record via SCPI: `CALC:CAL:OFFS 0, <millivolts>`.
+
+### 8.2 Gain calibration
+
+1. Configure: `OUTP:IMP 50; SOUR:FUNC SIN; SOUR:FREQ 1000; SOUR:VOLT 10.0` (peak-to-peak).
+2. Connect the output through a known-good 50 Ω terminator to a calibrated scope or Fluke and measure the actual peak-to-peak voltage.
+3. Compute the gain error: `gain_correction = 10.0 / measured_pk_pk`.
+4. Store: `CALC:CAL:GAIN 0, <gain_correction>`.
+
+### 8.3 Frequency calibration
+
+If the chassis trigger bus carries an external 10 MHz GPSDO reference, the firmware can phase-lock against it and update the frequency-divider constant accordingly. Without an external reference, the Pico's crystal is rated ±20 ppm, which is ±200 Hz at 10 MHz; for most characterization work this is below the tolerance of the DUT under test.
+
+### 8.4 Reconstruction filter passband flatness
+
+1. Sweep `SOUR:FREQ` from 1 kHz to 10 MHz at constant `SOUR:VOLT 1.0`.
+2. Capture the peak-to-peak amplitude with Module 2E (or external scope) at each frequency.
+3. Plot the magnitude response. The 5th-order Butterworth should show ≤ ±0.5 dB ripple across DC to ~10 MHz.
+4. If the response shows excessive ripple (component tolerance issue), trim the filter inductors or substitute tighter-tolerance caps. Record the calibrated frequency response in the Pico flash so frequency-dependent corrections can be applied per the SCPI gain command.
+
+## 9. Bring-Up Checklist
+
+In order, on first power-up:
+
+1. **Visual inspection.** Check polarity of every electrolytic and tantalum cap. Check op-amp orientation (notch toward pin 1). Check AD9742 pin 1 orientation. Check relay coil polarity. Verify no shorts between the parallel data bus and adjacent traces.
+2. **Power-on without DUT.** Apply +5 V (Pico) and +12 V/−12 V (op-amp). Measure current draw: should be ~50 mA total at idle (Pico ~30 mA, AD9742 ~30 mA digital + 20 mA analog, AD8056 ~10 mA). If higher, pull power and find the short.
+3. **Pico boots.** Watch the onboard LED; it should heartbeat. Pico USB enumerates as USB-TMC: `lsusb` on the host should show the PMVB device.
+4. **DAC midscale test.** Send `SOUR:FUNC DC; SOUR:VOLT 0.0; OUTP ON`. With the Pico writing midscale codes (0x800) to the AD9742, IOUTA and IOUTB should each carry ~10 mA (half of FS_CUR ≈ 20 mA), giving a differential voltage of ≈ 0 V across the 25 Ω terminations. At the op-amp output, the reading should be 0 V ± 50 mV.
+5. **Full-scale test.** Send `SOUR:FUNC DC; SOUR:VOLT 10.0; OUTP ON`. Pico drives the DAC to all-ones (0xFFF). Op-amp output should be near +10 V.
+6. **Sweep test (audio band).** `OUTP:IMP 50; SOUR:FUNC SIN; SOUR:FREQ 1000; SOUR:VOLT 5.0; OUTP ON`. Output should be a 5 Vpp sine at 1 kHz on a scope, no visible distortion.
+7. **Sweep test (HF band).** Repeat at 1 MHz and 10 MHz. Verify amplitude is within ±0.5 dB of the audio reading.
+8. **Frequency response.** Sweep 20 Hz to 10 MHz and verify amplitude flatness within ±0.5 dB across the band.
+9. **THD (audio band).** At 1 kHz, 1 Vrms output, capture with Module 2E and verify THD < 0.1 %.
+10. **Spectral purity (HF band).** At 5 MHz, 1 Vrms output, capture with Module 2E and verify the first-image rejection is ≥ 40 dB. The first image should appear near the DAC update rate minus 5 MHz.
+11. **Impedance switch test.** Cycle through `OUTP:IMP 50`, `OUTP:IMP 600`, `OUTP:IMP 10K`. For each, drive the DUT with a known voltage and measure source impedance with a known load.
+12. **Calibration.** Run section 8 procedures. Save calibration constants to Pico flash.
+13. **PyVISA-sim parity check.** Run the same SCPI command sequence against the simulator backend and verify behavior matches.
+
+## 10. Known Issues and Future Work
+
+(To be populated as the module is built.)
+
+- The Pico's PIO + DMA can sustain 50 MSPS DAC update rate for short bursts, but sustained operation may require dropping to 30–40 MSPS. Characterize Pico bandwidth ceiling early in firmware bring-up; document the achievable update rate as a v1.0 specification.
+- The AD9742 produces a small mid-scale glitch (datasheet specifies < 5 pV·s typical) at code transitions. For low-distortion audio work below 100 kHz this is well below the noise floor; for HF work it manifests as a small spurious tone at the DAC update rate. Mitigation is a careful reconstruction filter design.
+- AD8056 channel B is unused in v1.0. A v1.1 enhancement could repurpose it as a stereo output (using a second AD9742) or as a buffered sync signal.
+- The 5th-order Butterworth reconstruction filter component tolerances directly affect passband flatness. Initial builds may need tightened tolerance (1 % caps, 2 % inductors) on critical positions if the as-built ripple exceeds ±0.5 dB.
+- A Tier 2 (FPGA-driven) variant of this module could push bandwidth to 50 MHz by replacing the AD9742 with a faster parallel DAC (AD9744 at 14-bit 210 MSPS) clocked from the Tang Primer 25K. That's a separate future module, not a v1.x evolution of this one.
+
+## 11. References
+
+- [Analog Devices AD9742 datasheet](https://www.analog.com/en/products/ad9742.html)
+- [Analog Devices AD8056 datasheet](https://www.analog.com/en/products/ad8056.html)
+- [Coto Technology 9007 series reed relay datasheet](https://www.cotorelay.com/product/9007-series/)
+- [Raspberry Pi Pico 2 W datasheet](https://datasheets.raspberrypi.com/picow/pico-2-w-datasheet.pdf)
+- [Analog Devices Application Note AN-282 (DAC reconstruction filters)](https://www.analog.com/en/resources/app-notes/an-282.html)
+- [PMVB System Design Document, section 7.5.5](../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator)

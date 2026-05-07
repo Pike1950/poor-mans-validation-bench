@@ -16,10 +16,8 @@
 %
 % --- Required packages ------------------------------------------------------
 \RequirePackage{tikz}
-% NOTE: dropped the siunitx option. Our figures use \pmvblabel{} for unit
-% annotations rather than circuitikz's SI value formatting, and siunitx.sty
-% isn't always available on bare TeX Live installs.
-\RequirePackage[american]{circuitikz}
+\RequirePackage{amsmath}
+\RequirePackage[american,siunitx]{circuitikz}
 \RequirePackage{xcolor}
 \RequirePackage{etoolbox}
 %
@@ -320,4 +318,11 @@
 \newcommand{\opamptri}[3]{%
   \begin{scope}[shift={#2}, xscale=#3]
     \draw[pmvbFg, line width=0.6pt, fill=pmvbBg]
-      (0, 0) -- (
+      (0, 0) -- (-10mm, 7mm) -- (-10mm, -7mm) -- cycle;
+    \coordinate (#1_p)   at (-10mm,  4mm);
+    \coordinate (#1_n)   at (-10mm, -4mm);
+    \coordinate (#1_out) at (0,      0);
+  \end{scope}
+}
+%
+\endinput
