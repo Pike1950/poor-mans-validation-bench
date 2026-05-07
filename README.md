@@ -10,7 +10,7 @@ A modular SCPI instrument platform that mirrors NI PXIe rack-and-module test arc
 
 ### Chassis design
 
-- **[Chassis Power Distribution Design](https://pike1950.github.io/poor-mans-validation-bench/docs/chassis/Chassis_Power_Distribution_Design.html)** — single-enclosure Hammond 1411P design built around the Silverstone TX300 PSU. Covers theory of operation, mechanical fabrication for novice builders (IEC inlet cutout, fan grille, cable grommet), lid interlock topology, BOM with Mouser and Digi-Key cross-references, bring-up procedure, and safety protocols.
+- **[Chassis Architecture and Power Distribution](https://pike1950.github.io/poor-mans-validation-bench/docs/chassis/Chassis_Architecture_and_Power_Distribution.html)** — open-frame acrylic blade-style chassis (laser-cut from SendCutSend, 420 × 238 × 90 mm) housing the Silverstone TX300 PSU as an analog-rail backbone, the GeeekPi D-1188 ATX breakout, the Sabrent HB-BU10 USB 3.0 hub, and 14 module slots at 22.5 mm pitch. Covers mechanical architecture, electrical architecture (4-rail back-wall harness with Phoenix MC 1,5/4 module interconnect, per-rail fuse panel, banana-jack diagnostic test points), USB-TMC backplane, BOM with Digi-Key and Amazon cross-references, bring-up procedure, and safety protocols.
 
 ### Per-module design
 

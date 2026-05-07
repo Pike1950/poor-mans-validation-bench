@@ -3691,7 +3691,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <li>A representative simulator-backed test passes end-to-end (writes to InfluxDB, renders a Grafana panel, generates a Jinja2 report)</li>
 </ul>
 <p><strong>Table 13-1: Phase 0 BOM</strong></p>
-<p><em>Pricing audit status: as of 2026-05-07, the Raspberry Pi 5 (Microcenter, $305), Module 1E v1.1 (Digi-Key + Microcenter, $53), GeeekPi D-1188 ATX breakout (Amazon, $13), and Sabrent HB-BU10 powered USB 3.0 hub (Amazon, $47) have been verified against current suppliers. Other lines are pending the chassis architecture decision and full BOM rewrite (see deprecated Chassis Power Distribution doc). Phase total is approximate and excludes the chassis enclosure pending architecture finalization.</em></p>
+<p><em>Pricing audit status: as of 2026-05-07, the Raspberry Pi 5 (Microcenter, $305), Module 1E v1.1 (Digi-Key + Microcenter, $53), GeeekPi D-1188 ATX breakout (Amazon, $13), and Sabrent HB-BU10 powered USB 3.0 hub (Amazon, $47) have been verified against current suppliers. The full chassis BOM is documented in the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> doc. Phase total is approximate and excludes the chassis enclosure pending DXF generation and SendCutSend quote.</em></p>
 <table>
 <thead>
 <tr class="header">
@@ -3754,7 +3754,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 </tbody>
 </table>
-<p><em>The Silverstone TX300 is listed at $0 because Brad has one on hand from prior projects; replacement cost ~$50–$70 for a comparable 300 W TFX 80+ Bronze unit. Under the 2026-05-07 architecture revision, the TFX is the analog-rail backbone for instrument modules (±12 V op-amp rails, +5 V analog), not the chassis-wide power source. The Pi 5, USB hub, and Picos each run from their own external supplies (Pi 5 from its 27 W USB-C charger; hub from its own wall brick; Picos from USB downstream power). The full chassis BOM is being rewritten as of 2026-05-07 — see the deprecated <a href="../chassis/Chassis_Power_Distribution_Design.html">Chassis Power Distribution Design</a> doc.</em></p>
+<p><em>The Silverstone TX300 is listed at $0 because Brad has one on hand from prior projects; replacement cost ~$50–$70 for a comparable 300 W TFX 80+ Bronze unit. Under the 2026-05-07 architecture revision, the TFX is the analog-rail backbone for instrument modules (±12 V op-amp rails, +5 V analog), not the chassis-wide power source. The Pi 5, USB hub, and Picos each run from their own external supplies (Pi 5 from its 27 W USB-C charger; hub from its own wall brick; Picos from USB downstream power). The full chassis BOM and architecture are documented in the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> doc.</em></p>
 <h3 id="phase-1-tier-1-core-modules">13.2 Phase 1: Tier 1 Core Modules</h3>
 <p>Phase 1 adds Modules 1A, 1B, 1D, and 1E. Module 1C is deferred to Phase 1.5 because the dual-Pico architecture is more involved and not on the critical path for the audio analyzer recipe.</p>
 <p><strong>Table 13-2: Phase 1 BOM</strong></p>

@@ -141,6 +141,111 @@ do not include framing about deferred parts unless directly relevant to the
 current section. Describe the current state of the module. If a non-obvious
 choice is worth recording, state the reason once and move on.
 
+### Mechanical form factor
+
+Every module is a vertical "blade" that slots into the PMVB chassis. The
+chassis (acrylic, laser-cut from SendCutSend, 420 × 238 × 90 mm overall)
+holds 14 module slots at 22.5 mm pitch alongside the TX300 PSU, the GeeekPi
+D-1188 ATX breakout, the Sabrent HB-BU10 USB hub, and a 4-rail back-wall
+power harness. Every module PCB must conform to the following standard
+envelope so it physically fits a slot, mates with the back-wall harness,
+and connects to the USB hub in the same way as every other module:
+
+**Module body envelope (mandatory):**
+
+- **Outer width (X, slot-pitch direction):** 16.5 mm including the 1 mm rail
+  lip. The 22.5 mm slot pitch leaves a 6 mm air gap between adjacent module
+  bodies, which the chassis allocates to module components and assembly
+  clearance per the convention below.
+- **PCB depth (Y, front-to-back):** 125 mm. The front edge sits at the
+  chassis front face; the rear edge sits 8 mm forward of the back-wall
+  power harness, leaving a 35 mm cable-management gap.
+- **PCB height (Z, vertical):** 80 mm of usable PCB. The 86 mm total module
+  height (3 mm bottom rail lip + 80 mm body + 3 mm top rail lip) engages
+  the chassis floor and ceiling card guides.
+- **Module body shell:** 5 mm acrylic top/bottom shell walls, 1 mm right
+  wall (with the 1 mm × 3 mm rail lips at the top-right and bottom-right
+  corners), open left face. The cavity is 14.5 mm wide internally
+  (x = −7.5 to +7), 70 mm tall (z = 11 to 81), 125 mm deep.
+
+**PCB mounting and component-stack convention (mandatory):**
+
+The module's host PCB mounts vertically against the cavity's **right wall**
+(x = +7), with components extending leftward through the cavity and into
+the 6 mm inter-module gap. This convention has three consequences:
+
+- **Component-stack budget per module: 21.5 mm.** From the right wall (PCB
+  surface at x = +7) leftward to the adjacent module's right wall
+  exterior (x_neighbor + 8 = x_this − 14.5). The 1 mm lip on the adjacent
+  module is above and below the cavity z-range and doesn't reduce the
+  middle-cavity budget.
+- **Pico 2 W mounting flexibility:** both direct-solder (~6.2 mm stack,
+  recommended for 14-slot v1.0+v1.1 buildout) and female-header-mounted
+  (~14.2 mm stack, swappable Pico) fit comfortably within the 21.5 mm
+  budget. Direct-solder is preferred for layout density; headers are
+  acceptable when Pico-swap convenience is worth the 7-mm-of-headroom
+  trade-off.
+- **No component placement on the back face of the host PCB.** The PCB's
+  back face presses against the cavity right wall (x = +8 to +9 lip
+  region); components on that face would crash into the wall. All
+  components live on the cavity-facing (left) face of the PCB.
+
+**Connector placements (mandatory):**
+
+The host PCB sits vertically (PCB plane parallel to the chassis YZ plane,
+PCB normal pointing in the X direction toward the cavity interior). The
+PCB has four edges in this orientation: front (low Y, faces the chassis
+front panel), rear (high Y, faces the back-wall harness), top (high Z),
+bottom (low Z).
+
+- **Pico USB-C connector:** on the **rear edge** of the host PCB, pointing
+  rearward (+Y direction). The Pico 2 W is mounted with its long axis
+  running along the Y direction, near the rear half of the PCB, so its
+  natural USB-C connector position lands at the rear edge with the
+  connector protruding ~3 mm past the PCB outline. A short USB-C-to-USB-A
+  cable runs straight rearward from this connector to the Sabrent HB-BU10
+  mounted at the chassis rear. All modules use the same Z offset for the
+  USB-C connector so cables run in parallel.
+- **Phoenix MC 1,5/4-G (1803293):** on the **top edge near the rear corner**
+  of the host PCB, oriented so the four pins face upward (+Z direction).
+  The mating cable plug from the chassis 4-rail back-wall harness drops
+  down onto this header from above. Pin assignment, left to right viewed
+  from outside the module looking in: +5 V, +12 V, −12 V, GND. The same
+  pin order is used on every module's header for consistency.
+- **Faceplate connectors:** on the **front edge** of the PCB. Module-specific
+  I/O (BNC, banana jacks, banana binding posts, switches, indicator LEDs,
+  trim pots) must fit within ~17 mm horizontal × 80 mm vertical of front
+  face real estate. For module designs that legitimately need more
+  faceplate real estate than 17 mm allows (e.g., a multi-range DMM with
+  many input terminals), consider a "double-wide" 2-slot variant that
+  consumes 45 mm of chassis pitch — this is the only acceptable deviation
+  from the standard 1-slot envelope, and must be declared explicitly in
+  the module's design doc.
+
+**Mounting holes (mandatory):**
+
+- **Four M3 holes** through the host PCB, one near each corner in the YZ
+  plane. With the PCB filling the cavity (~120 × 75 mm of usable PCB
+  area inside the 125 × 80 mm cavity), the recommended hole positions
+  are 5 mm inset from each edge: (Y, Z) = (5, 5), (5, 75), (120, 5),
+  (120, 75) measured from the front-bottom corner of the PCB. Holes
+  are M3 clearance (3.2 mm diameter) with no copper exposure within a
+  6 mm radius.
+- The module body (acrylic shell) carries matching M3 mounting features
+  (integrated standoff bosses or glued-in M3 nuts) on the inside face
+  of the right wall so the host PCB can be screwed down with M3 × 4 mm
+  pan-head screws. Mounting hardware is part of the module design, not
+  the chassis design.
+
+**Faceplate I/O layout for module-specific connectors:**
+
+Each module's design doc should include a brief subsection in section 3
+(Schematic Notes) or as part of section 4 (Pin Assignments) describing
+the faceplate's I/O layout: which connectors, at what vertical position
+on the 17 × 80 mm front face. A simple ASCII or diagram-style layout is
+sufficient — this is not a full mechanical drawing, but it lets the
+chassis builder verify front-panel cutouts are at the right positions.
+
 ---
 
 ## 4. Fillable template
@@ -333,4 +438,6 @@ Before declaring a module document done:
 - [ ] Bring-up checklist runs in physical order (visual → power → boot → SCPI).
 - [ ] No description of rejected alternatives, no change-log narration in body text.
 - [ ] References include the parent SDD section anchor.
+- [ ] PCB layout fits the standard 17 × 125 × 80 mm form factor with USB on the right edge, Phoenix MC 1,5/4-G on the top-rear corner facing rearward, faceplate on the front edge, and four M3 mounting holes at standard corner positions. Double-wide (45 mm pitch) variants explicitly declared if used.
+- [ ] Faceplate I/O layout subsection present (which connectors at which vertical positions on the 17 × 80 mm front face).
 - [ ] HTML rendered via pandoc and visually checked: TOC links, figures embed, tables format cleanly.

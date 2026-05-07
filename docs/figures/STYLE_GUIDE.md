@@ -196,7 +196,7 @@ Renders as "×16" overlaid on the bus line in white bold, with a dark fill that 
 ### Mechanical / power topology
 
 - These are addressed under the chassis design doc, not yet exercised in module figures
-- When you reach for one, see `docs/chassis/Chassis_Power_Distribution_Design.md` for current ASCII-art conventions; the TikZ port is a future task
+- When you reach for one, see `docs/chassis/Chassis_Architecture_and_Power_Distribution.md` for current diagram conventions; the TikZ port is a future task
 
 ---
 

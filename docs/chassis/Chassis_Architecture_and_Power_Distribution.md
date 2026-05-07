@@ -6,7 +6,7 @@ Companion to the [PMVB System Design Document section 11](../system-design/Syste
 
 **Architecture in one paragraph.** The chassis is the integrated mechanical-and-power subsystem that holds the entire bench instrument fabric in a single ~16.5" × 9.4" × 3.5" enclosure. The TX300 PSU supplies analog ±12 V and +5 V *only* to instrument modules that need clean bipolar or higher-current rails (Module 1B VMU, Module 1D SMU Lite, Module 1E AWG, Module 1F HV diff probe, Module 1G current probe, Module 1H DMM, Module 2B precision DAQ, Module 2E digitizer); it does **not** power the Pi 5, the USB hub, or chassis-side Picos, each of which has its own external supply (Pi 5 uses its 27 W USB-C charger, the Sabrent hub runs from its own wall brick, and module Picos draw 5 V from USB downstream power). Modules are vertical blades (17 × 125 × 80 mm PCB outline) that slot into the chassis at 22.5 mm pitch, plug into a 4-rail back-wall power harness via Phoenix Contact MC 1,5/4 connectors, and present USB to the Sabrent hub for SCPI command and measurement-data transport.
 
-This is **v2.0** of the chassis design. v1.0 (single Hammond 1411P enclosure with Pi 5 / hub / modules sitting on the bench external to the chassis) was deprecated on 2026-05-07; see the [v1.0 deprecated doc](Chassis_Power_Distribution_Design.html) for the prior design and the architectural shift.
+This is **v2.0** of the chassis design. v1.0 (single Hammond 1411P enclosure with Pi 5 / hub / modules sitting on the bench external to the chassis) was superseded on 2026-05-07; the architectural shift is summarized in §11 of the SDD.
 
 ---
 
@@ -408,7 +408,6 @@ This is overkill for solo hobbyist work but matches industry practice and is wor
 
 - [PMVB System Design Document section 11 (Power Architecture)](../system-design/System_Design_Document.html#power-architecture) — high-level architecture context.
 - [PMVB System Design Document section 4.1 (Top-Level Architecture)](../system-design/System_Design_Document.html#top-level-architecture) — chassis position in the wider system.
-- [Deprecated Chassis Power Distribution Design v1.0](Chassis_Power_Distribution_Design.html) — prior architecture (Hammond enclosure, chassis-wide power for Pi 5 / hub / modules). Superseded 2026-05-07.
 - [Silverstone SST-TX300 manual](https://www.silverstonetek.com/en/product/info/power-supply/TX300/) — TX300 PSU electrical and mechanical specs.
 - [GeeekPi D-1188 product page](https://www.amazon.com/dp/B08MC389FQ) — ATX 24-pin breakout reference.
 - [Sabrent HB-BU10 product page](https://www.amazon.com/dp/B0797NZFYP) — USB 3.0 hub reference.
