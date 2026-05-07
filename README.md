@@ -2,6 +2,33 @@
 
 A modular SCPI instrument platform that mirrors NI PXIe rack-and-module test architecture at hobbyist budget. A Raspberry Pi 5 acts as the orchestration head running PyVISA, pytest, InfluxDB, and Grafana. Hot-swappable instrument modules attach over USB or Ethernet and present as independent SCPI-addressable instruments. Every module is also exposed through a Model Context Protocol (MCP) tool surface for agent-orchestrated bench sessions.
 
+## Project Status
+
+**Current focus:** Phase 0 — orchestration + chassis power. Chassis architecture, module mechanical form factor, and Module 1E v1.1 design are committed. Next milestones: chassis fabrication (SendCutSend DXF, parts ordering, frame assembly) and Pi 5 software stack stand-up.
+
+| Phase | Scope | Status |
+|---|---|---|
+| **Phase 0** | Orchestration head + chassis power | Architecture and BOM committed; fabrication and software stack pending |
+| Phase 1 | Tier 1 core (1A, 1B, 1D, 1E) | Module 1E design + figures done; 1A / 1B / 1D design docs pending |
+| Phase 1.5 | HID module (1C) + Tier 2 bridge stack | Pending |
+| Phase 1.7 | Module 1H DMM | Pending |
+| Phase 2 | Tier 2 core (2A, 2B, 2C, 2D) | Pending |
+| Phase 2.5 | Module 2E digitizer | Pending |
+| Phase 3 | v1.1 Tier 1 (1F, 1G) | Pending |
+| Phase 4 | Tier 3 modules + chassis LAN switch | Deferred |
+| Cross-cutting | Documentation, firmware infrastructure, verification, bench tooling | Continuous |
+
+**Recently landed (most recent first):**
+
+- TikZ chassis block diagram with analog/digital module split (commit `65156ab`)
+- Chassis Architecture and Power Distribution doc with embedded Tinkercad photos (commit `eb9949b`–`65156ab`)
+- Module 1E v1.1 redesign (AD9742 + AD8056, DC–10 MHz) including figures and SDD §7.5.5 update (commit `bbded04`–`70544f3`)
+- USB 3.0 architecture decision (Sabrent HB-BU10) with Figure 4-1 / 1E-1 label updates (commit `00b9fb4`)
+- TFX-as-analog-backbone architecture pivot, deprecated chassis power doc replaced (commit `00b9fb4`)
+- Module Design Document Schema with mechanical form factor convention
+
+See **[PROJECT_TRACKER.md](PROJECT_TRACKER.md)** for the granular phase-by-phase, per-module task breakdown (~250 line items across 8 phases plus cross-cutting work). Update cadence: tracker checkboxes flip as commits land; this README's status table refreshes at phase milestones.
+
 ## Documentation
 
 ### Canonical reference
