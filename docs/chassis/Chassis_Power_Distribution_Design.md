@@ -1,6 +1,30 @@
 # Chassis Power Distribution Design Document
 
-## v1.0 (May 2026)
+> **⚠ DEPRECATED as of 2026-05-07 — REWRITE IN PROGRESS**
+>
+> This document describes the **pre-2026-05-07 architecture** in which the chassis Silverstone TX300 PSU supplied +5 V via USB-C breakout to the Pi 5 and +12 V via barrel jack to the powered USB hub, with the Pi 5 / hub / modules sitting external to the chassis. **That architecture has been superseded.**
+>
+> The new architecture (as of 2026-05-07) treats the TX300 as an **analog-rail backbone** that supplies ±12 V and +5 V *only to instrument modules that need clean analog supplies* (Module 1E AD8056 op-amp rails, future Module 1B / 1D / 1F / 1G / 1H instrumentation amp rails, etc.). The Pi 5 runs from its own external 27 W USB-C charger; the Sabrent HB-BU10 USB 3.0 hub runs from its own external wall brick; chassis-side Picos run from USB downstream power. The chassis enclosure architecture itself is also under revision — a Pi-cluster-style acrylic blade case is being evaluated as a replacement for the Hammond 1411P single-enclosure design described below.
+>
+> **Specific known errors in this document** (do NOT order parts from this BOM until the rewrite lands):
+> - "Adafruit 1466" cited as ATX breakout — actually a 5 V wall-wart power supply (replace with GeeekPi D-1188).
+> - Hammond 1411P listed as 10×6×3" — actually 6×5×4" and the TX300 does not fit.
+> - Bel S506-5-R listed as fuse holder — actually the fuse cartridge (replace with Eaton BK/HTB-22M-R for the holder).
+> - Omron D2F-01F-T listed as 3 A microswitch — actually 100 mA (replace with D2F-L-T or D2F-FL-T for hinged 3 A version).
+> - SparkFun KIT-15583 listed as heat-shrink kit — actually the Teensy 4.0 dev board (replace with SparkFun PRT-09353 or 3M FP-KIT).
+> - Hammond 1430-PFG fan grille not in current Hammond catalog — replace with XPFA80BK.
+> - Heyco 1300-X strain relief not in current Heyco catalog — replace with Heyco 1210 (SR-6P-4).
+> - VCC 1043H1 LED panel indicators not in current VCC catalog — replace with VCC 5102H series.
+> - Adafruit 4090 USB-C breakout and Adafruit 369 DC barrel pigtail are architecturally obsolete (Pi 5 and hub no longer powered from chassis PSU).
+> - Pomona 3760 color suffix mapping inverted — `3760-0` is **black** on Digi-Key, not red.
+>
+> The rewrite is tracked in the project task list. See the canonical [PMVB System Design Document section 11.5](../system-design/System_Design_Document.html#power-architecture) for the current architecture summary.
+>
+> **The content below is preserved for reference only.**
+
+---
+
+## v1.0 (May 2026) — preserved as historical reference
 
 Companion to the [PMVB System Design Document section 11.5](../system-design/System_Design_Document.html#power-architecture). Documents the mechanical and electrical design for the Chassis Power Unit (CPU): a single integrated enclosure built around the Silverstone SST-TX300 PSU that supplies +5 V to the Pi 5, +12 V to the powered USB hub, and -12 V to the Module 1E op-amp output stage. The Pi 5, USB hub, and instrument modules sit on the bench external to this chassis and connect via DC cables that exit the chassis back panel. (A chassis LAN switch is not part of the v1.0 baseline; the Pi 5 connects to the bench network directly via its onboard wired Ethernet port.)
 

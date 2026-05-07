@@ -3691,7 +3691,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <li>A representative simulator-backed test passes end-to-end (writes to InfluxDB, renders a Grafana panel, generates a Jinja2 report)</li>
 </ul>
 <p><strong>Table 13-1: Phase 0 BOM</strong></p>
-<p><em>Pricing audit status: only the Raspberry Pi 5 line below has been verified against a current supplier. Every other line is a placeholder from earlier drafts and pending a full audit against Mouser, Digi-Key, Microcenter, and Amazon (in priority order). Phase total is therefore approximate.</em></p>
+<p><em>Pricing audit status: as of 2026-05-07, the Raspberry Pi 5 (Microcenter, $305), Module 1E v1.1 (Digi-Key + Microcenter, $53), GeeekPi D-1188 ATX breakout (Amazon, $13), and Sabrent HB-BU10 powered USB 3.0 hub (Amazon, $47) have been verified against current suppliers. Other lines are pending the chassis architecture decision and full BOM rewrite (see deprecated Chassis Power Distribution doc). Phase total is approximate and excludes the chassis enclosure pending architecture finalization.</em></p>
 <table>
 <thead>
 <tr class="header">
@@ -3701,56 +3701,60 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </thead>
 <tbody>
 <tr class="odd">
-<td>Raspberry Pi 5 16 GB <em>(Microcenter, current 2026-05-06; $300 on sale)</em></td>
+<td>Raspberry Pi 5 16 GB <em>(Microcenter, verified 2026-05-06; $300 on sale)</em></td>
 <td>$305</td>
 </tr>
 <tr class="even">
+<td>Pi 5 official 27 W USB-C charger <em>(Pi 5's own external supply; not from chassis PSU)</em></td>
+<td>$15</td>
+</tr>
+<tr class="odd">
 <td>Active cooler / heatsink</td>
 <td>$5</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>32 GB microSD card (boot)</td>
 <td>$8</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Raspberry Pi M.2 HAT+</td>
 <td>$12</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>512 GB NVMe SSD (M.2 2230 or 2242)</td>
 <td>$40</td>
 </tr>
 <tr class="odd">
-<td>Powered USB hub</td>
-<td>$25</td>
-</tr>
-<tr class="odd">
-<td>Cabling and incidentals</td>
-<td>$15</td>
+<td>Sabrent HB-BU10 powered USB 3.0 hub, 10-port <em>(Amazon, verified; uses own wall brick, not chassis PSU)</em></td>
+<td>$47</td>
 </tr>
 <tr class="even">
-<td>Silverstone TX300 PSU</td>
-<td>$0</td>
-</tr>
-<tr class="odd">
-<td>ATX 24-pin breakout / terminal block</td>
+<td>Cabling and incidentals (USB cables, Pi 5 Ethernet cable, misc.)</td>
 <td>$15</td>
 </tr>
+<tr class="odd">
+<td>Silverstone SST-TX300 TFX PSU <em>(analog-rail backbone for instrument modules; not chassis-wide power)</em></td>
+<td>$0 (on hand)</td>
+</tr>
 <tr class="even">
-<td>1× USB-C power breakout board (Pi 5)</td>
-<td>$2</td>
+<td>GeeekPi D-1188 ATX 24-pin breakout, all rails incl. −12 V <em>(Amazon, verified)</em></td>
+<td>$13</td>
 </tr>
 <tr class="odd">
-<td>5 V distribution cabling</td>
-<td>$10</td>
+<td>Chassis enclosure (architecture pending — Pi-cluster-style acrylic blade case under evaluation)</td>
+<td>TBD</td>
+</tr>
+<tr class="even">
+<td>Internal chassis DC distribution (Phoenix MC 1,5/4 connectors, fuses, harness wire)</td>
+<td>~$30 placeholder</td>
 </tr>
 <tr>
 <td><strong>Phase 0 total</strong></td>
-<td><strong>~$437</strong> (with Pi 5 verified at $305; remaining lines pending audit)</td>
+<td><strong>~$490 + chassis enclosure (TBD)</strong></td>
 </tr>
 </tbody>
 </table>
-<p><em>The Silverstone TX300 PSU is listed at $0 because Brad has one on hand from prior projects. If purchasing new, a comparable 300 W TFX 80+ Bronze PSU costs approximately $50 to $70.</em></p>
+<p><em>The Silverstone TX300 is listed at $0 because Brad has one on hand from prior projects; replacement cost ~$50–$70 for a comparable 300 W TFX 80+ Bronze unit. Under the 2026-05-07 architecture revision, the TFX is the analog-rail backbone for instrument modules (±12 V op-amp rails, +5 V analog), not the chassis-wide power source. The Pi 5, USB hub, and Picos each run from their own external supplies (Pi 5 from its 27 W USB-C charger; hub from its own wall brick; Picos from USB downstream power). The full chassis BOM is being rewritten as of 2026-05-07 — see the deprecated <a href="../chassis/Chassis_Power_Distribution_Design.html">Chassis Power Distribution Design</a> doc.</em></p>
 <h3 id="phase-1-tier-1-core-modules">13.2 Phase 1: Tier 1 Core Modules</h3>
 <p>Phase 1 adds Modules 1A, 1B, 1D, and 1E. Module 1C is deferred to Phase 1.5 because the dual-Pico architecture is more involved and not on the critical path for the audio analyzer recipe.</p>
 <p><strong>Table 13-2: Phase 1 BOM</strong></p>
