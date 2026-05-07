@@ -1,0 +1,115 @@
+% =============================================================================
+% Chassis functional block diagram (PMVB v1.0)
+% =============================================================================
+% Shows the chassis architecture as two parallel fabrics:
+%
+%   1. ANALOG POWER fabric (right column):
+%        TX300 IEC -> TX300 PSU -> GeeekPi D-1188 -> per-rail fuses
+%        -> 4-wire back-wall harness -> module bay
+%
+%   2. USB-TMC CONTROL fabric (left/center columns):
+%        Pi 5 (external) -> USB 3.0 -> Sabrent hub (chassis backplane)
+%        -> USB-A x 13 -> module bay
+%
+% Three external supplies (Pi 5 charger, Sabrent hub brick, TX300 IEC inlet)
+% feed the three top-level subsystems independently. Front-panel diagnostic
+% strip (banana jacks + LEDs) is a side feature documented in sections 3.7
+% / 4.6 / 4.7; not shown here to keep the block diagram focused on the
+% architecturally load-bearing flow.
+%
+% Compile:  pdflatex chassis_block_diagram.tex
+% Convert:  pdftocairo -svg chassis_block_diagram.pdf
+% =============================================================================
+\documentclass[border=8pt]{standalone}
+%
+\input{../style/pmvb-figures.sty}
+%
+\begin{document}
+\begin{tikzpicture}[pmvb figure]
+  %
+  % =========================================================================
+  % TOP ROW: External AC supplies (three independent feeds).
+  % Pi 5 charger and hub brick are external bricks (dashed, "not in chassis").
+  % TX300 IEC inlet is on the chassis front panel (solid).
+  % =========================================================================
+  \node[pmvb ic, minimum width=46mm, minimum height=10mm,
+        draw=pmvbRed, dashed, fill=pmvbBg]
+    (pi5_charger) at (-9, 7)
+    {\textbf{Pi 5 27\,W charger}\\\scriptsize external (wall AC)};
+  %
+  \node[pmvb ic, minimum width=46mm, minimum height=10mm,
+        draw=pmvbRed, dashed, fill=pmvbBg]
+    (hub_brick) at (0, 7)
+    {\textbf{Sabrent 60\,W brick}\\\scriptsize external (wall AC)};
+  %
+  \node[pmvb ic, minimum width=46mm, minimum height=10mm,
+        draw=pmvbRed, fill=pmvbBg]
+    (tx300_iec) at (9, 7)
+    {\textbf{TX300 IEC C14 inlet}\\\scriptsize chassis front panel};
+  %
+  % =========================================================================
+  % ROW 2: Pi 5 (external) | Sabrent USB hub (chassis-mounted) |
+  %        TX300 PSU (chassis-mounted)
+  % =========================================================================
+  \node[pmvb subsystem, minimum width=46mm, minimum height=14mm]
+    (pi5) at (-9, 2.5)
+    {\textbf{Raspberry Pi 5}\\\scriptsize orchestration head\\\scriptsize bench-side, not in chassis};
+  %
+  \node[pmvb subsystem, minimum width=46mm, minimum height=14mm]
+    (hub) at (0, 2.5)
+    {\textbf{Sabrent HB-BU10}\\\scriptsize 10-port USB 3.0 hub\\\scriptsize chassis backplane};
+  %
+  \node[pmvb subsystem, minimum width=46mm, minimum height=14mm]
+    (tx300) at (9, 2.5)
+    {\textbf{Silverstone TX300}\\\scriptsize 300\,W TFX PSU\\\scriptsize $\pm$12\,V / +5\,V analog rails};
+  %
+  % --- AC supply feeds (red, power) ---
+  \draw[pmvb power] (pi5_charger) -- (pi5);
+  \draw[pmvb power] (hub_brick) -- (hub);
+  \draw[pmvb power] (tx300_iec) -- (tx300);
+  %
+  % --- Pi 5 <-> Hub (USB 3.0 control plane) ---
+  \draw[pmvb digital bi]
+    (pi5.east) -- node[above]{\pmvblabel{USB 3.0 uplink}} (hub.west);
+  %
+  % =========================================================================
+  % RIGHT COLUMN: TX300 -> GeeekPi -> Fuses -> Harness chain
+  % =========================================================================
+  \node[pmvb ic, minimum width=46mm, minimum height=10mm]
+    (d1188) at (9, -1.5)
+    {\textbf{GeeekPi D-1188}\\\scriptsize ATX 24-pin breakout};
+  %
+  \node[pmvb ic, minimum width=46mm, minimum height=10mm]
+    (fuses) at (9, -5)
+    {\textbf{Per-rail fuse panel}\\\scriptsize Eaton BK/HTB-22M-R holders\\\scriptsize Bel BK1/GMC slow-blow};
+  %
+  \node[pmvb ic, minimum width=46mm, minimum height=10mm]
+    (harness) at (9, -8.5)
+    {\textbf{4-wire back-wall harness}\\\scriptsize +5\,V / +12\,V / $-$12\,V / GND};
+  %
+  \draw[pmvb power]
+    (tx300.south) -- node[right]{\pmvblabel{24-pin ATX}} (d1188.north);
+  \draw[pmvb power] (d1188.south) -- (fuses.north);
+  \draw[pmvb power] (fuses.south) -- (harness.north);
+  %
+  % =========================================================================
+  % BOTTOM: Module bay (full width)
+  % =========================================================================
+  \node[pmvb subsystem, minimum width=140mm, minimum height=18mm]
+    (modules) at (0, -12.5)
+    {\textbf{14 module bays at 22.5\,mm pitch}\\\scriptsize each = Pico 2\,W + module PCB\\\scriptsize Phoenix MC 1,5/4-G power input + USB-C to hub};
+  %
+  % --- Hub -> modules (USB-TMC bus, straight down from hub center) ---
+  \draw[pmvb bus]
+    (hub.south) --
+    node[pmvb bus width]{$\times 13$}
+    (modules.north);
+  %
+  % --- Harness -> modules (Phoenix MC, routed via right column down to bay) ---
+  \draw[pmvb power]
+    (harness.south) --
+    node[right=0.5mm]{\pmvblabel{Phoenix MC 1,5/4-ST}}
+    (modules.north -| harness.south);
+  %
+\end{tikzpicture}
+\end{document}

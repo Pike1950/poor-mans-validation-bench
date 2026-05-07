@@ -6,7 +6,7 @@ Companion to the [PMVB System Design Document section 11](../system-design/Syste
 
 **Architecture in one paragraph.** The chassis is the integrated mechanical-and-power subsystem that holds the entire bench instrument fabric in a single ~16.5" × 9.4" × 3.5" enclosure. The TX300 PSU supplies analog ±12 V and +5 V *only* to instrument modules that need clean bipolar or higher-current rails (Module 1B VMU, Module 1D SMU Lite, Module 1E AWG, Module 1F HV diff probe, Module 1G current probe, Module 1H DMM, Module 2B precision DAQ, Module 2E digitizer); it does **not** power the Pi 5, the USB hub, or chassis-side Picos, each of which has its own external supply (Pi 5 uses its 27 W USB-C charger, the Sabrent hub runs from its own wall brick, and module Picos draw 5 V from USB downstream power). Modules are vertical blades (16.5 × 125 × 86 mm body) that slot into the chassis at 22.5 mm pitch, plug into a 4-rail back-wall power harness via Phoenix Contact MC 1,5/4 connectors, and present USB to the Sabrent hub for SCPI command and measurement-data transport.
 
-![PMVB chassis with 14 modules installed](../figures/chassis/photos/pmvb_chassis_populated.png)
+<img src="../figures/chassis/photos/pmvb_chassis_populated.png" alt="" style="max-width: 900px; width: 100%; display: block; margin: 1.5rem auto;">
 
 *Figure 1: PMVB chassis fully populated with 14 module blades. The TX300 PSU sits at the left end with its IEC C14 inlet exposed through the front-panel cutout. The vent grid on the chassis top exhausts hot air from the TX300's internal fan. Module faceplate cutouts in the front panel are deferred until module-specific I/O designs converge.*
 
@@ -56,38 +56,9 @@ The chassis is an integrated single-enclosure subsystem that consolidates the an
 
 ## 2. Functional Block Diagram
 
-```mermaid
-flowchart TB
-    subgraph External["External infrastructure (not in chassis BOM)"]
-        Wall["120 V AC outlet"]
-        Pi5Charger["Pi 5 27 W USB-C charger"]
-        HubBrick["Sabrent 60 W wall brick"]
-    end
+<img src="../figures/chassis/chassis_block_diagram.svg" alt="" style="max-width: 800px; width: 100%; display: block; margin: 1.5rem auto;">
 
-    subgraph Chassis["Chassis (acrylic blade enclosure, 420 × 238 × 90 mm)"]
-        IEC["IEC C14 inlet on TX300"]
-        TX300["Silverstone SST-TX300 PSU<br/>±12V, +5V, +3.3V, +5VSB, GND"]
-        D1188["GeeekPi D-1188 ATX breakout<br/>per-rail status LEDs<br/>onboard PS_ON# switch"]
-        Fuses["Per-rail glass-cartridge fuse panel<br/>Eaton BK/HTB-22M-R holders<br/>Bel BK1/GMC slow-blow fuses"]
-        Harness["4-wire back-wall harness<br/>+5V, +12V, -12V, GND<br/>303 mm × 14 AWG, runs along chassis rear at z = 76"]
-        FrontPanel["Front-panel strip<br/>Pomona 3760 banana jacks (test points)<br/>VCC 5102H LED indicators"]
-        Hub["Sabrent HB-BU10 USB 3.0 hub<br/>10 ports, per-port switches + LEDs"]
-        Modules["14 module bays at 22.5 mm pitch<br/>each = Pico 2 W + module PCB<br/>Phoenix MC 1,5/4 power input<br/>USB-TMC to hub"]
-    end
-
-    Wall --> IEC
-    IEC --> TX300
-    TX300 -->|24-pin ATX| D1188
-    D1188 -->|+5V, +12V, -12V, GND| Fuses
-    Fuses --> Harness
-    Fuses --> FrontPanel
-    Harness -->|Phoenix MC 1,5/4 cable| Modules
-    Hub -->|USB-A| Modules
-
-    Pi5Charger -.->|external| Pi5["Raspberry Pi 5<br/>(on bench, not in chassis)"]
-    Pi5 -->|USB 3.0| Hub
-    HubBrick -.->|external| Hub
-```
+*Figure 7: Chassis architecture as two parallel fabrics. The analog power fabric (right column, red edges) runs from the TX300 IEC inlet through the TX300 PSU, GeeekPi D-1188 ATX breakout, per-rail fuse panel, and 4-wire back-wall harness to the module bay. The USB-TMC control fabric (left and center columns, blue edges) runs from the Raspberry Pi 5 (external, not in chassis) over USB 3.0 to the Sabrent HB-BU10 USB hub (chassis backplane), then fans out as USB-A to all 13 populated module slots. Three external supplies (Pi 5 charger and Sabrent hub brick shown dashed; TX300 IEC inlet shown solid because it terminates inside the chassis) feed the three top-level subsystems independently. Front-panel diagnostic strip (banana jacks + LEDs) is documented separately in §3.7 and §4.6/4.7.*
 
 ---
 
@@ -97,7 +68,7 @@ flowchart TB
 
 The chassis is a **420 × 238 × 90 mm** rectangular enclosure (~16.5" × 9.4" × 3.5"). Material is 4 mm clear acrylic throughout, laser-cut from SendCutSend with the parts list described in [section 3.2](#acrylic-frame-and-cuts). The bench footprint is comparable to a 1U–2U rack-mount instrument; the low profile (3.5" tall) keeps the entire fabric at one bench level rather than stacking towers.
 
-![Empty PMVB chassis with no modules installed](../figures/chassis/photos/pmvb_chassis_empty.png)
+<img src="../figures/chassis/photos/pmvb_chassis_empty.png" alt="" style="max-width: 900px; width: 100%; display: block; margin: 1.5rem auto;">
 
 *Figure 2: Empty chassis viewed from front-3/4. The dark rectangle on the left of the front panel is the TX300 IEC inlet cutout. The 14 module slot bays are visible across the lower front, each with a card-guide groove cut into the floor for the module's bottom rail lip. The vent grid on the chassis top (over the TX300 footprint) exhausts hot air from the TX300's internal fan.*
 
@@ -126,7 +97,7 @@ The lip-engagement grooves in the floor and ceiling form the card guides for mod
 
 The TX300 sits at the **left end of the chassis floor**, X = −230 to −144 (86 mm wide), Y = −118 to +60 (178 mm deep), Z = 6 to 72 (66 mm tall). Orientation: the TX300's IEC C14 inlet faces the chassis **front** (Y = −118 face) so the AC cord plugs in from the front; the TX300's 24-pin ATX output cable exits from the chassis **back** (Y = +60 face) and terminates at the GeeekPi D-1188 mounted on top of the rear portion of the TX300; the 80 mm fan exhausts upward through the top vent grille (Z = 72 top face). The PSU mounts to the floor plate via four M3 standoffs threaded into the TX300's existing M3 mounting holes (standard TFX form factor pattern).
 
-![TX300 PSU and GeeekPi D-1188 inside the chassis, viewed from the front](../figures/chassis/photos/PMVBChassis4.png)
+<img src="../figures/chassis/photos/PMVBChassis4.png" alt="" style="max-width: 550px; width: 100%; display: block; margin: 1.5rem auto;">
 
 *Figure 3: Cutaway view of the TX300 PSU (gray) and the GeeekPi D-1188 ATX breakout (red, on top of the TX300's rear ~20 mm) inside the chassis. The TX300's full top surface from the front edge to ~20 mm forward of the rear is left exposed for the fan to exhaust upward through the chassis top vent grid.*
 
@@ -138,7 +109,7 @@ The GeeekPi D-1188 ATX breakout sits **on top of the TX300** at the rear ~20 mm 
 
 This positioning gives the breakout's screw terminals a short, direct cable run to the back-wall harness, while leaving the front ~80 mm of the TX300 top exposed for the fan exhaust to pass through the vent grille above.
 
-![GeeekPi D-1188 mounted on top of the TX300 rear, with module bays slotted in](../figures/chassis/photos/PMVBChassis2.png)
+<img src="../figures/chassis/photos/PMVBChassis2.png" alt="" style="max-width: 550px; width: 100%; display: block; margin: 1.5rem auto;">
 
 *Figure 4: View of the chassis interior with the TX300 (left, gray), GeeekPi D-1188 (red, on top of the TX300 rear), and 14 module blades slotted into the bay. The GeeekPi sits at the back portion of the TX300 top so its screw terminals are positioned directly above the back-wall harness rails.*
 
@@ -152,7 +123,7 @@ The hub's USB-A downstream ports face **forward** (toward Y = −116) so each do
 
 The module bay occupies the right ~3/4 of the chassis floor: **14 slots at 22.5 mm pitch**, X centers at −132, −110, −87, −64, −42, −20, +3, +26, +48, +70, +93, +116, +138, +160.
 
-![Module body side profile showing the C-shape cross-section and rail lips](../figures/chassis/photos/PMVBModule3.png)
+<img src="../figures/chassis/photos/PMVBModule3.png" alt="" style="max-width: 350px; width: 100%; display: block; margin: 1.5rem auto;">
 
 *Figure 5: Side profile of a single module body. The C-shape cross-section is clearly visible: closed top and bottom shells, closed right wall, open left face. The two extensions at the top-right and bottom-right corners are the 1 mm × 3 mm rail lips that engage the chassis floor and ceiling grooves as the module slides in from the front. The host PCB mounts vertically against the cavity right wall and components extend leftward through the cavity and into the inter-module gap, giving 21.5 mm of stack budget per slot.*
 
@@ -233,7 +204,7 @@ A blown fuse is visible through the holder cap and replaceable without disassemb
 
 After the fuse panel, each rail (+5 V, +12 V, −12 V, GND) runs as a 14 AWG stranded wire along the upper-rear region of the chassis interior, at approximately Z = 76 (10 mm below the chassis ceiling) and Y = 14 to 34 (35 mm forward of the back wall). The four wires run parallel along the X axis, ~303 mm long, spanning from just past the GeeekPi's screw terminals (X ≈ −142) to past the rightmost module slot (X ≈ +161).
 
-![4-wire back-wall harness running across the chassis above the modules](../figures/chassis/photos/PMVBChassis3.png)
+<img src="../figures/chassis/photos/PMVBChassis3.png" alt="" style="max-width: 550px; width: 100%; display: block; margin: 1.5rem auto;">
 
 *Figure 6: View of the chassis from above-rear, showing the 4-wire back-wall harness (orange) running parallel across the upper-rear region of the chassis interior. The four wires originate at the GeeekPi D-1188 (red, far right, on top of the TX300) and run leftward across the entire module bay, with one Phoenix MC 1,5/4 plug per slot tapping into the rails at each module's X position. The translucent module bodies show the slot pitch and the open-left-face geometry that gives each module access to the harness.*
 
