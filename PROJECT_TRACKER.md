@@ -63,6 +63,8 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 
 ### Chassis fabrication + assembly
 
+**Iterative build strategy:** the goal is to fab the empty chassis + one Module 1E first, validate wiring and positioning with that single module, then iterate slot-by-slot through the rest of the bay before committing to fabricating Modules 1A/1B/1D in parallel. Module 1E is the most demanding analog module (AD9742 + AD8056 + reconstruction filter + reed relays) and shakes out harness routing, USB cable lengths, Phoenix MC connector ergonomics, and faceplate clearances better than the simpler modules would. The Pi 5 + orchestration software stack work below runs in parallel with chassis fab since Brad has all those components already.
+
 - [x] Tinkercad reference design committed (chassis + module + slot grooves + vent grid)
 - [ ] Generate SendCutSend DXF from Tinkercad / Inkscape; order acrylic frame (~$40-80)
 - [ ] Front-panel module-faceplate cutouts (deferred until Modules 1A/1B/1D/1E faceplate I/O converges; chassis is designed so the front panel can be re-cut independently)
@@ -72,7 +74,9 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 - [ ] Mount GeeekPi D-1188 on TX300 rear top + connect 24-pin ATX
 - [ ] Mount Sabrent HB-BU10 to floor, rear-center
 - [ ] Build per-rail fuse panel + wire to GeeekPi outputs
-- [ ] Build 4-wire back-wall harness (303 mm × 14 AWG, color-coded)
+- [ ] Build 4-wire back-wall harness (303 mm × 14 AWG, color-coded) — initially only tap slot 1 for Module 1E shakedown
+- [ ] Single-slot shakedown: install Module 1E in slot 1, verify Phoenix mate + USB cable run + faceplate clearance + harness tap routing
+- [ ] After single-slot shakedown passes, tap remaining 13 harness positions
 - [ ] Install + wire front-panel banana jacks (×4) and LED indicators (×3)
 
 ### Chassis bring-up
@@ -85,9 +89,9 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 ### Pi 5 hardware
 
 - [x] Pi 5 16 GB price verified at Microcenter ($305)
-- [ ] Order Pi 5 16 GB + 27 W USB-C charger + active cooler ($325)
-- [ ] Order microSD (32 GB) + M.2 HAT+ + 512 GB NVMe SSD ($60)
-- [ ] Assemble Pi 5 (heatsink + M.2 HAT+ + NVMe)
+- [x] Pi 5 16 GB + 27 W USB-C charger + active cooler on hand
+- [x] microSD (32 GB) + M.2 HAT+ + 512 GB NVMe SSD on hand
+- [x] Pi 5 assembled (heatsink + M.2 HAT+ + NVMe)
 
 ### Pi 5 software stack
 
