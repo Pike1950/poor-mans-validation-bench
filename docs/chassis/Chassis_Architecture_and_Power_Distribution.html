@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chassis Architecture and Power Distribution</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --card: #16213e;
+  --accent: #0f3460;
+  --highlight: #e94560;
+  --text: #d4d4d4;
+  --heading: #f0f0f0;
+  --dim: #888;
+  --green: #4ade80;
+  --amber: #fbbf24;
+  --blue: #60a5fa;
+  --red: #f87171;
+  --teal: #2dd4bf;
+  --code-bg: #0d1117;
+  --border: #333;
+  --doc-width: 1400px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  max-width: var(--doc-width);
+  margin: 0 auto;
+  padding: 2rem;
+}
+h1 {
+  color: var(--heading);
+  font-size: 2rem;
+  margin: 2rem 0 0.5rem;
+  border-bottom: 2px solid var(--highlight);
+  padding-bottom: 0.5rem;
+}
+h2 {
+  color: var(--heading);
+  font-size: 1.5rem;
+  margin: 2.5rem 0 0.5rem;
+  border-left: 4px solid var(--highlight);
+  padding-left: 0.75rem;
+}
+h3 {
+  color: var(--blue);
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.5rem;
+}
+h4 {
+  color: var(--teal);
+  font-size: 1rem;
+  margin: 1.2rem 0 0.3rem;
+}
+p { margin: 0.5rem 0; }
+ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+li { margin: 0.2rem 0; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--accent);
+  color: var(--heading);
+  font-weight: 600;
+}
+td { background: var(--card); }
+code {
+  font-family: 'Consolas', 'Fira Code', 'Cascadia Code', monospace;
+  background: var(--code-bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: var(--amber);
+}
+pre {
+  background: var(--code-bg);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  border-left: 3px solid var(--blue);
+}
+pre code {
+  padding: 0;
+  background: none;
+  color: var(--text);
+}
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+strong, b { color: var(--heading); }
+em, i { color: var(--text); }
+blockquote {
+  border-left: 3px solid var(--amber);
+  background: var(--card);
+  padding: 0.5rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0 6px 6px 0;
+}
+/* Inline TOC styling */
+#TOC, .toc {
+  background: var(--card);
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  border-left: 4px solid var(--blue);
+}
+#TOC ul, .toc ul {
+  list-style: none;
+  padding-left: 1.2rem;
+  margin: 0.25rem 0;
+}
+#TOC li, .toc li { margin: 0.15rem 0; }
+#TOC > ul, .toc > ul { padding-left: 0; }
+/* Mermaid container */
+.mermaid {
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: center;
+  overflow-x: auto;
+}
+/* Width slider control (mirrors FMCW pattern) */
+.width-control {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  background: var(--card);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--dim);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.width-control input[type="range"] { width: 120px; }
+/* Document metadata block */
+.meta {
+  color: var(--dim);
+  font-size: 0.9rem;
+  margin: 1rem 0 2rem;
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#16213e',
+          primaryColor: '#0f3460',
+          primaryTextColor: '#f0f0f0',
+          primaryBorderColor: '#60a5fa',
+          lineColor: '#d4d4d4',
+          secondaryColor: '#16213e',
+          tertiaryColor: '#1a1a2e'
+        }
+      });
+    }
+  });
+</script>
+</head>
+<body>
+<div class="width-control">
+  Width <input type="range" min="900" max="2200" value="1400"
+    oninput="document.documentElement.style.setProperty('--doc-width', this.value + 'px')">
+</div>
+<h1 id="chassis-architecture-and-power-distribution-design-document">Chassis Architecture and Power Distribution Design Document</h1>
+<h2 id="v2.0-may-2026-post-architecture-revision">v2.0 (May 2026, post-architecture revision)</h2>
+<p>Companion to the <a href="../system-design/System_Design_Document.html#power-architecture">PMVB System Design Document section 11</a>. This document defines the mechanical and electrical design of the PMVB chassis: an open-frame acrylic blade enclosure (laser-cut from SendCutSend) housing the Silverstone SST-TX300 PSU as an analog-rail backbone, a GeeekPi D-1188 ATX breakout, a Sabrent HB-BU10 USB 3.0 hub as the chassis-internal USB-TMC backplane, and 14 module slots arranged as parallel vertical blades.</p>
+<p><strong>Architecture in one paragraph.</strong> The chassis is the integrated mechanical-and-power subsystem that holds the entire bench instrument fabric in a single ~16.5" × 9.4" × 3.5" enclosure. The TX300 PSU supplies analog ±12 V and +5 V <em>only</em> to instrument modules that need clean bipolar or higher-current rails (Module 1B VMU, Module 1D SMU Lite, Module 1E AWG, Module 1F HV diff probe, Module 1G current probe, Module 1H DMM, Module 2B precision DAQ, Module 2E digitizer); it does <strong>not</strong> power the Pi 5, the USB hub, or chassis-side Picos, each of which has its own external supply (Pi 5 uses its 27 W USB-C charger, the Sabrent hub runs from its own wall brick, and module Picos draw 5 V from USB downstream power). Modules are vertical blades (17 × 125 × 80 mm PCB outline) that slot into the chassis at 22.5 mm pitch, plug into a 4-rail back-wall power harness via Phoenix Contact MC 1,5/4 connectors, and present USB to the Sabrent hub for SCPI command and measurement-data transport.</p>
+<p>This is <strong>v2.0</strong> of the chassis design. v1.0 (single Hammond 1411P enclosure with Pi 5 / hub / modules sitting on the bench external to the chassis) was deprecated on 2026-05-07; see the <a href="Chassis_Power_Distribution_Design.html">v1.0 deprecated doc</a> for the prior design and the architectural shift.</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#design-philosophy">1. Design Philosophy</a></li>
+<li><a href="#functional-block-diagram">2. Functional Block Diagram</a></li>
+<li><a href="#mechanical-architecture">3. Mechanical Architecture</a>
+<ul>
+<li><a href="#outer-envelope-and-form-factor">3.1 Outer Envelope and Form Factor</a></li>
+<li><a href="#acrylic-frame-and-cuts">3.2 Acrylic Frame and Cuts</a></li>
+<li><a href="#tx300-psu-mounting">3.3 TX300 PSU Mounting</a></li>
+<li><a href="#geeekpi-d-1188-mounting">3.4 GeeekPi D-1188 Mounting</a></li>
+<li><a href="#sabrent-hb-bu10-usb-hub-mounting">3.5 Sabrent HB-BU10 USB Hub Mounting</a></li>
+<li><a href="#module-slot-geometry-and-form-factor">3.6 Module Slot Geometry and Form Factor</a></li>
+<li><a href="#front-panel-strip-and-module-faceplate-region">3.7 Front-Panel Strip and Module Faceplate Region</a></li>
+<li><a href="#tx300-fan-ventilation">3.8 TX300 Fan Ventilation</a></li>
+</ul></li>
+<li><a href="#electrical-architecture">4. Electrical Architecture</a>
+<ul>
+<li><a href="#rail-sources-from-the-tx300">4.1 Rail Sources from the TX300</a></li>
+<li><a href="#geeekpi-d-1188-atx-breakout">4.2 GeeekPi D-1188 ATX Breakout</a></li>
+<li><a href="#per-rail-fuse-panel">4.3 Per-Rail Fuse Panel</a></li>
+<li><a href="#4-wire-back-wall-harness">4.4 4-Wire Back-Wall Harness</a></li>
+<li><a href="#per-module-phoenix-pigtail">4.5 Per-Module Phoenix Pigtail</a></li>
+<li><a href="#banana-jack-diagnostic-test-points">4.6 Banana-Jack Diagnostic Test Points</a></li>
+<li><a href="#front-panel-indicator-leds">4.7 Front-Panel Indicator LEDs</a></li>
+</ul></li>
+<li><a href="#usb-tmc-backplane">5. USB-TMC Backplane</a></li>
+<li><a href="#bill-of-materials">6. Bill of Materials</a></li>
+<li><a href="#bring-up-procedure">7. Bring-Up Procedure</a></li>
+<li><a href="#safety-procedures">8. Safety Procedures</a></li>
+<li><a href="#future-enhancements">9. Future Enhancements</a></li>
+<li><a href="#references">10. References</a></li>
+</ul>
+<hr />
+<h2 id="design-philosophy">1. Design Philosophy</h2>
+<p>The chassis is an integrated single-enclosure subsystem that consolidates the analog supply backbone, the USB-TMC backplane, and the module bay into one bench-friendly footprint. Three architectural decisions drive the design:</p>
+<ol type="1">
+<li><p><strong>The TX300 PSU is the <em>analog-rail backbone</em>, not the chassis-wide power source.</strong> Its ±12 V and +5 V outputs feed only the instrument modules that need clean bipolar or higher-current rails. Bench infrastructure (Pi 5, USB hub, the Picos at the chassis level) runs from external supplies. This decoupling means the chassis interior is exclusively SELV (safety extra low voltage) once mains is contained inside the TX300’s certified case, and the chassis itself does not need to be a safety boundary.</p></li>
+<li><p><strong>Modules are vertical blades in a card-cage-style bay.</strong> Each module is a 17 × 125 × 80 mm PCB that slides into a slot at 22.5 mm pitch, plugs into a back-wall power harness, connects USB to the Sabrent hub, and presents its module-specific I/O at the front face. This pattern follows the spirit of NI PXI / Eurocard subracks at hobbyist scale, with a custom laser-cut acrylic frame replacing the cost-prohibitive professional subrack hardware.</p></li>
+<li><p><strong>The chassis is open-frame acrylic.</strong> The TX300’s certified IEC inlet handles AC safety; the acrylic frame is purely mechanical containment and does not need to be earth-bonded. Open construction makes the architecture self-documenting (you can see what’s inside), simplifies cooling (TX300 fan exhausts through a 6 × 12 grid of vent holes in the chassis top), and keeps fabrication cost under $100 for the entire enclosure.</p></li>
+</ol>
+<p>The chassis power doc previously described a closed Hammond 1411P enclosure that supplied chassis-wide DC to the Pi 5, hub, and modules sitting external to it. That architecture has been superseded; see section 11 of the SDD and the prior doc’s deprecation banner for the full cascade of changes.</p>
+<hr />
+<h2 id="functional-block-diagram">2. Functional Block Diagram</h2>
+<pre class="mermaid"><code>flowchart TB
+    subgraph External[&quot;External infrastructure (not in chassis BOM)&quot;]
+        Wall[&quot;120 V AC outlet&quot;]
+        Pi5Charger[&quot;Pi 5 27 W USB-C charger&quot;]
+        HubBrick[&quot;Sabrent 60 W wall brick&quot;]
+    end
+
+    subgraph Chassis[&quot;Chassis (acrylic blade enclosure, 420 × 238 × 90 mm)&quot;]
+        IEC[&quot;IEC C14 inlet on TX300&quot;]
+        TX300[&quot;Silverstone SST-TX300 PSU&lt;br/&gt;±12V, +5V, +3.3V, +5VSB, GND&quot;]
+        D1188[&quot;GeeekPi D-1188 ATX breakout&lt;br/&gt;per-rail status LEDs&lt;br/&gt;onboard PS_ON# switch&quot;]
+        Fuses[&quot;Per-rail glass-cartridge fuse panel&lt;br/&gt;Eaton BK/HTB-22M-R holders&lt;br/&gt;Bel BK1/GMC slow-blow fuses&quot;]
+        Harness[&quot;4-wire back-wall harness&lt;br/&gt;+5V, +12V, -12V, GND&lt;br/&gt;303 mm × 14 AWG, runs along chassis rear at z = 76&quot;]
+        FrontPanel[&quot;Front-panel strip&lt;br/&gt;Pomona 3760 banana jacks (test points)&lt;br/&gt;VCC 5102H LED indicators&quot;]
+        Hub[&quot;Sabrent HB-BU10 USB 3.0 hub&lt;br/&gt;10 ports, per-port switches + LEDs&quot;]
+        Modules[&quot;14 module bays at 22.5 mm pitch&lt;br/&gt;each = Pico 2 W + module PCB&lt;br/&gt;Phoenix MC 1,5/4 power input&lt;br/&gt;USB-TMC to hub&quot;]
+    end
+
+    Wall --&gt; IEC
+    IEC --&gt; TX300
+    TX300 --&gt;|24-pin ATX| D1188
+    D1188 --&gt;|+5V, +12V, -12V, GND| Fuses
+    Fuses --&gt; Harness
+    Fuses --&gt; FrontPanel
+    Harness --&gt;|Phoenix MC 1,5/4 cable| Modules
+    Hub --&gt;|USB-A| Modules
+
+    Pi5Charger -.-&gt;|external| Pi5[&quot;Raspberry Pi 5&lt;br/&gt;(on bench, not in chassis)&quot;]
+    Pi5 --&gt;|USB 3.0| Hub
+    HubBrick -.-&gt;|external| Hub</code></pre>
+<hr />
+<h2 id="mechanical-architecture">3. Mechanical Architecture</h2>
+<h3 id="outer-envelope-and-form-factor">3.1 Outer Envelope and Form Factor</h3>
+<p>The chassis is a <strong>420 × 238 × 90 mm</strong> rectangular enclosure (~16.5" × 9.4" × 3.5“). Material is 4 mm clear acrylic throughout, laser-cut from SendCutSend with the parts list described in <a href="#acrylic-frame-and-cuts">section 3.2</a>. The bench footprint is comparable to a 1U–2U rack-mount instrument; the low profile (3.5” tall) keeps the entire fabric at one bench level rather than stacking towers.</p>
+<p>The Tinkercad reference design (committed 2026-05-07) defines the exact internal coordinate system used throughout this document: X is the long axis (chassis length, slot-pitch direction), Y is the depth axis (front to back), Z is the vertical axis (floor to ceiling). The origin is at the chassis center on the floor, with X spanning −210 to +210 (length 420), Y spanning −116 to +120 (depth 236, the −116 face is the front), and Z spanning 0 to 90.</p>
+<h3 id="acrylic-frame-and-cuts">3.2 Acrylic Frame and Cuts</h3>
+<p>The frame is six laser-cut pieces of 4 mm clear acrylic plus internal card guides. Cuts are produced from a single DXF file uploaded to SendCutSend.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Piece</th>
+<th>Dimensions (mm)</th>
+<th>Cuts/features</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Floor plate</td>
+<td>420 × 238</td>
+<td>4 corner mounting holes; 14 lip-engagement grooves at 22.5 mm pitch (each ~1 mm wide × 3 mm deep × 125 mm long, running front-to-back along the Y axis), accepting the bottom rail lip on each module body</td>
+</tr>
+<tr class="even">
+<td>Top plate</td>
+<td>420 × 238</td>
+<td>4 corner mounting holes; matching 14 lip-engagement grooves at 22.5 mm pitch on the underside (mirror of the floor pattern); ~6 × 12 grid of 5–6 mm round vent holes positioned over the TX300 footprint (X = −230 to −150, Y = −110 to +20)</td>
+</tr>
+<tr class="odd">
+<td>Left side</td>
+<td>90 × 238</td>
+<td>4 corner mounting holes; optional venting slots if convection alone is insufficient</td>
+</tr>
+<tr class="even">
+<td>Right side</td>
+<td>90 × 238</td>
+<td>4 corner mounting holes</td>
+</tr>
+<tr class="odd">
+<td>Back</td>
+<td>420 × 90</td>
+<td>Cutouts for: TX300 IEC inlet (35 × 28 mm rectangle at TX300 X position), Sabrent USB hub uplink port and DC barrel jack, 4-wire harness pass-through if the harness is fed from outside the back wall</td>
+</tr>
+<tr class="even">
+<td>Front</td>
+<td>420 × 90</td>
+<td><strong>14 module-faceplate cutouts (deferred — see note below)</strong>; 4 × 6 mm holes for Pomona banana jacks at the front-panel strip, plus 3 × 6 mm holes for VCC LED indicators</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note on front-panel module cutouts:</strong> the per-module faceplate cutouts in the front panel are intentionally deferred. Each module’s faceplate cutout shape and position depends on that module’s specific I/O layout (which connectors at which vertical positions on the 17 mm wide × 80 mm tall faceplate area), and that I/O layout is part of each module’s design doc. The chassis front panel will be cut after enough modules have committed faceplate I/O specs to make the cuts non-iterative. The chassis is designed so the front panel is the <em>only</em> piece that needs re-cutting when faceplate decisions change; all other pieces remain stable.</p>
+<p>Frame is assembled with <strong>M3 corner standoffs</strong> (12 mm tall for the spacing between top and floor plates plus the 90 mm side panels, and the side panels mount via M3 screws into the standoff threads). Total hardware: 16 corner standoffs, ~32 M3 × 6 mm screws, 4 M3 × 12 mm screws for component mounting (TX300, GeeekPi, USB hub).</p>
+<p>The lip-engagement grooves in the floor and ceiling form the card guides for module insertion. Each module’s body has a 1 mm × 3 mm rail lip running along the bottom-right and top-right corners (the right side of each module body); these lips slide into the matching chassis grooves as the module is inserted from the front. The grooves stop short of the front edge of the floor/ceiling plate by ~3 mm so the module front-panel feature plays cleanly through the (eventually-cut) front-panel module-faceplate opening.</p>
+<h3 id="tx300-psu-mounting">3.3 TX300 PSU Mounting</h3>
+<p>The TX300 sits at the <strong>left end of the chassis floor</strong>, X = −230 to −144 (86 mm wide), Y = −118 to +60 (178 mm deep), Z = 6 to 72 (66 mm tall). Orientation: the TX300’s IEC C14 inlet faces the chassis back (Y = +60 face), the 80 mm fan exhausts upward through the top vent grille (Z = 72 top face). The PSU mounts to the floor plate via four M3 standoffs threaded into the TX300’s existing M3 mounting holes (standard TFX form factor pattern).</p>
+<p>Internal AC routing is contained entirely within the TX300’s certified enclosure; no external mains wiring exits the PSU body. The IEC inlet is exposed through a 35 × 28 mm rectangular cutout in the back panel at the TX300 IEC inlet position.</p>
+<h3 id="geeekpi-d-1188-mounting">3.4 GeeekPi D-1188 Mounting</h3>
+<p>The GeeekPi D-1188 ATX breakout sits <strong>on top of the TX300</strong> at the rear ~20 mm of the TX300’s footprint, X = −213 to −143 (70 mm), Y = +41 to +100 (59 mm), Z = 73 to 83 (10 mm tall). The 70 × 59 mm breakout PCB mounts via four M3 × 6 mm standoffs that thread into the TX300’s top-face mounting holes (or, alternatively, glue down with thermal-grade epoxy if those holes are unavailable on a particular TX300 SKU).</p>
+<p>This positioning gives the breakout’s screw terminals a short, direct cable run to the back-wall harness, while leaving the front ~80 mm of the TX300 top exposed for the fan exhaust to pass through the vent grille above.</p>
+<h3 id="sabrent-hb-bu10-usb-hub-mounting">3.5 Sabrent HB-BU10 USB Hub Mounting</h3>
+<p>The Sabrent HB-BU10 sits at the <strong>rear-center of the chassis floor</strong>, X = −136 to −26 (110 mm), Y = +24 to +74 (50 mm), Z = 6 to 36 (30 mm tall). The hub mounts to the floor plate via two M3 × 6 mm screws threaded into adhesive-backed standoffs (the hub doesn’t have factory mounting holes; we attach standoffs with VHB tape to the hub bottom, then bolt those down).</p>
+<p>The hub’s USB-A downstream ports face <strong>forward</strong> (toward Y = −116) so each downstream port can run a short USB-C-to-USB-A cable rearward to the corresponding module’s rear-edge Pico USB-C connector. With the modules’ Pico USB-C connectors sitting at the rear edge of each module PCB (Y = +8) and the hub at Y = +24, the cable run is ~16 mm direct-line, easily handled by a 75–150 mm pre-built cable. The hub’s uplink (Type-B, micro-B, or USB-C depending on the specific HB-BU10 revision) and DC barrel input pass out the back panel through cutouts.</p>
+<h3 id="module-slot-geometry-and-form-factor">3.6 Module Slot Geometry and Form Factor</h3>
+<p>The module bay occupies the right ~3/4 of the chassis floor: <strong>14 slots at 22.5 mm pitch</strong>, X centers at −132, −110, −87, −64, −42, −20, +3, +26, +48, +70, +93, +116, +138, +160.</p>
+<p><strong>Module body envelope.</strong> Each module body is <strong>16.5 × 125 × 86 mm</strong> with a C-shape cross-section:</p>
+<ul>
+<li>5 mm thick acrylic top and bottom shells running the full 125 mm depth.</li>
+<li>1 mm thick right wall (closed) connecting top and bottom shells.</li>
+<li>1 mm × 3 mm rail lips at the top-right and bottom-right corners, extending the full 125 mm depth, that engage the chassis floor and ceiling grooves.</li>
+<li><strong>Open left face</strong> — the module’s left side has no shell. This is intentional and structural: it widens the effective component-stack budget per slot from 13 mm (a fully closed cavity) to 21.5 mm (cavity plus the 6 mm inter-module gap shared with the adjacent module’s open face).</li>
+</ul>
+<p>Each module’s body sits at Y = −116 (front edge, flush with the chassis front panel) to Y = +8 (rear edge, 35 mm forward of the back-wall harness to leave room for Phoenix plug body and cable strain relief), Z = 0 (3 mm bottom rail lip engages the chassis floor groove from Z = 0 to Z = 4) to Z = 90 (3 mm top rail lip engages the chassis ceiling groove from Z = 86 to Z = 90).</p>
+<p><strong>Internal cavity</strong> is 14.5 × 125 × 70 mm (X = −7.5 to +7, Y = full 125 mm depth, Z = 11 to 81 between the 5 mm top and bottom shells).</p>
+<p><strong>Component stack budget per module: 21.5 mm.</strong> Because every module’s left face is open and every module follows the same orientation (lip-on-the-right), components on each module’s PCB can extend leftward from the module’s own cavity right wall (x = +7) all the way to the adjacent module’s right wall outer edge (x = neighbor + 8 = this − 14.5 mm). The 1 mm rail lip on the adjacent module is above and below the cavity Z range and does not reduce the middle-cavity X budget. This is why we can fit headered Pico stacks (14.2 mm) and direct-soldered Pico stacks (6.2 mm) plus analog circuitry on the same side of the host PCB.</p>
+<p><strong>Module mount convention (mandatory across all modules):</strong> each module’s host PCB is mounted vertically against the cavity right wall (PCB plane parallel to the chassis YZ plane, PCB normal pointing leftward into the cavity). All components are placed on the cavity-facing (left-pointing) face of the PCB. No components on the back face of the PCB (which is pressed against the right wall). This convention is what makes the 21.5 mm stack budget achievable — without it, adjacent modules could collide in the inter-module gap.</p>
+<p><strong>Connector positions on the host PCB:</strong></p>
+<ul>
+<li><strong>Pico USB-C:</strong> rear edge of the PCB, pointing rearward (+Y direction). The Pico 2 W is mounted near the rear half of the PCB with its long axis running along Y so its USB-C connector lands on the rear PCB edge. A short USB-C-to-USB-A cable runs straight rearward to one of the Sabrent HB-BU10’s downstream ports.</li>
+<li><strong>Phoenix MC 1,5/4-G (1803293):</strong> top edge near the rear corner, pointing upward (+Z direction). When the module is fully seated, the chassis’s per-slot Phoenix MC 1,5/4-ST plug from the back-wall harness drops down onto this header from above (the harness wires run at Z ≈ 76, just 5 mm above the top edge of the module body’s top shell at Z = 86 minus 5 mm shell = effectively at the top of the cavity).</li>
+<li><strong>Faceplate connectors:</strong> front edge, fitting within ~17 mm wide × 80 mm tall front-face real estate per slot.</li>
+</ul>
+<h3 id="front-panel-strip-and-module-faceplate-region">3.7 Front-Panel Strip and Module Faceplate Region</h3>
+<p>The front panel of the chassis is divided into two horizontal regions:</p>
+<p><strong>Lower strip (chassis-level diagnostics):</strong> ~50 mm tall, runs the full 420 mm width of the chassis along the bottom of the front panel. This strip carries:</p>
+<ul>
+<li><strong>4 banana jacks</strong> (Pomona 3760 series, color-coded red/yellow/blue/black for +5 V, +12 V, −12 V, GND) at the leftmost ~80 mm of the strip. These are diagnostic test points: a user can clip a DMM directly onto a rail without disconnecting any module.</li>
+<li><strong>3 VCC 5102H LED indicators</strong> (5 V variant for +5 V OK, 12 V variant for +12 V OK, optional second 12 V variant for −12 V OK) at the next ~50 mm of the strip. These give at-a-glance rail status visible from across the bench.</li>
+<li>The remaining ~290 mm of the strip is unused and provides surface area for future expansion (e.g., chassis-level oscillator reference, additional test points, or a chassis name/version label).</li>
+</ul>
+<p><strong>Upper region (module faceplate openings — DEFERRED):</strong> The upper ~40 mm of the front panel will eventually carry 14 cutouts at 22.5 mm pitch, each ~17 mm wide × 40 mm tall, exposing the front edge of each module’s PCB and its faceplate-mounted I/O (BNC, banana jacks, switches, etc.).</p>
+<p><strong>These cutouts are deliberately not specified in the v1 chassis fabrication.</strong> Each module’s faceplate I/O depends on that specific module’s design, and committing to cutouts before module designs are stable would force re-fabrication of the front panel each time a module’s faceplate I/O changes. The chassis is designed with the front panel as a discrete piece so it can be re-cut independently of the rest of the enclosure when module designs converge.</p>
+<p>For the initial fabrication, the chassis front panel will be cut with <strong>only the lower diagnostic strip</strong> (banana jacks + LED indicators). Module-faceplate cutouts will be added in a second front-panel revision once enough modules have committed faceplate I/O specs (probably after Module 1A, 1B, 1D, 1E are designed in detail).</p>
+<p>The module body design accommodates this deferral cleanly: with the front panel either uncut or cut for only the diagnostic strip, modules still slide into the chassis along the floor/ceiling card guide grooves, mate with the back-wall harness, and connect to the USB hub. They just don’t have a front-panel cutout exposing their faceplate I/O until the front panel is re-cut. For prototyping, modules can be operated with the front of the chassis open or with a dummy panel.</p>
+<h3 id="tx300-fan-ventilation">3.8 TX300 Fan Ventilation</h3>
+<p>The TX300’s 80 mm fan exhausts upward (Z = +72 face, the top of the PSU). The chassis top plate has a <strong>6 × 12 grid of 5–6 mm round vent holes</strong> positioned in the X = −230 to −150, Y = −110 to +20 region (above the TX300 fan area, clear of the GeeekPi D-1188 footprint at the rear).</p>
+<p>Total open area of the vent grille is approximately 1,400–2,000 mm² (depending on hole diameter), or roughly 30–40% of the TX300’s 80 mm fan inlet area (~5,000 mm²). This is sufficient for the TX300 running at ≤30% of its 300 W rating (typical PMVB load is well under 50 W on the analog rails) but may be increased if measured air temperature inside the chassis rises above ambient by more than ~10 °C under sustained load. The vent pattern can be densified by re-cutting the top plate without affecting any other piece of the enclosure.</p>
+<hr />
+<h2 id="electrical-architecture">4. Electrical Architecture</h2>
+<h3 id="rail-sources-from-the-tx300">4.1 Rail Sources from the TX300</h3>
+<p>The TX300 provides the standard ATX rails at its 24-pin output: +3.3 V, +5 V, +12 V, −12 V, +5 V Standby, GND. PMVB uses only +5 V, +12 V, −12 V, and GND from this set; +3.3 V and +5 V Standby are not routed forward of the GeeekPi breakout. Per-rail current capacity (per the TX300 datasheet): +5 V at 14 A, +12 V at 22 A, −12 V at 0.3 A. The −12 V rail’s 0.3 A budget bounds how many op-amps can be powered simultaneously across all modules; current planning expects worst-case ~150 mA combined across all v1.0 + v1.1 op-amp modules, comfortably within budget.</p>
+<h3 id="geeekpi-d-1188-atx-breakout">4.2 GeeekPi D-1188 ATX Breakout</h3>
+<p>The GeeekPi D-1188 (Amazon B08MC389FQ, ~$13) takes the TX300’s 24-pin ATX cable as input and exposes each rail on a screw terminal. Features used:</p>
+<ul>
+<li><strong>PS_ON# slide switch</strong> on the breakout PCB. This is the master enable for the TX300’s main rails. With the switch off, only +5 V Standby is alive (which we don’t use externally); with the switch on, all rails come up. There is no chassis-level master toggle; the GeeekPi’s onboard switch is accessed through the open frame.</li>
+<li><strong>Per-rail status LEDs</strong> on the breakout PCB. These show +5 V Standby, +3.3 V, +5 V, +12 V, −12 V, PS_ON, and PWROK status. The chassis also has separate front-panel LED indicators (section 4.7) for at-a-glance visibility, but the breakout’s onboard LEDs are useful for diagnosing PSU faults during bring-up.</li>
+<li><strong>Screw terminals</strong> for +5 V, +12 V, −12 V, GND. From these, short hookup wires (16 AWG for +5 V and +12 V; 20 AWG is sufficient for −12 V) carry the rails to the per-rail fuse panel.</li>
+</ul>
+<h3 id="per-rail-fuse-panel">4.3 Per-Rail Fuse Panel</h3>
+<p>Each rail passes through a panel-mount glass-cartridge fuse before reaching the back-wall harness. Fuses provide a fast-failure path independent of the breakout’s onboard polyfuses (which reset themselves and don’t visibly indicate a fault). The fuse panel is a small section of perfboard or terminal-block strip mounted to the chassis floor near the GeeekPi.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Rail</th>
+<th>Fuse rating</th>
+<th>Fuse holder</th>
+<th>Fuse cartridge</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>+5 V</td>
+<td>5 A slow-blow</td>
+<td>Eaton BK/HTB-22M-R</td>
+<td>Bel BK1/GMC-5-R</td>
+</tr>
+<tr class="even">
+<td>+12 V</td>
+<td>3 A slow-blow</td>
+<td>Eaton BK/HTB-22M-R</td>
+<td>Bel BK1/GMC-3-R</td>
+</tr>
+<tr class="odd">
+<td>−12 V</td>
+<td>500 mA slow-blow</td>
+<td>Eaton BK/HTB-22M-R</td>
+<td>Bel BK1/GMC-500MA-R (or equivalent)</td>
+</tr>
+</tbody>
+</table>
+<p>A blown fuse is visible through the holder cap and replaceable without disassembly; the holder accepts standard 5 × 20 mm cartridges.</p>
+<h3 id="wire-back-wall-harness">4.4 4-Wire Back-Wall Harness</h3>
+<p>After the fuse panel, each rail (+5 V, +12 V, −12 V, GND) runs as a 14 AWG stranded wire along the upper-rear region of the chassis interior, at approximately Z = 76 (10 mm below the chassis ceiling) and Y = 14 to 34 (35 mm forward of the back wall). The four wires run parallel along the X axis, ~303 mm long, spanning from just past the GeeekPi’s screw terminals (X ≈ −142) to past the rightmost module slot (X ≈ +161).</p>
+<p>At each module slot’s X position, the harness terminates at a Phoenix MC 1,5/4-ST plug (Phoenix 1803594, Digi-Key 277-1163-ND, ~$8.73 each). The four wires are screwed into the plug’s terminals in fixed order: pin 1 = +5 V (red wire), pin 2 = +12 V (yellow), pin 3 = −12 V (blue), pin 4 = GND (black). Wire colors follow lab convention.</p>
+<p>The plug clips downward onto the module’s PCB-mounted Phoenix MC 1,5/4-G header (Phoenix 1803293, Digi-Key 277-1208-ND, ~$3.51 each), which sits on the top edge near the rear corner of the host PCB with its pins facing upward (+Z direction). With the harness wires at Z ≈ 76 and the module top edge at Z ≈ 80–86, the plug-to-header mating runs perpendicular to the PCB plane, making module insertion and removal a vertical-down + horizontal-back motion. Plug body height is ~12 mm; cable strain relief adds another ~10 mm of Z consumption above the harness wire position, both well within the chassis ceiling clearance.</p>
+<h3 id="per-module-phoenix-pigtail">4.5 Per-Module Phoenix Pigtail</h3>
+<p>Each populated slot uses one Phoenix MC 1,5/4-ST plug terminating a short pigtail of 4 stranded wires (~30 mm long) tapping into the back-wall harness. The taps are made by stripping a 5 mm window in each of the four harness wires at the slot’s X position and soldering on the four pigtail wires (or by using inline IDC splicers if soldering inside the chassis is impractical). Heat-shrink tubing covers each tap (using the ElectroBits Thin Wall Heat Shrink Tubing on hand).</p>
+<p>Empty slots (no module installed) have no Phoenix plug — the harness wires pass through unbroken. When a new module is added, the user makes 4 splice taps at the slot’s X position using the same procedure.</p>
+<h3 id="banana-jack-diagnostic-test-points">4.6 Banana-Jack Diagnostic Test Points</h3>
+<p>Four 4 mm panel-mount banana jacks (Pomona 3760 series) are installed in the front-panel strip at the leftmost ~80 mm. Color mapping (verified against Digi-Key 2026-05-07):</p>
+<table>
+<thead>
+<tr class="header">
+<th>Color</th>
+<th>Pomona P/N</th>
+<th>Digi-Key</th>
+<th>Rail</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Black</td>
+<td>3760-0</td>
+<td>501-1041-ND family</td>
+<td>GND</td>
+</tr>
+<tr class="even">
+<td>Red</td>
+<td>3760-2</td>
+<td>501-1041-ND family</td>
+<td>+5 V</td>
+</tr>
+<tr class="odd">
+<td>Yellow</td>
+<td>3760-4</td>
+<td>501-1041-ND family</td>
+<td>+12 V</td>
+</tr>
+<tr class="even">
+<td>Blue</td>
+<td>3760-6</td>
+<td>501-1041-ND family</td>
+<td>−12 V</td>
+</tr>
+</tbody>
+</table>
+<p>(Note: the Pomona 3760 color suffix mapping is opposite to what’s intuitive — <code>3760-0</code> is <strong>black</strong>, not red. Verified by Digi-Key catalog lookup.)</p>
+<p>Each jack ties to its rail via a short 22 AWG wire from the fuse panel output (after the fuse, before the harness). With the panel jacks fed post-fuse, a fault that blows a fuse will also remove voltage from the test-point jack, providing a cross-check on which rail failed.</p>
+<h3 id="front-panel-indicator-leds">4.7 Front-Panel Indicator LEDs</h3>
+<p>Three panel-mount LED indicators (VCC 5102H series, integrated current-limiting resistor for the rated voltage) sit in the front-panel strip just to the right of the banana jacks:</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Indicator</th>
+<th>LED</th>
+<th>VCC P/N</th>
+<th>Digi-Key</th>
+<th>Wired to</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>+5 V OK</td>
+<td>Red, 5 V</td>
+<td>5102H1-5V</td>
+<td>L10021-ND</td>
+<td>+5 V rail (post-fuse)</td>
+</tr>
+<tr class="even">
+<td>+12 V OK</td>
+<td>Red, 12 V</td>
+<td>5102H1-12V</td>
+<td>5102H1-12V-ND</td>
+<td>+12 V rail (post-fuse)</td>
+</tr>
+<tr class="odd">
+<td>−12 V OK</td>
+<td>Green, 12 V</td>
+<td>5102H5-12V</td>
+<td>5102H5-12V-ND</td>
+<td>−12 V rail (post-fuse, with current direction handled by the LED’s polarity)</td>
+</tr>
+</tbody>
+</table>
+<p>A blown rail fuse causes the corresponding LED to extinguish, giving a visible at-a-glance fault indicator. The LEDs are wired post-fuse so they reflect the rail state actually delivered to the modules.</p>
+<hr />
+<h2 id="usb-tmc-backplane">5. USB-TMC Backplane</h2>
+<p>The Sabrent HB-BU10 USB 3.0 hub serves as the chassis-internal USB-TMC backplane. It is <strong>not on the chassis BOM as a power consumer</strong> of the TX300 — the hub runs from its own 60 W external wall brick, reaching the back panel through a barrel-jack cutout — but it is bolted into the chassis for mechanical integration.</p>
+<p>Each populated module’s Pico 2 W presents a USB-C peripheral interface on the module’s right edge. A short USB-C-to-USB-A cable (~150 mm typical) runs from the module’s right-edge connector to one of the Sabrent’s 10 downstream ports. From the hub’s uplink port, a single USB 3.0 cable runs out the back panel to the Pi 5 host on the bench.</p>
+<p>Per-port switches and per-port LEDs on the HB-BU10 are operationally useful: a misbehaving Pico can be power-cycled by toggling its hub port without affecting any other module, and the per-port LED quickly identifies which port a SCPI device-discovery query enumerated. The hub’s 0.9 A per-port current (USB 3.0 spec minimum) is well above the Pico 2 W’s ~80 mA peak draw.</p>
+<p>The hub’s 10 ports support the v1.0 + v1.1 module count (13 modules) with one port to spare for development gear (a bench USB-TMC scope or a debug Pico). If port count becomes a constraint in a future revision, the hub can be replaced with a higher-port variant (Sabrent HB-B7C3 or similar) without changing any other chassis component.</p>
+<hr />
+<h2 id="bill-of-materials">6. Bill of Materials</h2>
+<p>Verified against current sourcing as of 2026-05-07. Sourcing priority: Mouser → Digi-Key → Microcenter → Amazon. The TX300 PSU is on hand from prior projects ($0); replacement cost ~$50–$70 if buying new.</p>
+<table>
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 13%" />
+<col style="width: 13%" />
+<col style="width: 13%" />
+<col style="width: 17%" />
+<col style="width: 17%" />
+<col style="width: 13%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Manufacturer P/N</th>
+<th>Source</th>
+<th>Source P/N</th>
+<th style="text-align: right;">Qty</th>
+<th style="text-align: right;">Unit Price</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Power supply and breakout</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Silverstone TX300 TFX PSU (300 W)</td>
+<td>Silverstone SST-TX300</td>
+<td>n/a</td>
+<td>n/a</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$0</td>
+<td>On hand</td>
+</tr>
+<tr class="odd">
+<td>GeeekPi D-1188 ATX 24-pin breakout</td>
+<td>GeeekPi D-1188</td>
+<td>Amazon</td>
+<td>B08MC389FQ</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$13</td>
+<td>All rails incl. −12 V; per-rail status LEDs; PS_ON# slide switch; verified 2026-05-07</td>
+</tr>
+<tr class="even">
+<td><strong>Per-rail fuse panel</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Panel-mount fuse holder, 5×20 mm cartridge</td>
+<td>Eaton BK/HTB-22M-R</td>
+<td>Digi-Key</td>
+<td>283-3041-ND</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">$4.20</td>
+<td>One per active rail (+5 V, +12 V, −12 V)</td>
+</tr>
+<tr class="even">
+<td>Slow-blow glass fuse 5×20 mm 5 A 125 V</td>
+<td>Bel BK1/GMC-5-R</td>
+<td>Digi-Key</td>
+<td>(search direct)</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">$1.75</td>
+<td>+5 V rail; pack with spares</td>
+</tr>
+<tr class="odd">
+<td>Slow-blow glass fuse 5×20 mm 3 A 125 V</td>
+<td>Bel BK1/GMC-3-R</td>
+<td>Digi-Key</td>
+<td>(search direct)</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">$1.75</td>
+<td>+12 V rail; pack with spares</td>
+</tr>
+<tr class="even">
+<td>Slow-blow glass fuse 5×20 mm 0.5 A 125 V</td>
+<td>Bel BK1/GMC-500MA-R</td>
+<td>Digi-Key</td>
+<td>(search direct)</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">$1.75</td>
+<td>−12 V rail; pack with spares</td>
+</tr>
+<tr class="odd">
+<td><strong>Module power interconnect</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Phoenix MC 1,5/4-G-3,81 PCB header (chassis-side)</td>
+<td>Phoenix Contact 1803293</td>
+<td>Digi-Key</td>
+<td>277-1208-ND</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">$3.51</td>
+<td>One per module slot, mounted on per-module PCB</td>
+</tr>
+<tr class="odd">
+<td>Phoenix MC 1,5/4-ST-3,81 cable plug (back-wall harness)</td>
+<td>Phoenix Contact 1803594</td>
+<td>Digi-Key</td>
+<td>277-1163-ND</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">$8.73</td>
+<td>One per active slot; tapped into back-wall harness</td>
+</tr>
+<tr class="even">
+<td>Hookup wire 14 AWG stranded, red/yellow/blue/black</td>
+<td>Alpha 3050 series</td>
+<td>Mouser</td>
+<td>602-3050-*</td>
+<td style="text-align: right;">1.5 m each color</td>
+<td style="text-align: right;">$5/color</td>
+<td>4-rail back-wall harness, ~330 mm × 4 colors</td>
+</tr>
+<tr class="odd">
+<td>Hookup wire 22 AWG stranded, assorted colors</td>
+<td>Alpha 3050 series</td>
+<td>Mouser</td>
+<td>602-3050-*</td>
+<td style="text-align: right;">30 m total</td>
+<td style="text-align: right;">$20</td>
+<td>LED wiring, banana-jack wiring, pigtails</td>
+</tr>
+<tr class="even">
+<td><strong>Front-panel diagnostic features</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Banana jack panel-mount, 4 mm</td>
+<td>Pomona 3760-0 (black)</td>
+<td>Digi-Key</td>
+<td>501-1041-ND</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$5</td>
+<td>GND test point</td>
+</tr>
+<tr class="even">
+<td>Banana jack panel-mount, 4 mm</td>
+<td>Pomona 3760-2 (red)</td>
+<td>Digi-Key</td>
+<td>501-1041-ND</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$5</td>
+<td>+5 V test point</td>
+</tr>
+<tr class="odd">
+<td>Banana jack panel-mount, 4 mm</td>
+<td>Pomona 3760-4 (yellow)</td>
+<td>Digi-Key</td>
+<td>501-1041-ND</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$5</td>
+<td>+12 V test point</td>
+</tr>
+<tr class="even">
+<td>Banana jack panel-mount, 4 mm</td>
+<td>Pomona 3760-6 (blue)</td>
+<td>Digi-Key</td>
+<td>501-1041-ND</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$5</td>
+<td>−12 V test point</td>
+</tr>
+<tr class="odd">
+<td>LED panel indicator, red, 5 V</td>
+<td>VCC 5102H1-5V</td>
+<td>Digi-Key</td>
+<td>L10021-ND</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$1.92</td>
+<td>+5 V OK</td>
+</tr>
+<tr class="even">
+<td>LED panel indicator, red, 12 V</td>
+<td>VCC 5102H1-12V</td>
+<td>Digi-Key</td>
+<td>5102H1-12V-ND</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$1.92</td>
+<td>+12 V OK</td>
+</tr>
+<tr class="odd">
+<td>LED panel indicator, green, 12 V</td>
+<td>VCC 5102H5-12V</td>
+<td>Digi-Key</td>
+<td>5102H5-12V-ND</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$1.92</td>
+<td>−12 V OK</td>
+</tr>
+<tr class="even">
+<td><strong>USB-TMC backplane</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Sabrent HB-BU10 USB 3.0 hub, 10-port, self-powered</td>
+<td>Sabrent HB-BU10</td>
+<td>Amazon</td>
+<td>B0797NZFYP</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$47</td>
+<td>Verified 2026-05-07; uses own 60 W brick, not chassis PSU</td>
+</tr>
+<tr class="even">
+<td>USB-C to USB-A cable, 150 mm</td>
+<td>Generic</td>
+<td>Amazon</td>
+<td>(any)</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">$2</td>
+<td>Per-module cable from Pico 2 W USB-C to hub USB-A</td>
+</tr>
+<tr class="odd">
+<td><strong>Mechanical (acrylic frame, hardware)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Custom laser-cut acrylic frame, 4 mm clear</td>
+<td>n/a</td>
+<td>SendCutSend</td>
+<td>(custom DXF upload)</td>
+<td style="text-align: right;">1 set</td>
+<td style="text-align: right;">$40–80</td>
+<td>6 pieces: floor, top, left, right, back, front. Quote varies with exact DXF.</td>
+</tr>
+<tr class="odd">
+<td>M3 corner standoffs, 12 mm</td>
+<td>Generic</td>
+<td>Amazon or Mouser</td>
+<td>(assorted)</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">$0.50</td>
+<td>Frame assembly</td>
+</tr>
+<tr class="even">
+<td>M3 × 6 mm screws</td>
+<td>Generic</td>
+<td>Amazon or Mouser</td>
+<td>(assorted)</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">$0.10</td>
+<td>Frame and component mounting</td>
+</tr>
+<tr class="odd">
+<td>M3 × 12 mm screws</td>
+<td>Generic</td>
+<td>Amazon or Mouser</td>
+<td>(assorted)</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">$0.10</td>
+<td>TX300, GeeekPi, hub mounting</td>
+</tr>
+<tr class="even">
+<td><strong>On hand (no purchase)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>ElectroBits Thin Wall Heat Shrink Tubing, assorted</td>
+<td>ElectroBits</td>
+<td>n/a</td>
+<td>n/a</td>
+<td style="text-align: right;">1 set</td>
+<td style="text-align: right;">$0</td>
+<td>On hand; covers harness taps and solder joints</td>
+</tr>
+<tr class="even">
+<td><strong>Subtotal</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Required (no front-panel test points or LEDs)</td>
+<td></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"><strong>~$235</strong></td>
+<td>Floor with TX300, breakout, fuse panel, harness, hub, modules connected</td>
+</tr>
+<tr class="even">
+<td>With front-panel banana jacks and LEDs</td>
+<td></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"><strong>~$260</strong></td>
+<td>Adds diagnostic visibility</td>
+</tr>
+</tbody>
+</table>
+<p>The chassis BOM is exclusive of the per-module BOMs, which are documented in each module’s design doc.</p>
+<hr />
+<h2 id="bring-up-procedure">7. Bring-Up Procedure</h2>
+<p>In order on first power-up, before any module is installed:</p>
+<h3 id="mechanical-assembly-verification">7.1 Mechanical assembly verification</h3>
+<ol type="1">
+<li><strong>Visual inspection of the frame.</strong> Confirm all six acrylic pieces are flat, free of cracks, and match the DXF dimensions. Confirm the floor card-guide grooves are at 22.5 mm pitch and span the full module-bay X range, the matching grooves are present on the underside of the top plate, the top-plate vent grille is in the right place, and the front-panel diagnostic strip cutouts (banana jacks + LEDs) are at the right positions. The 14 module-faceplate cutouts in the front panel are deferred — verify the front panel is otherwise solid above the diagnostic strip in the v1 fabrication.</li>
+<li><strong>Dry-fit the frame</strong> without electrical components. Verify all M3 screws thread fully; verify the front and back panels seat flush; verify no internal feature (standoff, screw head) blocks the module slot envelope.</li>
+</ol>
+<h3 id="electrical-bring-up-no-modules">7.2 Electrical bring-up, no modules</h3>
+<ol start="3" type="1">
+<li><strong>Mount the TX300</strong> to the floor plate. Verify the IEC inlet aligns with the back-panel cutout.</li>
+<li><strong>Mount the GeeekPi D-1188</strong> to the TX300’s top face. Connect the TX300’s 24-pin ATX cable to the breakout’s 24-pin input.</li>
+<li><strong>Wire the per-rail fuse panel.</strong> From the breakout’s screw terminals, run +5 V, +12 V, and −12 V through their respective fuse holders (5 A, 3 A, 0.5 A) to short stub wires. Leave the stub wires unconnected for now.</li>
+<li><strong>Verify continuity (mains disconnected)</strong>: with the IEC cord unplugged, confirm no short between any two rails or between any rail and the GeeekPi’s metal housing. Use a DMM at the breakout’s screw terminals.</li>
+<li><strong>Plug the IEC cord</strong> into the back-panel cutout. Switch the GeeekPi’s PS_ON# slide switch ON.</li>
+<li><strong>Verify rail voltages</strong> at the post-fuse stub wires: +5 V should read 4.95 to 5.05 V, +12 V should read 11.85 to 12.15 V, −12 V should read −11.7 to −12.3 V.</li>
+<li><strong>Verify the front-panel LEDs light</strong> (+5 V OK red, +12 V OK red, −12 V OK green). Verify the GeeekPi’s onboard rail-status LEDs are also lit.</li>
+<li><strong>Verify the banana-jack test points</strong> read the correct rail voltage with a DMM.</li>
+</ol>
+<h3 id="back-wall-harness-bring-up">7.3 Back-wall harness bring-up</h3>
+<ol start="11" type="1">
+<li><strong>Wire the back-wall harness.</strong> Run 4 × 14 AWG wires from the post-fuse rails along the chassis upper-rear region. Solder a Phoenix MC 1,5/4-ST plug at each module slot’s X position (or wire only one or two for initial bring-up).</li>
+<li><strong>Verify harness voltage</strong> at each Phoenix plug: clip a DMM across pins 1-4 and 2-4 (or use a banana-tipped probe through the plug from the back); confirm +5 V, +12 V, −12 V are present at each plug.</li>
+<li><strong>Switch PS_ON# OFF</strong> and verify all rails fall to ~0 V within 5 seconds (TX300’s bulk-cap discharge time is bounded by its internal bleed resistors).</li>
+</ol>
+<h3 id="usb-hub-bring-up">7.4 USB hub bring-up</h3>
+<ol start="14" type="1">
+<li><strong>Mount the Sabrent HB-BU10</strong> to the floor plate at the rear-center position. Connect its DC barrel jack to the Sabrent’s 60 W wall brick (external, runs out the back panel through a barrel cutout). Connect its uplink USB cable to the Pi 5.</li>
+<li><strong>Verify the hub enumerates.</strong> Run <code>lsusb</code> on the Pi 5 and confirm the Sabrent appears as a USB 3.0 hub device.</li>
+<li><strong>Verify per-port switches and LEDs.</strong> Toggle each of the 10 per-port switches OFF and ON; confirm the LED for that port follows.</li>
+</ol>
+<h3 id="first-module-bring-up">7.5 First-module bring-up</h3>
+<ol start="17" type="1">
+<li><strong>Install one module</strong> into the leftmost slot (slot 1). Connect its USB-C cable to hub port 1. Connect the slot-1 Phoenix plug to the module’s top-rear header.</li>
+<li><strong>Switch PS_ON# ON</strong> and verify the module’s Pico boots (heartbeat LED on the Pico).</li>
+<li><strong>Run <code>lsusb</code></strong> on the Pi 5 and confirm the module appears as a USB-TMC device.</li>
+<li><strong>Run a smoke-test SCPI sequence</strong> against the module (<code>*IDN?</code> query) and confirm a valid response.</li>
+</ol>
+<h3 id="full-population">7.6 Full population</h3>
+<ol start="21" type="1">
+<li><strong>Repeat steps 17–20</strong> for each module as it is built and bring-up tested. Each module follows the same procedure.</li>
+</ol>
+<hr />
+<h2 id="safety-procedures">8. Safety Procedures</h2>
+<h3 id="daily-operation">8.1 Daily operation</h3>
+<p>Power up: confirm the TX300’s IEC cord is plugged in. Switch the GeeekPi’s PS_ON# slide switch ON. Front-panel LEDs should illuminate.</p>
+<p>Power down: switch PS_ON# OFF. The +5 V Standby rail remains alive but is not used by anything in the chassis. For complete disconnect, unplug the IEC cord.</p>
+<h3 id="working-inside-the-chassis">8.2 Working inside the chassis</h3>
+<p>The DC zone (everything downstream of the GeeekPi) is SELV under all operating conditions and is touch-safe. The AC zone (TX300’s primary side, IEC inlet) is contained inside the TX300’s certified enclosure; mains never leaves the PSU body.</p>
+<p>To work inside the chassis (e.g., adding a module, replacing a fuse, debugging a harness tap):</p>
+<ol type="1">
+<li>Switch PS_ON# OFF.</li>
+<li>Unplug the IEC cord from the back panel (positive disconnect — never trust just the slide switch for safety).</li>
+<li>Wait 10 seconds for the TX300’s bulk capacitors to discharge through their internal bleed resistors.</li>
+<li>With a DMM, verify zero voltage on all rails at the post-fuse test points before touching any wire.</li>
+<li>Perform the work.</li>
+<li>Reverse the procedure: re-seat all components, plug the IEC cord, switch PS_ON# ON, re-verify rail voltages.</li>
+</ol>
+<h3 id="shared-work-lockout-tagout">8.3 Shared work / lockout-tagout</h3>
+<p>If anyone other than the operator is working in the chassis (e.g., a friend helping debug a module):</p>
+<ol type="1">
+<li>Unplug the IEC cord from the wall outlet.</li>
+<li>Hang a tag on the cord saying “DO NOT PLUG IN — under maintenance.”</li>
+<li>Open the chassis as in section 8.2.</li>
+<li>Verify zero voltage with a DMM before touching any conductor.</li>
+</ol>
+<p>This is overkill for solo hobbyist work but matches industry practice and is worth practicing.</p>
+<hr />
+<h2 id="future-enhancements">9. Future Enhancements</h2>
+<ul>
+<li><strong>Active cooling</strong> via a small 40 mm muffin fan mounted on a side panel if the TX300 fan plus convective vent prove insufficient under sustained load. The chassis frame can be re-cut with a 40 mm fan grille without affecting any other piece.</li>
+<li><strong>Per-module fuses</strong> in addition to per-rail fuses, providing slot-level fault isolation. The Phoenix MC 1,5/4-ST plug at each slot can be replaced with a 4-position fused plug (Phoenix MSTBVA series) at additional cost, ~$8 per slot.</li>
+<li><strong>Higher-port USB hub</strong> if the v2.0 module roadmap exceeds the Sabrent HB-BU10’s 10 ports. The hub is a drop-in swap; no chassis modifications required.</li>
+<li><strong>Galvanically isolated module variants</strong> for HV-input modules (Module 1F HV diff probe v1.2). The module’s input would use a flyback isolated DC-DC converter and digital isolators, drawing only +5 V from the harness; the −12 V and +12 V rails would not be used by that module.</li>
+<li><strong>Larger-current rail variants</strong> for high-current SMU upgrades. The TX300’s +12 V rail at 22 A is plenty for the planned analog modules; higher-current applications would need a different PSU class (e.g., a Mean Well RD-65A), which would be a separate chassis design.</li>
+<li><strong>Per-rail current monitoring</strong> via INA226 or similar I²C current-sense ICs in line with each rail at the GeeekPi outputs. Adds ~$10 in parts and gives telemetry into Pico-driven monitoring during measurement runs.</li>
+<li><strong>DIN-rail or rack-mount adaptation</strong> for users who want to integrate the chassis into a larger 19" rack or a DIN-rail-style instrument bay. The acrylic frame can be replaced with a different cut without changing any electrical content.</li>
+</ul>
+<hr />
+<h2 id="references">10. References</h2>
+<ul>
+<li><a href="../system-design/System_Design_Document.html#power-architecture">PMVB System Design Document section 11 (Power Architecture)</a> — high-level architecture context.</li>
+<li><a href="../system-design/System_Design_Document.html#top-level-architecture">PMVB System Design Document section 4.1 (Top-Level Architecture)</a> — chassis position in the wider system.</li>
+<li><a href="Chassis_Power_Distribution_Design.html">Deprecated Chassis Power Distribution Design v1.0</a> — prior architecture (Hammond enclosure, chassis-wide power for Pi 5 / hub / modules). Superseded 2026-05-07.</li>
+<li><a href="https://www.silverstonetek.com/en/product/info/power-supply/TX300/">Silverstone SST-TX300 manual</a> — TX300 PSU electrical and mechanical specs.</li>
+<li><a href="https://www.amazon.com/dp/B08MC389FQ">GeeekPi D-1188 product page</a> — ATX 24-pin breakout reference.</li>
+<li><a href="https://www.amazon.com/dp/B0797NZFYP">Sabrent HB-BU10 product page</a> — USB 3.0 hub reference.</li>
+<li><a href="https://www.phoenixcontact.com/en-us/products/pcb-plug-mc-15-4-st-381-1803594">Phoenix Contact MC 1,5/4 series datasheet</a> — module power interconnect.</li>
+<li><a href="https://sendcutsend.com/materials/acrylic/">SendCutSend acrylic laser-cutting service</a> — chassis fabrication.                                                                                                                                                                                                                                                                                                                                              </li>
+</ul>
+</body>
+</html>
