@@ -104,13 +104,13 @@ Phase 0 brings up the orchestration head (Pi 5 + software stack) and the chassis
 ### Pi 5 hardware
 
 - [x] Raspberry Pi 5 16 GB price verified at Microcenter ($305)
-- [ ] Order / receive Pi 5 16 GB
-- [ ] Order Pi 5 official 27 W USB-C charger ($15)
-- [ ] Order active cooler / heatsink ($5)
-- [ ] Order 32 GB microSD card ($8)
-- [ ] Order Raspberry Pi M.2 HAT+ ($12)
-- [ ] Order 512 GB NVMe SSD M.2 2230 or 2242 ($40)
-- [ ] Assemble Pi 5: install heatsink, M.2 HAT+, NVMe SSD
+- [x] Order / receive Pi 5 16 GB
+- [x] Order Pi 5 official 27 W USB-C charger ($15)
+- [x] Order active cooler / heatsink ($5)
+- [x] Order 32 GB microSD card ($8)
+- [x] Order Raspberry Pi M.2 HAT+ ($12)
+- [x] Order 512 GB NVMe SSD M.2 2230 or 2242 ($40)
+- [x] Assemble Pi 5: install heatsink, M.2 HAT+, NVMe SSD
 
 ### Pi 5 software stack (Raspberry Pi OS 64-bit)
 
