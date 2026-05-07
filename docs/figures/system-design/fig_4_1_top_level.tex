@@ -33,7 +33,7 @@
   % MIDDLE: Pi 5 orchestration head with the two control planes shown as
   % labeled internal bands
   % =========================================================================
-  \node[pmvb subsystem, minimum width=104mm, minimum height=34mm]
+  \node[pmvb subsystem, minimum width=104mm, minimum height=38mm]
     (pi5) at (0, 2.5) {};
   %
   % Pi 5 title at the top of the box
@@ -42,26 +42,31 @@
   \node[font=\sffamily\scriptsize, text=pmvbFg]
     at ([yshift=-8mm]pi5.north) {Orchestration Head};
   %
-  % VISA/SCPI plane band (left half of Pi 5)
-  \node[pmvb internal, minimum width=46mm, minimum height=14mm,
-        anchor=west]
-    at ([xshift=4mm, yshift=-7mm]pi5.west)
+  % VISA/SCPI plane band (left half of Pi 5).
+  % Band sized 16mm tall to fit a header line + two-line body without clipping.
+  \node[pmvb internal, minimum width=46mm, minimum height=16mm,
+        anchor=north west]
+    at ([xshift=4mm, yshift=-13mm]pi5.north west)
     (visa_plane) {};
-  \node[font=\sffamily\bfseries\scriptsize, text=pmvbBlue]
-    at ([yshift=-3mm]visa_plane.north) {VISA/SCPI plane};
-  \node[font=\sffamily\scriptsize, text=pmvbFg, align=center]
-    at ([yshift=2mm]visa_plane.south)
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbBlue,
+        anchor=north]
+    at ([yshift=-1.5mm]visa_plane.north) {VISA/SCPI plane};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, align=center,
+        anchor=south]
+    at ([yshift=1.5mm]visa_plane.south)
     {pytest \textbullet{} PyVISA\\InfluxDB \textbullet{} Grafana};
   %
   % MCP plane band (right half of Pi 5)
-  \node[pmvb internal, minimum width=46mm, minimum height=14mm,
-        anchor=east, draw=pmvbViolet]
-    at ([xshift=-4mm, yshift=-7mm]pi5.east)
+  \node[pmvb internal, minimum width=46mm, minimum height=16mm,
+        anchor=north east, draw=pmvbViolet]
+    at ([xshift=-4mm, yshift=-13mm]pi5.north east)
     (mcp_plane) {};
-  \node[font=\sffamily\bfseries\scriptsize, text=pmvbViolet]
-    at ([yshift=-3mm]mcp_plane.north) {MCP plane};
-  \node[font=\sffamily\scriptsize, text=pmvbFg, align=center]
-    at ([yshift=2mm]mcp_plane.south)
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbViolet,
+        anchor=north]
+    at ([yshift=-1.5mm]mcp_plane.north) {MCP plane};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, align=center,
+        anchor=south]
+    at ([yshift=1.5mm]mcp_plane.south)
     {MCP gateway\\(LLM-callable tools)};
   %
   % =========================================================================
@@ -82,7 +87,7 @@
   %
   % LAN annotation: just above Pi 5's top edge, tight to the box
   \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
-    at (0, 4.5) {wired Ethernet (bench network)};
+    at (0, 4.6) {wired Ethernet (bench network)};
   %
   % =========================================================================
   % Pi 5 to USB Hub
@@ -149,7 +154,9 @@
   %
   \draw[pmvb bus] (bus_jct) -| (t1.north);
   \draw[pmvb bus] (bus_jct) -- (t2.north);
-  \draw[pmvb bus, draw=pmvbMuted, dashed] (bus_jct) -| (t3.north);
+  % Tier 3 deferred: drop the arrowhead so the dashed muted tail reads as a
+  % placeholder rather than an active signal connection.
+  \draw[pmvb bus, draw=pmvbMuted, dashed, -] (bus_jct) -| (t3.north);
   %
   \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
     at ($(hub.south) + (1.6, -1.2)$) {USB-TMC};
@@ -199,12 +206,4 @@
     at ($(trig_bottom) + (0, -8mm)$)
     {Optional shared\\trigger bus};
   %
-  % =========================================================================
-  % Caption (below everything)
-  % =========================================================================
-  \node[font=\sffamily\scriptsize\bfseries, text=pmvbFg,
-        below=18mm of dut2.south]
-    {Figure 4-1: PMVB v1.0 top-level system block diagram.};
-  %
-\end{tikzpicture}
-\end{document}
+  % =================================
