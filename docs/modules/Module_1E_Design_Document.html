@@ -117,7 +117,6 @@ blockquote {
   margin: 1rem 0;
   border-radius: 0 6px 6px 0;
 }
-/* Inline TOC styling */
 #TOC, .toc {
   background: var(--card);
   padding: 1.25rem 1.5rem;
@@ -132,7 +131,6 @@ blockquote {
 }
 #TOC li, .toc li { margin: 0.15rem 0; }
 #TOC > ul, .toc > ul { padding-left: 0; }
-/* Mermaid container */
 .mermaid {
   background: var(--card);
   border-radius: 8px;
@@ -142,7 +140,6 @@ blockquote {
   text-align: center;
   overflow-x: auto;
 }
-/* Width slider control (mirrors FMCW pattern) */
 .width-control {
   position: fixed;
   top: 12px;
@@ -159,33 +156,12 @@ blockquote {
   gap: 0.5rem;
 }
 .width-control input[type="range"] { width: 120px; }
-/* Document metadata block */
 .meta {
   color: var(--dim);
   font-size: 0.9rem;
   margin: 1rem 0 2rem;
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    if (window.mermaid) {
-      mermaid.initialize({
-        startOnLoad: true,
-        theme: 'dark',
-        themeVariables: {
-          background: '#16213e',
-          primaryColor: '#0f3460',
-          primaryTextColor: '#f0f0f0',
-          primaryBorderColor: '#60a5fa',
-          lineColor: '#d4d4d4',
-          secondaryColor: '#16213e',
-          tertiaryColor: '#1a1a2e'
-        }
-      });
-    }
-  });
-</script>
 </head>
 <body>
 <div class="width-control">
@@ -194,33 +170,35 @@ blockquote {
 </div>
 <h1 id="module-1e-function-generator-arbitrary-waveform-generator">Module 1E: Function Generator / Arbitrary Waveform Generator</h1>
 <h2 id="module-design-document">Module Design Document</h2>
-<p><strong>Version:</strong> 1.0 (May 2026) <strong>Module ID:</strong> 1E <strong>Tier:</strong> 1 <strong>Status:</strong> In Design <strong>Parent SDD section:</strong> 7.5.5 of the <a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document</a></p>
+<p><strong>Version:</strong> 1.1 (May 2026, Option A redesign) <strong>Module ID:</strong> 1E <strong>Tier:</strong> 1 <strong>Status:</strong> In Design <strong>Parent SDD section:</strong> 7.5.5 of the <a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document</a></p>
 <hr />
 <h2 id="table-of-contents">Table of Contents</h2>
 <ul>
 <li><a href="#theory-of-operation">1. Theory of Operation</a>
 <ul>
 <li><a href="#signal-generation-chain">Signal generation chain</a></li>
-<li><a href="#why-mcp4922-instead-of-a-higher-rate-dac">Why MCP4922 instead of a higher-rate DAC</a></li>
+<li><a href="#why-ad9742-with-pico-parallel-streaming">Why AD9742 with Pico parallel streaming</a></li>
 <li><a href="#output-impedance-switching">Output impedance switching</a></li>
 <li><a href="#synchronization-and-trigger">Synchronization and trigger</a></li>
 </ul></li>
 <li><a href="#functional-block-diagram">2. Functional Block Diagram</a></li>
 <li><a href="#schematic-notes-high-level-full-schematic-in-kicad">3. Schematic Notes (high-level; full schematic in KiCad)</a>
 <ul>
-<li><a href="#output-stage">Output stage</a></li>
+<li><a href="#dac-output-stage-and-current-to-voltage-conversion">DAC output stage and current-to-voltage conversion</a></li>
+<li><a href="#reconstruction-filter">Reconstruction filter</a></li>
+<li><a href="#op-amp-differential-to-single-ended-converter">Op-amp differential-to-single-ended converter</a></li>
 <li><a href="#op-amp-supply">Op-amp supply</a></li>
-<li><a href="#output-filter">Output filter</a></li>
 <li><a href="#impedance-switching">Impedance switching</a></li>
 <li><a href="#decoupling">Decoupling</a></li>
 </ul></li>
 <li><a href="#pin-assignments">4. Pin Assignments</a>
 <ul>
-<li><a href="#pico-2-w-to-mcp4922">Pico 2 W to MCP4922</a></li>
-<li><a href="#pico-2-w-to-op-amp-output-stage">Pico 2 W to op-amp / output stage</a></li>
+<li><a href="#pico-2-w-parallel-data-clock-to-ad9742">Pico 2 W parallel data + clock to AD9742</a></li>
+<li><a href="#pico-2-w-relay-control">Pico 2 W relay control</a></li>
+<li><a href="#pico-2-w-trigger-io">Pico 2 W trigger I/O</a></li>
 <li><a href="#pico-2-w-power">Pico 2 W power</a></li>
-<li><a href="#mcp4922-to-op-amp-summing-junction">MCP4922 to op-amp summing junction</a></li>
-<li><a href="#tl072-op-amp-output-stage">TL072 op-amp output stage</a></li>
+<li><a href="#ad9742-pinout-summary">AD9742 pinout summary</a></li>
+<li><a href="#ad8056-op-amp-output-stage">AD8056 op-amp output stage</a></li>
 </ul></li>
 <li><a href="#specifications-matching-sdd-table-7-27">5. Specifications (matching SDD Table 7-27)</a></li>
 <li><a href="#sample-applications">6. Sample Applications</a>
@@ -229,6 +207,8 @@ blockquote {
 <li><a href="#swept-sine-for-thd-measurement-paired-with-module-2e">6.2 Swept sine for THD measurement (paired with Module 2E)</a></li>
 <li><a href="#multitone-for-imd-intermodulation-distortion">6.3 Multitone for IMD (intermodulation distortion)</a></li>
 <li><a href="#white-noise-for-noise-floor-characterization">6.4 White noise for noise-floor characterization</a></li>
+<li><a href="#clock-generation-for-digital-characterization">6.5 Clock generation for digital characterization</a></li>
+<li><a href="#bias-mode-voltage-injection">6.6 Bias-mode voltage injection</a></li>
 </ul></li>
 <li><a href="#bill-of-materials">7. Bill of Materials</a></li>
 <li><a href="#calibration-procedure">8. Calibration Procedure</a>
@@ -236,361 +216,212 @@ blockquote {
 <li><a href="#dc-offset-calibration">8.1 DC offset calibration</a></li>
 <li><a href="#gain-calibration">8.2 Gain calibration</a></li>
 <li><a href="#frequency-calibration">8.3 Frequency calibration</a></li>
+<li><a href="#reconstruction-filter-passband-flatness">8.4 Reconstruction filter passband flatness</a></li>
 </ul></li>
 <li><a href="#bring-up-checklist">9. Bring-Up Checklist</a></li>
 <li><a href="#known-issues-and-future-work">10. Known Issues and Future Work</a></li>
+<li><a href="#references">11. References</a></li>
 </ul>
 <hr />
 <h2 id="theory-of-operation">1. Theory of Operation</h2>
-<p>Module 1E generates audio-band analog waveforms for amplifier characterization, in-ear monitor testing, and any test sequence that needs a controlled stimulus into a DUT. The module is built on a single Pico 2 W presenting as a USB-TMC instrument to the Pi 5 host; calibration constants live in the Pico’s onboard 4 MB flash. The design is a Pico-MCU-driven dual DAC + op-amp output buffer in the simplest possible topology that still hits the target performance envelope (DC to ~50 kHz, ±10 V into 600 Ω, 12-bit amplitude resolution).</p>
+<p>Module 1E generates analog waveforms for amplifier characterization, in-ear monitor and headset testing, clock generation for digital interfaces, and any test sequence that needs a controlled stimulus into a DUT. The module is built on a single Pico 2 W presenting as a USB-TMC instrument to the Pi 5 host; calibration constants live in the Pico's onboard 4 MB flash. The design pairs the Pico with an Analog Devices AD9742 12-bit 210 MSPS current-mode DAC, an AD8056 high-speed differential-to-single-ended op-amp output stage, a 5th-order Butterworth reconstruction filter, and a three-position output impedance switch (50 Ω / 600 Ω / 10 kΩ). Single-channel BNC output, ±10 V swing, DC to 10 MHz signal range.</p>
 <h3 id="signal-generation-chain">Signal generation chain</h3>
-<p>A precomputed waveform sample table sits in the Pico’s flash. The Pico’s DMA engine streams samples from this table to the Microchip MCP4922 dual 12-bit DAC over SPI at up to 1 MSPS (per channel). The MCP4922 outputs are voltage-mode (range 0 to 4.096 V using its internal reference) and feed an op-amp output stage that level-shifts and amplifies the DAC signal to ±10 V single-ended, with selectable output impedance (50 Ω or 600 Ω) at a front-panel BNC connector.</p>
-<p>For a 1 kHz sine wave at 1 MSPS DAC update rate, the waveform has 1000 samples per cycle, far above the Nyquist requirement, and the resulting total harmonic distortion is dominated by the DAC’s INL/DNL and the op-amp’s distortion (both well under 0.1% across the audio band). The 50 kHz upper limit is a margin call: at 50 kHz the cycle has 20 samples, producing a stair-step output that the output low-pass filter (in the op-amp stage) smooths to within 1% THD.</p>
-<h3 id="why-mcp4922-instead-of-a-higher-rate-dac">Why MCP4922 instead of a higher-rate DAC</h3>
-<p>The MCP4922 is a deliberately conservative choice. It has no internal output amplifier (so we use external op-amp), modest SPI rate (max 20 MHz, comfortably driven by Pico SPI), and a well-characterized 12-bit linearity. An AD9744 (14-bit, 165 MSPS) would push module bandwidth into the MHz range but at substantially higher cost, more complex layout, and capability that isn’t needed for audio characterization. The MCP4922 is the right part for the bandwidth target.</p>
-<h3 id="output-impedance-switching">Output impedance switching</h3>
-<p>The output stage can present two source impedances:</p>
+<p>A precomputed waveform sample table sits in the Pico's flash or is generated on the fly in SRAM. The Pico's PIO (Programmable I/O) state machine, paired with DMA, streams 12-bit samples to the AD9742's parallel data port at up to 50 MSPS. The AD9742 outputs a complementary differential current pair (IOUTA, IOUTB), which drives 25 Ω termination resistors to AGND to convert the current to a differential voltage. A 5th-order Butterworth low-pass filter at ~12 MHz cutoff smooths the DAC stair-step output, then an AD8056 op-amp configured as a differential receiver with gain converts to single-ended ±10 V output. The single-ended signal passes through a three-position impedance switch (50 Ω / 600 Ω / 10 kΩ) to a front-panel BNC.</p>
+<p>For a 1 kHz sine wave at 50 MSPS DAC update rate, the waveform has 50,000 samples per cycle: many orders of magnitude above the Nyquist requirement, with quantization noise dominated by DAC INL/DNL rather than oversampling ratio. At 10 MHz output the DAC produces 5 samples per cycle (5× oversampling), and the reconstruction filter rejects the first image (at 50 − 10 = 40 MHz) by approximately 50 dB. A ±10 V sine at 10 MHz requires roughly 628 V/µs slew at the op-amp output, well within the AD8056's 1400 V/µs spec.</p>
+<h3 id="why-ad9742-with-pico-parallel-streaming">Why AD9742 with Pico parallel streaming</h3>
+<p>The AD9742 is a current-output DAC with a parallel data interface: 12 data bits plus a clock line. This trades two things for two others, compared to a SPI-driven DAC like the MCP4922:</p>
 <ul>
-<li><strong>50 Ω</strong>: for connection to oscilloscope inputs, function generator inputs on other lab gear, or any 50 Ω-input device.</li>
-<li><strong>600 Ω</strong>: the historical audio industry standard, useful for connection to balanced audio inputs or high-impedance loads where 50 Ω back-termination is not required.</li>
+<li><strong>Trade 1 (positive)</strong>: parallel interface lets the DAC update at the Pico's full PIO clock rate (up to 150 MHz on RP2350), enabling 50+ MSPS update rates that SPI cannot reach. Bandwidth of the resulting analog output stretches into the 10s of MHz.</li>
+<li><strong>Trade 2 (positive)</strong>: TSSOP package (28-pin, 0.65 mm pitch, leaded gull-wing) is hand-solderable with a basic iron and flux. Compare to AD9106's 32-LFCSP, which requires hot-air rework or oven reflow.</li>
+<li><strong>Trade 3 (negative)</strong>: parallel interface consumes more Pico GPIOs (13 versus 4 for SPI). Pico has the GPIOs to spare; this is a non-issue in practice.</li>
+<li><strong>Trade 4 (negative)</strong>: the Pico has to stream samples in real time at the DAC update rate — there's no internal pattern memory or DDS engine on the AD9742. At 50 MSPS this requires PIO + DMA at ~75 MB/s sustained throughput, which is at the edge of what RP2350 can do reliably; in practice the module runs at 30 to 50 MSPS depending on waveform complexity.</li>
 </ul>
-<p>Switching is via a single SPDT reed relay that selects which series resistor sits between the op-amp output and the BNC.</p>
+<p>For practical AWG use cases (single tones via phase-accumulator DDS in firmware, swept sines, multitone, pseudo-random noise, simple arbitrary waveforms up to a few kSPS), the trade-offs land favorably on the AD9742's side.</p>
+<h3 id="output-impedance-switching">Output impedance switching</h3>
+<p>The output stage can present three source impedances, selected by three SPST reed relays gated by Pico GPIOs (only one energized at a time):</p>
+<ul>
+<li><strong>50 Ω</strong> — for connection to oscilloscope inputs (50 Ω termination), RF gear, or any device with a 50 Ω input.</li>
+<li><strong>600 Ω</strong> — legacy audio standard, useful for connection to vintage transformer-coupled audio gear or high-impedance balanced lines.</li>
+<li><strong>10 kΩ</strong> — current-limited "bias" mode for safely applying a voltage to a digital pin, calibration test point, or other high-impedance node. The 10 kΩ series resistor caps fault current at V/R (e.g., 10 V into a short = 1 mA), well below the input clamp-diode rating of any 3.3 V or 5 V CMOS digital input.</li>
+</ul>
 <h3 id="synchronization-and-trigger">Synchronization and trigger</h3>
-<p>The module exposes one auxiliary digital output that can be configured as a sync pulse (rising edge at the start of each waveform period) or a continuous gate. This output ties to the chassis-wide trigger bus (see SDD section 11.4) so that captures on Module 2E can be synchronized to AWG output without software-arming jitter.</p>
+<p>The module exposes one auxiliary digital output that can be configured as a sync pulse (rising edge at the start of each waveform period) or a continuous gate. This output ties to the chassis-wide trigger bus (see SDD section 11.4) so captures on Module 2E (Mixed-Signal Digitizer) can be synchronized to AWG output without software-arming jitter. The module also accepts a trigger input from the same bus, allowing the AWG to start its waveform on an external event.</p>
 <h2 id="functional-block-diagram">2. Functional Block Diagram</h2>
-<p>Module 1E is documented across three figures: a system-level view showing where the module sits in the PMVB chassis, a redrawn datasheet figure for the MCP4922 internals, and a typical-application schematic showing the SPI bus, bypass network, and output buffer stage.</p>
+<p>Module 1E is documented across three figures: a system-level view showing where the module sits in the PMVB chassis, the AD9742 internal block diagram (from the datasheet), and a typical-application schematic showing the parallel data path, current-to-voltage conversion, reconstruction filter, op-amp output stage, and impedance switching.</p>
 <p><strong>Figure 1E-1: Module 1E system context (system block diagram)</strong></p>
 <img src="../figures/modules/1e_system_context.svg"
      alt="Module 1E in the v1.0 PMVB chassis"
      style="width: 100%; height: auto; display: block; margin: 0 auto;">
-<p><strong>Figure 1E-2: MCP4922 internal functional block diagram</strong></p>
-<img src="../figures/modules/1e_mcp4922_internal.svg"
-     alt="MCP4922 internal block diagram, redrawn from datasheet DS22250A"
+<p><strong>Figure 1E-2: AD9742 internal functional block diagram</strong></p>
+<img src="../figures/modules/1e_ad9742_internal.svg"
+     alt="AD9742 internal block diagram, redrawn from datasheet Rev. C"
      style="width: 100%; height: auto; display: block; margin: 0 auto;">
-<p><em>Source: MCP4902/4912/4922 Datasheet, DS22250A, page 1. Microchip Technology Inc. Used under fair-use citation for technical reference.</em></p>
+<p><em>Source: AD9742 datasheet (Rev. C), page 1. Analog Devices Inc. Used under fair-use citation for technical reference.</em></p>
 <p><strong>Figure 1E-3: Module 1E typical application schematic</strong></p>
 <img src="../figures/modules/1e_typical_app.svg"
-     alt="Pico 2 W to MCP4922 to TL072 output buffer to BNC"
+     alt="Pico 2 W → AD9742 → reconstruction filter → AD8056 → 50/600/10kΩ relay → BNC"
      style="width: 100%; height: auto; display: block; margin: 0 auto;">
-<p><em>Schematic shows the SPI command path, the V_DD bypass network per DS22250A §6.2, and the TL072 output buffer stage. The full ±10 V level-shift and gain network is described in section 3 below.</em></p>
+<p><em>Schematic shows the parallel data interface from Pico to AD9742, the differential current outputs through 25 Ω termination resistors and the 5th-order Butterworth reconstruction filter, the AD8056 differential-to-single-ended op-amp converter with gain to ±10 V, and the three-position SP3T impedance-switching network feeding the BNC output.</em></p>
 <h2 id="schematic-notes-high-level-full-schematic-in-kicad">3. Schematic Notes (high-level; full schematic in KiCad)</h2>
-<h3 id="output-stage">Output stage</h3>
-<p>The op-amp is configured as an inverting summing amplifier. Two inputs:</p>
-<ol type="1">
-<li><strong>Signal input</strong> from MCP4922 channel A (0 to 4.096 V), summed with gain such that 2.048 V centers the output at 0 V.</li>
-<li><strong>Bias offset</strong> from a precision divider on the +12 V rail providing 2.048 V (referenced to GND), summed at the same gain to provide the output midpoint.</li>
-</ol>
-<p>Resulting transfer function:</p>
-<pre><code>V_out = -G × (V_DAC - 2.048)</code></pre>
-<p>With G = 5 (set by feedback resistor and input resistor), V_out swings from -10.24 V (when V_DAC = 0) to +10.24 V (when V_DAC = 4.096), giving the full ±10 V output range.</p>
+<h3 id="dac-output-stage-and-current-to-voltage-conversion">DAC output stage and current-to-voltage conversion</h3>
+<p>The AD9742 produces complementary differential currents at IOUTA and IOUTB. Full-scale current is set by an external precision resistor at the FSADJ pin (per the AD9742 datasheet section "Reference Operation"); we use a 1.91 kΩ ±0.1% resistor to set FS_CUR ≈ 20 mA. Each output drives a 25 Ω 0.1% precision termination resistor to AGND. The differential voltage swing at the op-amp input is therefore ±0.5 V peak across each 25 Ω resistor (depending on the digital input code), giving a 1 V differential signal that the op-amp scales to the final ±10 V single-ended output.</p>
+<h3 id="reconstruction-filter">Reconstruction filter</h3>
+<p>A 5th-order Butterworth low-pass filter sits between the DAC's differential output and the op-amp input. Cutoff at ~12 MHz, characteristic impedance 50 Ω. Standard ladder topology (L–C–L–C–L) with the values:</p>
+<ul>
+<li>L1 = L3 = L5 ≈ 1.0 µH (Coilcraft 0805LS-102XJRC, ±5%)</li>
+<li>C2 = C4 ≈ 470 pF (Murata GCM1885C1H471JA16D, C0G ±5%)</li>
+</ul>
+<p>Tabulated normalized Butterworth values are in the Analog Devices DAC application note AN-282 and equivalents; tolerances on these passives directly affect passband ripple, so 5% C0G capacitors and ±5% wirewound chip inductors are the minimum specifications. Better tolerances (1% caps, 2% inductors) produce flatter passband response if budget permits.</p>
+<h3 id="op-amp-differential-to-single-ended-converter">Op-amp differential-to-single-ended converter</h3>
+<p>The AD8056 channel A is configured as a difference amplifier:</p>
+<ul>
+<li>IN+ receives the filtered IOUTA signal through R_in1 (1 kΩ)</li>
+<li>IN− receives the filtered IOUTB signal through R_in2 (1 kΩ)</li>
+<li>Feedback resistor R_fb (10 kΩ) sets the differential gain to 10</li>
+<li>Reference resistor (10 kΩ) at IN+ to ground sets the common-mode rejection</li>
+</ul>
+<p>Differential gain of 10 takes the 1 V differential filter output to 10 V single-ended. Adjustment to the gain network shifts the output range; for ±10 V output, the gain is 20 (factoring in the differential signal centered at midscale).</p>
 <h3 id="op-amp-supply">Op-amp supply</h3>
-<p>The TL072 is a JFET-input dual op-amp rated for ±18 V supply. We power it from the +12 V and -12 V rails of the chassis TX300 PSU, giving ample headroom for the ±10 V output swing. Slew rate (13 V/µs typ.) is comfortable for full-amplitude reproduction across the audio band: a ±10 V sine at 50 kHz needs about 6.3 V/µs slew, well within the TL072's capability.</p>
-<h3 id="output-filter">Output filter</h3>
-<p>An RC low-pass filter at the op-amp output rolls off above ~80 kHz to suppress DAC stair-step quantization noise without affecting the audio band. R = 10 Ω, C = 200 nF gives a corner near 80 kHz. The filter sits before the impedance-switching relay.</p>
+<p>The AD8056 is rated for ±5 V to ±13.5 V supply (refer to the datasheet Absolute Maximum Ratings). We power it from the chassis TX300 PSU's +12 V and −12 V rails, giving comfortable headroom for the ±10 V output swing. The op-amp's 1400 V/µs slew rate provides about 2.2× margin for the worst-case full-amplitude 10 MHz sine (which needs 628 V/µs), so harmonic distortion from slew limiting is negligible.</p>
 <h3 id="impedance-switching">Impedance switching</h3>
-<p>A <strong>Coto 9007 reed relay</strong> (12 V coil, 1 A contact, SPDT) selects between two series resistors: - 50 Ω: a Vishay PER-50 precision metal-film 50 Ω 0.1% resistor - 600 Ω: a Vishay PER-600 precision metal-film 600 Ω 0.1% resistor</p>
-<p>The relay is driven by a Pico GPIO through a 2N3904 transistor and a flyback diode (1N4148) across the coil.</p>
+<p>Three Coto 9007-05-01 SPST-NO reed relays (5 V coils, signal-grade) sit between the op-amp output and three different series resistors:</p>
+<ul>
+<li>Relay 1 → 50 Ω 1% resistor → BNC center</li>
+<li>Relay 2 → 600 Ω 1% resistor → BNC center</li>
+<li>Relay 3 → 10 kΩ 1% resistor → BNC center</li>
+</ul>
+<p>Pico GPIO drives each relay through a 2N3904 transistor and a 1N4148 flyback diode across the coil. The Pico firmware enforces "only one relay energized at a time" so the BNC sees exactly one source impedance. Reed relays were chosen over solid-state analog switches because their on-resistance is essentially zero (no series error added to the 50 Ω termination), they have signal-grade isolation in the off state, and they handle bidirectional signals cleanly.</p>
 <h3 id="decoupling">Decoupling</h3>
-<p>Every IC gets a 0.1 µF X7R ceramic right at the supply pin, plus a shared 10 µF tantalum bulk cap at the supply entry to the module.</p>
+<p>Every IC supply pin gets a 0.1 µF X7R 0603 ceramic placed within 4 mm of the pin. The AD9742 additionally gets a 10 µF 10 V X5R bulk cap at the supply entry per the datasheet section "Power Supply Bypassing." AVDD and DVDD pins are decoupled separately with their own 0.1 µF caps to avoid digital noise coupling into the analog reference. The op-amp gets two 0.1 µF caps (one per supply rail, V+ and V−) plus a shared 10 µF bulk cap.</p>
 <h2 id="pin-assignments">4. Pin Assignments</h2>
-<h3 id="pico-2-w-to-mcp4922">Pico 2 W to MCP4922</h3>
+<h3 id="pico-2-w-parallel-data-clock-to-ad9742">Pico 2 W parallel data + clock to AD9742</h3>
+<p>The Pico's PIO state machine drives 12 contiguous GPIOs as the parallel data bus, plus one GPIO for the DAC clock. Using GP0–GP11 for data keeps the PIO instruction simple (single shift register output to a contiguous pin range).</p>
 <table>
-<colgroup>
-<col style="width: 20%" />
-<col style="width: 20%" />
-<col style="width: 20%" />
-<col style="width: 20%" />
-<col style="width: 20%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Pico Pin</th>
-<th>GP</th>
-<th>Function</th>
-<th>MCP4922 Pin</th>
-<th>Notes</th>
-</tr>
-</thead>
+<thead><tr><th>Pico Pin</th><th>GP</th><th>Function</th><th>AD9742 Pin</th><th>Notes</th></tr></thead>
 <tbody>
-<tr class="odd">
-<td>4</td>
-<td>GP2</td>
-<td>SPI0_SCK</td>
-<td>3 (SCK)</td>
-<td>up to 20 MHz</td>
-</tr>
-<tr class="even">
-<td>5</td>
-<td>GP3</td>
-<td>SPI0_TX (MOSI)</td>
-<td>4 (SDI)</td>
-<td>DAC data in</td>
-</tr>
-<tr class="odd">
-<td>7</td>
-<td>GP5</td>
-<td>CS_DAC</td>
-<td>2 (CS̄)</td>
-<td>active low</td>
-</tr>
-<tr class="even">
-<td>11</td>
-<td>GP8</td>
-<td>LDAC</td>
-<td>5 (LDAC̄)</td>
-<td>tied low for synchronous update, or pulsed for deferred update</td>
-</tr>
+<tr><td>1</td><td>GP0</td><td>DB0 (LSB)</td><td>12</td><td>parallel data bit 0</td></tr>
+<tr><td>2</td><td>GP1</td><td>DB1</td><td>11</td><td>parallel data bit 1</td></tr>
+<tr><td>4</td><td>GP2</td><td>DB2</td><td>10</td><td>parallel data bit 2</td></tr>
+<tr><td>5</td><td>GP3</td><td>DB3</td><td>9</td><td>parallel data bit 3</td></tr>
+<tr><td>6</td><td>GP4</td><td>DB4</td><td>8</td><td>parallel data bit 4</td></tr>
+<tr><td>7</td><td>GP5</td><td>DB5</td><td>7</td><td>parallel data bit 5</td></tr>
+<tr><td>9</td><td>GP6</td><td>DB6</td><td>6</td><td>parallel data bit 6</td></tr>
+<tr><td>10</td><td>GP7</td><td>DB7</td><td>5</td><td>parallel data bit 7</td></tr>
+<tr><td>11</td><td>GP8</td><td>DB8</td><td>4</td><td>parallel data bit 8</td></tr>
+<tr><td>12</td><td>GP9</td><td>DB9</td><td>3</td><td>parallel data bit 9</td></tr>
+<tr><td>14</td><td>GP10</td><td>DB10</td><td>2</td><td>parallel data bit 10</td></tr>
+<tr><td>15</td><td>GP11</td><td>DB11 (MSB)</td><td>1</td><td>parallel data bit 11</td></tr>
+<tr><td>16</td><td>GP12</td><td>CLOCK</td><td>17</td><td>DAC sample clock from Pico PIO</td></tr>
 </tbody>
 </table>
-<h3 id="pico-2-w-to-op-amp-output-stage">Pico 2 W to op-amp / output stage</h3>
+<h3 id="pico-2-w-relay-control">Pico 2 W relay control</h3>
 <table>
-<colgroup>
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 25%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Pico Pin</th>
-<th>GP</th>
-<th>Function</th>
-<th>Notes</th>
-</tr>
-</thead>
+<thead><tr><th>Pico Pin</th><th>GP</th><th>Function</th><th>Notes</th></tr></thead>
 <tbody>
-<tr class="odd">
-<td>14</td>
-<td>GP10</td>
-<td>RELAY_DRIVE</td>
-<td>drives 2N3904 base for impedance switching relay</td>
-</tr>
-<tr class="even">
-<td>16</td>
-<td>GP12</td>
-<td>SYNC_OUT</td>
-<td>sync pulse to chassis trigger bus</td>
-</tr>
-<tr class="odd">
-<td>17</td>
-<td>GP13</td>
-<td>TRIG_IN</td>
-<td>optional trigger input from chassis bus (for synchronized stimulus start)</td>
-</tr>
+<tr><td>17</td><td>GP13</td><td>RELAY_50</td><td>drives 2N3904 base for 50 Ω relay coil</td></tr>
+<tr><td>19</td><td>GP14</td><td>RELAY_600</td><td>drives 2N3904 base for 600 Ω relay coil</td></tr>
+<tr><td>20</td><td>GP15</td><td>RELAY_10K</td><td>drives 2N3904 base for 10 kΩ relay coil</td></tr>
+</tbody>
+</table>
+<p>Firmware enforces mutually exclusive relay energizing.</p>
+<h3 id="pico-2-w-trigger-io">Pico 2 W trigger I/O</h3>
+<table>
+<thead><tr><th>Pico Pin</th><th>GP</th><th>Function</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>21</td><td>GP16</td><td>SYNC_OUT</td><td>sync pulse to chassis trigger bus (configurable as period sync or continuous gate)</td></tr>
+<tr><td>22</td><td>GP17</td><td>TRIG_IN</td><td>trigger input from chassis bus, for synchronized stimulus start</td></tr>
 </tbody>
 </table>
 <h3 id="pico-2-w-power">Pico 2 W power</h3>
 <table>
-<thead>
-<tr class="header">
-<th>Pico Pin</th>
-<th>Function</th>
-<th>Notes</th>
-</tr>
-</thead>
+<thead><tr><th>Pico Pin</th><th>Function</th><th>Notes</th></tr></thead>
 <tbody>
-<tr class="odd">
-<td>39</td>
-<td>VSYS</td>
-<td>5 V from chassis (USB-bus-powered via Pi 5 USB hub)</td>
-</tr>
-<tr class="even">
-<td>38</td>
-<td>GND</td>
-<td>shared chassis ground</td>
-</tr>
-<tr class="odd">
-<td>40</td>
-<td>3V3_OUT</td>
-<td>for MCP4922 VDD and op-amp Vref divider</td>
-</tr>
+<tr><td>39</td><td>VSYS</td><td>5 V from chassis (USB-bus-powered via Pi 5 USB hub)</td></tr>
+<tr><td>38</td><td>GND</td><td>shared chassis ground</td></tr>
+<tr><td>36</td><td>3V3_OUT</td><td>for AD9742 AVDD/DVDD (after local LC filtering)</td></tr>
 </tbody>
 </table>
-<h3 id="mcp4922-to-op-amp-summing-junction">MCP4922 to op-amp summing junction</h3>
+<h3 id="ad9742-pinout-summary">AD9742 pinout summary</h3>
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>MCP4922 Pin</th>
-<th>Function</th>
-<th>Connects to</th>
-</tr>
-</thead>
+<thead><tr><th>AD9742 Pin</th><th>Function</th><th>Connects to</th></tr></thead>
 <tbody>
-<tr class="odd">
-<td>14 (VOUTA)</td>
-<td>DAC channel A output</td>
-<td>input resistor R_in1 to op-amp summing node</td>
-</tr>
-<tr class="even">
-<td>12 (VOUTB)</td>
-<td>DAC channel B output</td>
-<td>reserved for second AWG channel (future)</td>
-</tr>
-<tr class="odd">
-<td>1 (VDD)</td>
-<td>+3.3 V supply</td>
-<td>from Pico 3V3_OUT</td>
-</tr>
-<tr class="even">
-<td>13 (VSS)</td>
-<td>GND</td>
-<td>chassis GND</td>
-</tr>
-<tr class="odd">
-<td>8 (VREFA)</td>
-<td>reference for channel A</td>
-<td>tied to VDD for internal Vref of 4.096 V</td>
-</tr>
-<tr class="even">
-<td>9 (VREFB)</td>
-<td>reference for channel B</td>
-<td>tied to VDD</td>
-</tr>
+<tr><td>1–12</td><td>DB11–DB0 (parallel data, MSB to LSB)</td><td>Pico GP11–GP0</td></tr>
+<tr><td>17</td><td>CLOCK</td><td>Pico GP12</td></tr>
+<tr><td>18</td><td>DVDD</td><td>+3.3 V from Pico (after LC filter to suppress digital noise)</td></tr>
+<tr><td>19</td><td>DCOM</td><td>digital ground</td></tr>
+<tr><td>20</td><td>AVDD</td><td>+3.3 V (separately filtered)</td></tr>
+<tr><td>21</td><td>IOUTA</td><td>25 Ω termination to AGND, then to reconstruction filter input</td></tr>
+<tr><td>22</td><td>ACOM</td><td>analog ground</td></tr>
+<tr><td>23</td><td>IOUTB</td><td>25 Ω termination to AGND, then to reconstruction filter input</td></tr>
+<tr><td>24</td><td>FSADJ</td><td>1.91 kΩ ±0.1% to AGND, sets full-scale current</td></tr>
+<tr><td>25</td><td>REFIO</td><td>internal reference; 0.1 µF decoupling to AGND</td></tr>
+<tr><td>26</td><td>REFLO</td><td>reference low; tied to AGND</td></tr>
+<tr><td>27</td><td>SLEEP</td><td>tied to GND for normal operation</td></tr>
+<tr><td>28</td><td>MODE</td><td>tied to GND for parallel mode</td></tr>
 </tbody>
 </table>
-<h3 id="tl072-op-amp-output-stage">TL072 op-amp output stage</h3>
+<h3 id="ad8056-op-amp-output-stage">AD8056 op-amp output stage</h3>
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>TL072 Pin</th>
-<th>Function</th>
-<th>Connects to</th>
-</tr>
-</thead>
+<thead><tr><th>AD8056 Pin</th><th>Function</th><th>Connects to</th></tr></thead>
 <tbody>
-<tr class="odd">
-<td>1</td>
-<td>OUT (channel A)</td>
-<td>output filter and impedance-switching relay</td>
-</tr>
-<tr class="even">
-<td>2</td>
-<td>IN- (channel A)</td>
-<td>summing junction (R_in1 from DAC, R_in2 from bias divider, R_fb to OUT)</td>
-</tr>
-<tr class="odd">
-<td>3</td>
-<td>IN+ (channel A)</td>
-<td>tied to GND</td>
-</tr>
-<tr class="even">
-<td>4</td>
-<td>V-</td>
-<td>-12 V from TX300</td>
-</tr>
-<tr class="odd">
-<td>5</td>
-<td>IN+ (channel B)</td>
-<td>unused; tied to GND</td>
-</tr>
-<tr class="even">
-<td>6</td>
-<td>IN- (channel B)</td>
-<td>unused; tied to OUT (channel B)</td>
-</tr>
-<tr class="odd">
-<td>7</td>
-<td>OUT (channel B)</td>
-<td>unused</td>
-</tr>
-<tr class="even">
-<td>8</td>
-<td>V+</td>
-<td>+12 V from TX300</td>
-</tr>
+<tr><td>1</td><td>OUT (channel A)</td><td>reconstruction filter output → impedance-switching relay matrix</td></tr>
+<tr><td>2</td><td>IN− (channel A)</td><td>filter IOUTB output through R_in2 (1 kΩ) and feedback R_fb (10 kΩ)</td></tr>
+<tr><td>3</td><td>IN+ (channel A)</td><td>filter IOUTA output through R_in1 (1 kΩ); R_ref (10 kΩ) to GND for CMRR</td></tr>
+<tr><td>4</td><td>V−</td><td>−12 V from chassis TX300</td></tr>
+<tr><td>5</td><td>IN+ (channel B)</td><td>unused; tied to GND</td></tr>
+<tr><td>6</td><td>IN− (channel B)</td><td>unused; tied to OUT (channel B)</td></tr>
+<tr><td>7</td><td>OUT (channel B)</td><td>unused (channel B reserved for v1.1 stereo or differential output)</td></tr>
+<tr><td>8</td><td>V+</td><td>+12 V from chassis TX300</td></tr>
 </tbody>
 </table>
 <h2 id="specifications-matching-sdd-table-7-27">5. Specifications (matching SDD Table 7-27)</h2>
 <table>
-<thead>
-<tr class="header">
-<th>Parameter</th>
-<th>Value</th>
-</tr>
-</thead>
+<thead><tr><th>Parameter</th><th>Value</th></tr></thead>
 <tbody>
-<tr class="odd">
-<td>DAC</td>
-<td>MCP4922 dual 12-bit SPI</td>
-</tr>
-<tr class="even">
-<td>Channels</td>
-<td>2 (1 primary output, 1 sync or secondary)</td>
-</tr>
-<tr class="odd">
-<td>Sample rate (DAC update)</td>
-<td>up to 1 MSPS via Pico DMA</td>
-</tr>
-<tr class="even">
-<td>Standard waveforms</td>
-<td>Sine, square, triangle, ramp, noise, multitone</td>
-</tr>
-<tr class="odd">
-<td>Arbitrary waveform depth</td>
-<td>up to 32 K samples (16-bit)</td>
-</tr>
-<tr class="even">
-<td>Output range</td>
-<td>±10 V into 600 Ω (op-amp buffered)</td>
-</tr>
-<tr class="odd">
-<td>Output impedance</td>
-<td>50 Ω or 600 Ω, switchable via reed relay</td>
-</tr>
-<tr class="even">
-<td>Frequency range</td>
-<td>DC to ~50 kHz</td>
-</tr>
-<tr class="odd">
-<td>Frequency accuracy</td>
-<td>±20 ppm crystal; ±2 ppm with external 10 MHz reference</td>
-</tr>
-<tr class="even">
-<td>Amplitude resolution</td>
-<td>12-bit (~5 mV at 10 V FS)</td>
-</tr>
-<tr class="odd">
-<td>Output low-pass filter</td>
-<td>RC at ~80 kHz</td>
-</tr>
+<tr><td>DAC</td><td>AD9742, 12-bit, 210 MSPS-capable</td></tr>
+<tr><td>DAC update rate (operating)</td><td>30–50 MSPS via Pico PIO + DMA</td></tr>
+<tr><td>Channels</td><td>1 single-ended output (channel B reserved for v1.1)</td></tr>
+<tr><td>Standard waveforms</td><td>sine (DDS), square, triangle, ramp, noise, multitone, arbitrary</td></tr>
+<tr><td>Arbitrary waveform depth</td><td>up to ~256 K samples (limited by Pico SRAM)</td></tr>
+<tr><td>Output range</td><td>±10 V</td></tr>
+<tr><td>Output impedance (selectable)</td><td>50 Ω / 600 Ω / 10 kΩ via SPST reed relays</td></tr>
+<tr><td>Frequency range</td><td>DC to 10 MHz</td></tr>
+<tr><td>Frequency accuracy</td><td>±20 ppm crystal; ±2 ppm with external 10 MHz reference via chassis trigger bus</td></tr>
+<tr><td>Amplitude resolution</td><td>12-bit (~5 mV at 20 V FS span)</td></tr>
+<tr><td>Slew rate</td><td>1400 V/µs (AD8056-limited)</td></tr>
+<tr><td>THD (typical, audio band)</td><td>&lt; 0.1% (limited by DAC INL/DNL)</td></tr>
+<tr><td>Reconstruction filter</td><td>5th-order Butterworth, ~12 MHz cutoff, ~50 dB image rejection at 40 MHz</td></tr>
 </tbody>
 </table>
 <h2 id="sample-applications">6. Sample Applications</h2>
 <h3 id="single-tone-sine-generation">6.1 Single-tone sine generation</h3>
-<pre class="python"><code>import pyvisa
-rm = pyvisa.ResourceManager(&#39;@py&#39;)
-awg = rm.open_resource(&#39;USB::0xCAFE::0x4001::PMVB1E::INSTR&#39;)
-awg.write(&#39;SOUR:FUNC SIN&#39;)
-awg.write(&#39;SOUR:FREQ 1000&#39;)
-awg.write(&#39;SOUR:VOLT 1.0&#39;)           # 1 V peak-to-peak
-awg.write(&#39;OUTP ON&#39;)
-input(&#39;Press Enter to stop...&#39;)
-awg.write(&#39;OUTP OFF&#39;)
-awg.close()</code></pre>
+<pre><code class="language-python">import pyvisa
+rm = pyvisa.ResourceManager('@py')
+awg = rm.open_resource('USB::0xCAFE::0x4001::PMVB1E::INSTR')
+awg.write('OUTP:IMP 50')             # select 50 Ω output impedance
+awg.write('SOUR:FUNC SIN')
+awg.write('SOUR:FREQ 1000')
+awg.write('SOUR:VOLT 1.0')           # 1 V peak-to-peak
+awg.write('OUTP ON')
+input('Press Enter to stop...')
+awg.write('OUTP OFF')
+awg.close()
+</code></pre>
 <h3 id="swept-sine-for-thd-measurement-paired-with-module-2e">6.2 Swept sine for THD measurement (paired with Module 2E)</h3>
-<pre class="python"><code>import numpy as np
+<pre><code class="language-python">import numpy as np
 from scipy.fft import rfft, rfftfreq
 
-awg = open_module(&#39;1E&#39;)
-scope = open_module(&#39;2E&#39;)
+awg = open_module('1E')
+scope = open_module('2E')
 
-frequencies = np.logspace(np.log10(20), np.log10(20000), 31)  # 20 Hz to 20 kHz, log-spaced
+awg.write('OUTP:IMP 50')
+frequencies = np.logspace(np.log10(20), np.log10(20000), 31)
 results = []
 
 for f in frequencies:
-    awg.write(f&#39;SOUR:FUNC SIN; SOUR:FREQ {f}; SOUR:VOLT 1.0; OUTP ON&#39;)
-    scope.write(&#39;DIG:CONF 0, 5.0, AC; DIG:RATE 1000000; DIG:DEPTH 100000; DIG:ARM&#39;)
-    samples = np.array(scope.query_binary_values(&#39;DIG:DATA? 0&#39;, datatype=&#39;f&#39;))
+    awg.write(f'SOUR:FUNC SIN; SOUR:FREQ {f}; SOUR:VOLT 1.0; OUTP ON')
+    scope.write('DIG:CONF 0, 5.0, AC; DIG:RATE 1000000; DIG:DEPTH 100000; DIG:ARM')
+    samples = np.array(scope.query_binary_values('DIG:DATA? 0', datatype='f'))
     spectrum = np.abs(rfft(samples))
     freqs = rfftfreq(len(samples), 1/1e6)
     fund_bin = np.argmin(np.abs(freqs - f))
@@ -598,265 +429,126 @@ for f in frequencies:
     harms = [spectrum[np.argmin(np.abs(freqs - f*n))] for n in range(2, 6)]
     thd = np.sqrt(sum(h**2 for h in harms)) / fund
     results.append((f, thd))
-    awg.write(&#39;OUTP OFF&#39;)
+    awg.write('OUTP OFF')
 
 for f, thd in results:
-    print(f&#39;{f:8.1f} Hz: THD = {thd*100:.3f}%&#39;)</code></pre>
+    print(f'{f:8.1f} Hz: THD = {thd*100:.3f}%')
+</code></pre>
 <h3 id="multitone-for-imd-intermodulation-distortion">6.3 Multitone for IMD (intermodulation distortion)</h3>
-<pre class="python"><code>awg.write(&#39;SOUR:MULT:UPLD [1000, 1100], [0.5, 0.5]&#39;)   # SMPTE-style 60/7 ratio variant
-awg.write(&#39;SOUR:VOLT 1.0; OUTP ON&#39;)
-# Capture and FFT-analyze for sum/difference products near 100 Hz, 2.0 kHz, etc.</code></pre>
+<pre><code class="language-python">awg.write('OUTP:IMP 50')
+awg.write('SOUR:MULT:UPLD [1000, 1100], [0.5, 0.5]')   # SMPTE-style 60/7 ratio variant
+awg.write('SOUR:VOLT 1.0; OUTP ON')
+# Capture and FFT-analyze for sum/difference products near 100 Hz, 2.0 kHz, etc.
+</code></pre>
 <h3 id="white-noise-for-noise-floor-characterization">6.4 White noise for noise-floor characterization</h3>
-<pre class="python"><code>awg.write(&#39;SOUR:FUNC NOIS&#39;)
-awg.write(&#39;SOUR:VOLT 0.5; OUTP ON&#39;)
-# Capture, integrate over band, compute spectral density</code></pre>
+<pre><code class="language-python">awg.write('OUTP:IMP 50')
+awg.write('SOUR:FUNC NOIS')
+awg.write('SOUR:VOLT 0.5; OUTP ON')
+# Capture, integrate over band, compute spectral density
+</code></pre>
+<h3 id="clock-generation-for-digital-characterization">6.5 Clock generation for digital characterization</h3>
+<p>A square wave at 1–10 MHz is useful for clocking external digital interfaces during characterization, or as a stimulus to a clock-recovery circuit for jitter measurement.</p>
+<pre><code class="language-python">awg.write('OUTP:IMP 50')              # 50 Ω back-termination for digital signal integrity
+awg.write('SOUR:FUNC SQU')
+awg.write('SOUR:FREQ 5000000')        # 5 MHz
+awg.write('SOUR:VOLT 3.3')            # 3.3 V swing for CMOS receivers
+awg.write('OUTP ON')
+</code></pre>
+<h3 id="bias-mode-voltage-injection">6.6 Bias-mode voltage injection</h3>
+<p>For applying a controlled voltage to a digital pin or high-impedance test point without risk of frying the DUT, switch to 10 kΩ output impedance and set a DC level. Fault current at any short is capped at V/10kΩ (e.g., 1 mA at 10 V), well below the input clamp-diode rating of any 3.3 V or 5 V CMOS digital input.</p>
+<pre><code class="language-python">awg.write('OUTP:IMP 10K')             # 10 kΩ current-limited mode
+awg.write('SOUR:FUNC DC')
+awg.write('SOUR:VOLT 2.5')            # 2.5 V DC bias
+awg.write('OUTP ON')
+</code></pre>
 <h2 id="bill-of-materials">7. Bill of Materials</h2>
-<p>Cross-referenced to Mouser primary, with Digi-Key alternate part numbers where available. Last verified May 2026; check stock and pricing before ordering.</p>
-<table style="width:100%;">
-<colgroup>
-<col style="width: 14%" />
-<col style="width: 14%" />
-<col style="width: 14%" />
-<col style="width: 14%" />
-<col style="width: 14%" />
-<col style="width: 14%" />
-<col style="width: 14%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Item</th>
-<th>Manufacturer P/N</th>
-<th>Mouser P/N</th>
-<th>Digi-Key P/N</th>
-<th>Qty</th>
-<th>Unit Cost</th>
-<th>Notes</th>
-</tr>
-</thead>
+<p>Cross-referenced to Digi-Key (primary; Mouser was not accessible during this audit), with Microcenter for the Pico 2 W. Last verified May 2026.</p>
+<table>
+<thead><tr><th>Item</th><th>Manufacturer P/N</th><th>Supplier</th><th>Supplier P/N</th><th>Qty</th><th>Unit Cost</th><th>Notes</th></tr></thead>
 <tbody>
-<tr class="odd">
-<td>Raspberry Pi Pico 2 W</td>
-<td>Raspberry Pi SC1632</td>
-<td>358-SC1632</td>
-<td>2648-SC1632-ND</td>
-<td>1</td>
-<td>$7</td>
-<td>RP2350 host MCU</td>
-</tr>
-<tr class="even">
-<td>MCP4922 dual 12-bit DAC</td>
-<td>Microchip MCP4922-E/P</td>
-<td>579-MCP4922-E/P</td>
-<td>MCP4922-E/P-ND</td>
-<td>1</td>
-<td>$4</td>
-<td>DIP-14, easy hand-solder</td>
-</tr>
-<tr class="odd">
-<td>TL072 op-amp (precision, audio)</td>
-<td>Texas Instruments TL072IP</td>
-<td>595-TL072IP</td>
-<td>296-1775-5-ND</td>
-<td>1</td>
-<td>$0.80</td>
-<td>DIP-8</td>
-</tr>
-<tr class="even">
-<td>2N3904 NPN BJT (relay driver)</td>
-<td>onsemi 2N3904BU</td>
-<td>863-2N3904BU</td>
-<td>2N3904FS-ND</td>
-<td>1</td>
-<td>$0.10</td>
-<td>TO-92</td>
-</tr>
-<tr class="odd">
-<td>1N4148 small-signal diode (relay flyback)</td>
-<td>onsemi 1N4148</td>
-<td>512-1N4148</td>
-<td>1N4148FSCT-ND</td>
-<td>1</td>
-<td>$0.05</td>
-<td>DO-35</td>
-</tr>
-<tr class="even">
-<td>Reed relay, 12 V coil, SPDT, 1 A</td>
-<td>Coto 9007-12-01</td>
-<td>906-9007-12-01</td>
-<td>306-1004-ND</td>
-<td>1</td>
-<td>$4</td>
-<td>output Z switching</td>
-</tr>
-<tr class="odd">
-<td>Precision resistor 50 Ω 0.1% 1/4 W</td>
-<td>Vishay PER50R000B</td>
-<td>71-PER50R000B</td>
-<td>PER50R000BCT-ND</td>
-<td>1</td>
-<td>$1</td>
-<td>50 Ω output Z</td>
-</tr>
-<tr class="even">
-<td>Precision resistor 600 Ω 0.1% 1/4 W</td>
-<td>Vishay CMF55600R00BHEB</td>
-<td>71-CMF55600R00BHEB</td>
-<td>n/a</td>
-<td>1</td>
-<td>$1</td>
-<td>600 Ω output Z</td>
-</tr>
-<tr class="odd">
-<td>Output filter R: 10 Ω 1% 1/4 W</td>
-<td>Yageo MFR-25FBF52-10R</td>
-<td>603-MFR-25FBF5210R</td>
-<td>n/a</td>
-<td>1</td>
-<td>$0.10</td>
-<td>RC LP filter</td>
-</tr>
-<tr class="even">
-<td>Output filter C: 200 nF X7R 50 V</td>
-<td>Kemet C320C204K5R5TA</td>
-<td>80-C320C204K5R5TA</td>
-<td>399-9839-ND</td>
-<td>1</td>
-<td>$0.30</td>
-<td>RC LP filter</td>
-</tr>
-<tr class="odd">
-<td>Decoupling cap 0.1 µF X7R 50 V (qty 4)</td>
-<td>Kemet C320C104K5R5TA</td>
-<td>80-C320C104K5R5TA</td>
-<td>399-9837-ND</td>
-<td>4</td>
-<td>$0.20 ea</td>
-<td>per IC supply pin</td>
-</tr>
-<tr class="even">
-<td>Bulk cap 10 µF tantalum 25 V</td>
-<td>Kemet T350E106K025AT</td>
-<td>80-T350E106K025AT</td>
-<td>399-3540-ND</td>
-<td>1</td>
-<td>$0.50</td>
-<td>module supply entry</td>
-</tr>
-<tr class="odd">
-<td>Op-amp summing/feedback resistors 1% 1/4 W (R_in1, R_in2, R_fb)</td>
-<td>Vishay MFR-25FBF52 series</td>
-<td>603-MFR-25FBF52*</td>
-<td>n/a</td>
-<td>3</td>
-<td>$0.10 ea</td>
-<td>gain network</td>
-</tr>
-<tr class="even">
-<td>Bias divider resistors 1% 1/4 W</td>
-<td>Yageo MFR-25FBF52 series</td>
-<td>603-MFR-25FBF52*</td>
-<td>n/a</td>
-<td>2</td>
-<td>$0.10 ea</td>
-<td>2.048 V reference from +12 V</td>
-</tr>
-<tr class="odd">
-<td>BNC panel-mount jack</td>
-<td>Amphenol 31-220-1</td>
-<td>523-31-220-1</td>
-<td>ACX1244-ND</td>
-<td>1</td>
-<td>$4</td>
-<td>front-panel output</td>
-</tr>
-<tr class="even">
-<td>3D-printed enclosure</td>
-<td>n/a</td>
-<td>n/a</td>
-<td>n/a</td>
-<td>1</td>
-<td>$1</td>
-<td>PETG, ~10 g print</td>
-</tr>
-<tr class="odd">
-<td>Pin headers, hookup wire</td>
-<td>various</td>
-<td>various</td>
-<td>various</td>
-<td>n/a</td>
-<td>$2</td>
-<td></td>
-</tr>
-<tr class="even">
-<td>Perfboard</td>
-<td>Adafruit 1609 (or eq.)</td>
-<td>485-1609</td>
-<td>1528-1609-ND</td>
-<td>1</td>
-<td>$3</td>
-<td>hand-build substrate</td>
-</tr>
-<tr class="odd">
-<td><strong>Total module BOM</strong></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td><strong>~$18</strong></td>
-<td></td>
-</tr>
+<tr><td>Raspberry Pi Pico 2 W</td><td>Raspberry Pi SC1633</td><td>Microcenter</td><td>SKU 687384</td><td>1</td><td>$5.99</td><td>RP2350 host MCU; Microcenter sale price</td></tr>
+<tr><td>12-bit 210 MSPS DAC</td><td>Analog Devices AD9742ARUZ</td><td>Digi-Key</td><td>AD9742ARUZ</td><td>1</td><td>$14.80</td><td>28-TSSOP, hand-solderable</td></tr>
+<tr><td>Dual VFB op-amp 1400 V/µs</td><td>Analog Devices AD8056ARZ</td><td>Digi-Key</td><td>AD8056ARZ-ND</td><td>1</td><td>$6.27</td><td>SOIC-8, channel A used; channel B reserved</td></tr>
+<tr><td>Reed relay SPST-NO 5 V coil</td><td>Coto Technology 9007-05-01</td><td>Digi-Key</td><td>306-1004-ND (or current equivalent)</td><td>3</td><td>$2.09</td><td>three for SP3T impedance switching</td></tr>
+<tr><td>2N3904 NPN BJT (relay driver)</td><td>onsemi 2N3904BU</td><td>Digi-Key</td><td>2N3904FS-ND</td><td>3</td><td>$0.10</td><td>TO-92, one per relay</td></tr>
+<tr><td>1N4148 small-signal diode (relay flyback)</td><td>onsemi 1N4148</td><td>Digi-Key</td><td>1N4148FSCT-ND</td><td>3</td><td>$0.05</td><td>DO-35, one per relay</td></tr>
+<tr><td>Precision resistor 25.0 Ω 0.1% 0805 (DAC term)</td><td>Vishay PTN0805E25R0BST1</td><td>Digi-Key</td><td>PTN0805E25R0BST1</td><td>2</td><td>(verify direct)</td><td>25 Ω matched pair across IOUTA/IOUTB</td></tr>
+<tr><td>Precision resistor 50 Ω 1% 0805</td><td>Yageo RC0805FR-0750RL</td><td>Digi-Key</td><td>(verify direct)</td><td>1</td><td>~$0.10</td><td>50 Ω output Z</td></tr>
+<tr><td>Precision resistor 600 Ω 1% 0805</td><td>Yageo RC0805FR-07600RL</td><td>Digi-Key</td><td>(verify direct)</td><td>1</td><td>~$0.10</td><td>600 Ω output Z</td></tr>
+<tr><td>Precision resistor 10 kΩ 1% 0805</td><td>Yageo RC0805FR-0710KL</td><td>Digi-Key</td><td>RC0805FR-0710KL</td><td>1</td><td>~$0.10</td><td>10 kΩ output Z</td></tr>
+<tr><td>FSADJ resistor 1.91 kΩ 0.1% 0805</td><td>Vishay TNPW08051K91BEEA</td><td>Digi-Key</td><td>(verify direct)</td><td>1</td><td>(verify direct)</td><td>sets AD9742 full-scale current</td></tr>
+<tr><td>Reconstruction filter inductor 1 µH 0805 ±5%</td><td>Coilcraft 0805LS-102XJRC</td><td>Digi-Key</td><td>(search direct)</td><td>6</td><td>$2.01</td><td>three per channel; one channel built initially</td></tr>
+<tr><td>Reconstruction filter cap 470 pF C0G 0603 ±5%</td><td>Murata GCM1885C1H471JA16D</td><td>Digi-Key</td><td>(search direct)</td><td>4</td><td>(verify direct)</td><td>two per channel</td></tr>
+<tr><td>Op-amp gain network resistors 1% 0805</td><td>Yageo RC0805FR-07 series</td><td>Digi-Key</td><td>(verify direct)</td><td>4</td><td>~$0.10</td><td>R_in1, R_in2, R_fb, R_ref</td></tr>
+<tr><td>Bypass cap 0.1 µF X7R 0603 50 V</td><td>Yageo CC0603KRX7R9BB104</td><td>Digi-Key</td><td>311-1366-1-ND (or equiv)</td><td>10</td><td>$0.08</td><td>per IC supply pin</td></tr>
+<tr><td>Bulk cap 10 µF X5R 0805 10 V</td><td>Yageo CC0805KKX5R8BB106 (or Murata GRM21BR71A106KA73L)</td><td>Digi-Key</td><td>(search direct)</td><td>4</td><td>(verify direct)</td><td>DAC, op-amp, +12V, -12V supply rails</td></tr>
+<tr><td>BNC panel-mount jack 50 Ω</td><td>Amphenol RF 031-5538</td><td>Digi-Key</td><td>031-5538</td><td>1</td><td>(verify direct)</td><td>front-panel output</td></tr>
+<tr><td>3D-printed enclosure</td><td>n/a</td><td>n/a</td><td>n/a</td><td>1</td><td>~$1</td><td>PETG print, ~10 g</td></tr>
+<tr><td>Hookup wire, headers, perfboard or custom PCB</td><td>various</td><td>various</td><td>various</td><td>n/a</td><td>TBD</td><td>full schematic in KiCad; PCB fab quote pending</td></tr>
+<tr><td><strong>Module BOM total (verified portions, single-quantity Digi-Key/Microcenter)</strong></td><td></td><td></td><td></td><td></td><td><strong>~$53</strong></td><td>excludes PCB fab and items still pending direct verification</td></tr>
 </tbody>
 </table>
-<p>(BOM total matches SDD Table 7-28.)</p>
+<p>Items marked "(verify direct)" are commodity passives and connectors whose prices were not extracted from Digi-Key's JS-rendered pages during the BOM audit. They are in stock at Digi-Key and individually cost less than $5; total impact on the module BOM is under $15.</p>
 <h2 id="calibration-procedure">8. Calibration Procedure</h2>
-<p>After module assembly, calibrate against a Fluke 87V (or equivalent calibrated DMM) and a 10 MHz GPSDO reference (or external function generator’s calibrated output) using the following procedure:</p>
+<p>After module assembly, calibrate against a Fluke 87V (or equivalent calibrated DMM) and a 10 MHz GPSDO reference (or external function generator's calibrated output) using the following procedure.</p>
 <h3 id="dc-offset-calibration">8.1 DC offset calibration</h3>
 <ol type="1">
-<li>Configure: <code>SOUR:FUNC SIN; SOUR:FREQ 1; SOUR:VOLT 0; OUTP ON</code></li>
-<li>Wait for output to settle (10 s).</li>
+<li>Configure: <code>OUTP:IMP 50; SOUR:FUNC DC; SOUR:VOLT 0.0; OUTP ON</code>.</li>
+<li>Wait for output to settle (1 s).</li>
 <li>Measure the DC level on the output BNC with the Fluke 87V.</li>
-<li>Adjust the bias divider trim until the measured DC level reads within ±5 mV of 0 V.</li>
-<li>Record the calibration constant and store via SCPI: <code>CALC:CAL:OFFS 0, &lt;millivolts&gt;</code>.</li>
+<li>Adjust the op-amp's CMRR-trim resistor until the measured DC level reads within ±5 mV of 0 V (or store the offset as a software calibration constant).</li>
+<li>Record via SCPI: <code>CALC:CAL:OFFS 0, &lt;millivolts&gt;</code>.</li>
 </ol>
 <h3 id="gain-calibration">8.2 Gain calibration</h3>
 <ol type="1">
-<li>Configure: <code>SOUR:FUNC SIN; SOUR:FREQ 1000; SOUR:VOLT 10.0</code> (peak-to-peak).</li>
-<li>Connect the output to a calibrated Fluke (or external scope) and measure the peak-to-peak voltage.</li>
+<li>Configure: <code>OUTP:IMP 50; SOUR:FUNC SIN; SOUR:FREQ 1000; SOUR:VOLT 10.0</code> (peak-to-peak).</li>
+<li>Connect the output through a known-good 50 Ω terminator to a calibrated scope or Fluke and measure the actual peak-to-peak voltage.</li>
 <li>Compute the gain error: <code>gain_correction = 10.0 / measured_pk_pk</code>.</li>
-<li>Store the calibration: <code>CALC:CAL:GAIN 0, &lt;gain_correction&gt;</code>.</li>
+<li>Store: <code>CALC:CAL:GAIN 0, &lt;gain_correction&gt;</code>.</li>
 </ol>
 <h3 id="frequency-calibration">8.3 Frequency calibration</h3>
-<p>If your module includes the optional external 10 MHz reference input (chassis trigger bus), feed a 10 MHz GPSDO into the reference port and compare against the on-Pico crystal. Update the firmware’s frequency-divider constant accordingly. Without an external reference, the Pico’s crystal is rated ±20 ppm, which is ±20 Hz at 1 kHz; for audio characterization this is below the threshold of audibility and rarely matters.</p>
+<p>If the chassis trigger bus carries an external 10 MHz GPSDO reference, the firmware can phase-lock against it and update the frequency-divider constant accordingly. Without an external reference, the Pico's crystal is rated ±20 ppm, which is ±200 Hz at 10 MHz; for most characterization work this is below the tolerance of the DUT under test.</p>
+<h3 id="reconstruction-filter-passband-flatness">8.4 Reconstruction filter passband flatness</h3>
+<ol type="1">
+<li>Sweep <code>SOUR:FREQ</code> from 1 kHz to 10 MHz at constant <code>SOUR:VOLT 1.0</code>.</li>
+<li>Capture the peak-to-peak amplitude with Module 2E (or external scope) at each frequency.</li>
+<li>Plot the magnitude response. The 5th-order Butterworth should show ≤ ±0.5 dB ripple across DC to ~10 MHz.</li>
+<li>If the response shows excessive ripple (component tolerance issue), trim the filter inductors or substitute tighter-tolerance caps. Record the calibrated frequency response in the Pico flash so frequency-dependent corrections can be applied per the SCPI gain command.</li>
+</ol>
 <h2 id="bring-up-checklist">9. Bring-Up Checklist</h2>
 <p>In order, on first power-up:</p>
 <ol type="1">
-<li><strong>Visual inspection.</strong> Check polarity of every electrolytic and tantalum cap. Check op-amp orientation (notch toward pin 1). Check relay coil polarity.</li>
-<li><strong>Power-on without load.</strong> Apply +5 V (Pico) and +12 V/-12 V (op-amp). Measure current draw: should be &lt;50 mA total at idle. If higher, pull power and find the short.</li>
+<li><strong>Visual inspection.</strong> Check polarity of every electrolytic and tantalum cap. Check op-amp orientation (notch toward pin 1). Check AD9742 pin 1 orientation. Check relay coil polarity. Verify no shorts between the parallel data bus and adjacent traces.</li>
+<li><strong>Power-on without DUT.</strong> Apply +5 V (Pico) and +12 V/−12 V (op-amp). Measure current draw: should be ~50 mA total at idle (Pico ~30 mA, AD9742 ~30 mA digital + 20 mA analog, AD8056 ~10 mA). If higher, pull power and find the short.</li>
 <li><strong>Pico boots.</strong> Watch the onboard LED; it should heartbeat. Pico USB enumerates as USB-TMC: <code>lsusb</code> on the host should show the PMVB device.</li>
-<li><strong>DAC SPI write test.</strong> Send <code>SOUR:VOLT 0.0</code> and verify MCP4922 VOUTA reads 2.048 V on a DMM (DAC midpoint).</li>
-<li><strong>Op-amp output test.</strong> With SOUR:VOLT 0.0, output BNC should read 0 V ± 10 mV. If not, debug the bias network.</li>
-<li><strong>Sweep test.</strong> <code>SOUR:FUNC SIN; SOUR:FREQ 1000; SOUR:VOLT 5.0; OUTP ON</code>. Output should be 5 Vpp sine at 1 kHz on a scope.</li>
-<li><strong>Frequency response.</strong> Sweep 20 Hz to 50 kHz and verify amplitude is flat to within ±0.5 dB across the band.</li>
-<li><strong>THD.</strong> At 1 kHz, 1 Vrms output, capture with Module 2E and verify THD &lt; 0.1%.</li>
-<li><strong>Impedance switch test.</strong> Toggle between 50 Ω and 600 Ω modes; measure output impedance with a known load and verify both ranges.</li>
-<li><strong>Calibration.</strong> Run section 8 procedure. Save calibration constants to Pico flash.</li>
+<li><strong>DAC midscale test.</strong> Send <code>SOUR:FUNC DC; SOUR:VOLT 0.0; OUTP ON</code>. With the Pico writing midscale codes (0x800) to the AD9742, IOUTA and IOUTB should each carry ~10 mA (half of FS_CUR ≈ 20 mA), giving a differential voltage of ≈ 0 V across the 25 Ω terminations. At the op-amp output, the reading should be 0 V ± 50 mV.</li>
+<li><strong>Full-scale test.</strong> Send <code>SOUR:FUNC DC; SOUR:VOLT 10.0; OUTP ON</code>. Pico drives the DAC to all-ones (0xFFF). Op-amp output should be near +10 V.</li>
+<li><strong>Sweep test (audio band).</strong> <code>OUTP:IMP 50; SOUR:FUNC SIN; SOUR:FREQ 1000; SOUR:VOLT 5.0; OUTP ON</code>. Output should be a 5 Vpp sine at 1 kHz on a scope, no visible distortion.</li>
+<li><strong>Sweep test (HF band).</strong> Repeat at 1 MHz and 10 MHz. Verify amplitude is within ±0.5 dB of the audio reading.</li>
+<li><strong>Frequency response.</strong> Sweep 20 Hz to 10 MHz and verify amplitude flatness within ±0.5 dB across the band.</li>
+<li><strong>THD (audio band).</strong> At 1 kHz, 1 Vrms output, capture with Module 2E and verify THD &lt; 0.1%.</li>
+<li><strong>Spectral purity (HF band).</strong> At 5 MHz, 1 Vrms output, capture with Module 2E and verify the first-image rejection is ≥ 40 dB. The first image should appear near the DAC update rate minus 5 MHz.</li>
+<li><strong>Impedance switch test.</strong> Cycle through <code>OUTP:IMP 50</code>, <code>OUTP:IMP 600</code>, <code>OUTP:IMP 10K</code>. For each, drive the DUT with a known voltage and measure source impedance with a known load.</li>
+<li><strong>Calibration.</strong> Run section 8 procedures. Save calibration constants to Pico flash.</li>
 <li><strong>PyVISA-sim parity check.</strong> Run the same SCPI command sequence against the simulator backend and verify behavior matches.</li>
 </ol>
 <h2 id="known-issues-and-future-work">10. Known Issues and Future Work</h2>
 <p>(To be populated as the module is built.)</p>
 <ul>
-<li>The current schematic uses a TL072 op-amp instead of the MCP6232 specified in SDD section 7.5.5. The SDD will be updated in v1.1 to match this design document.</li>
-<li>The 50 kHz upper-frequency limit is conservative; with a careful output filter design, we could push to 100 kHz, but the marginal benefit for audio characterization is small.</li>
-<li>A second-channel variant (using MCP4922 channel B with a duplicate output stage) is a v1.1 enhancement for stereo or multi-tone work.</li>
+<li>The Pico's PIO + DMA can sustain 50 MSPS DAC update rate for short bursts, but sustained operation may require dropping to 30–40 MSPS. Characterize Pico bandwidth ceiling early in firmware bring-up; document the achievable update rate as a v1.0 specification.</li>
+<li>The AD9742 produces a small mid-scale glitch (datasheet specifies &lt; 5 pV·s typical) at code transitions. For low-distortion audio work below 100 kHz this is well below the noise floor; for HF work it manifests as a small spurious tone at the DAC update rate. Mitigation is a careful reconstruction filter design.</li>
+<li>AD8056 channel B is unused in v1.0. A v1.1 enhancement could repurpose it as a stereo output (using a second AD9742) or as a buffered sync signal.</li>
+<li>The 5th-order Butterworth reconstruction filter component tolerances directly affect passband flatness. Initial builds may need tightened tolerance (1% caps, 2% inductors) on critical positions if the as-built ripple exceeds ±0.5 dB.</li>
+<li>A Tier 2 (FPGA-driven) variant of this module could push bandwidth to 50 MHz by replacing the AD9742 with a faster parallel DAC (AD9744 at 14-bit 210 MSPS) clocked from the Tang Primer 25K. That's a separate future module, not a v1.x evolution of this one.</li>
 </ul>
 <h2 id="references">11. References</h2>
 <ul>
-<li><a href="https://www.microchip.com/en-us/product/MCP4922">Microchip MCP4922 datasheet</a></li>
-<li><a href="https://www.ti.com/product/TL072">Texas Instruments TL072 datasheet</a></li>
-<li><a href="https://www.cotorelay.com/product/9007-series/">Coto 9007 series reed relay datasheet</a></li>
+<li><a href="https://www.analog.com/en/products/ad9742.html">Analog Devices AD9742 datasheet</a></li>
+<li><a href="https://www.analog.com/en/products/ad8056.html">Analog Devices AD8056 datasheet</a></li>
+<li><a href="https://www.cotorelay.com/product/9007-series/">Coto Technology 9007 series reed relay datasheet</a></li>
 <li><a href="https://datasheets.raspberrypi.com/picow/pico-2-w-datasheet.pdf">Raspberry Pi Pico 2 W datasheet</a></li>
+<li><a href="https://www.analog.com/en/resources/app-notes/an-282.html">Analog Devices Application Note AN-282 (DAC reconstruction filters)</a></li>
 <li><a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document, section 7.5.5</a></li>
-<li><a href="../setup/Phase_0_Orchestration_Setup.md">PMVB Phase 0 Orchestration Setup</a></li>
 </ul>
 </body>
 </html>

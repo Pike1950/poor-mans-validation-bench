@@ -38,21 +38,26 @@
     at ([yshift=-7.5mm]m1e.north) {Function Generator / AWG};
   %
   % --- Module 1E internal stages (vertical chain) ------------------------
+  % Pico moved further from AD9742 (yshift=18mm vs 12mm earlier) so the bus
+  % wire between them is long enough for the x12 annotation pill to sit on
+  % without covering the whole line.
   \node[pmvb ic, minimum width=36mm, minimum height=8mm]
-    at ([yshift=12mm]m1e.center) (m1e_pico) {Pico 2 W};
+    at ([yshift=18mm]m1e.center) (m1e_pico) {Pico 2 W};
   %
   \node[pmvb ic, minimum width=36mm, minimum height=8mm]
-    at ([yshift=0mm]m1e.center) (m1e_dac) {MCP4922};
+    at ([yshift=0mm]m1e.center) (m1e_dac) {AD9742};
   %
-  % TL072 op-amp triangle, apex pointing right (toward BNC).
-  % Placed below MCP4922 with apex 6mm right of module center for clearance.
+  % AD8056 op-amp triangle, apex pointing right (toward BNC).
+  % Placed below AD9742 with apex 6mm right of module center for clearance.
   \opamptri{tl072}{($(m1e.center) + (6mm, -16mm)$)}{1}
   \node[font=\sffamily\scriptsize, text=pmvbFg]
-    at ($(tl072_out) + (-6mm, 0)$) {TL072};
+    at ($(tl072_out) + (-6mm, 0)$) {AD8056};
   %
   % --- Internal wiring inside Module 1E ----------------------------------
-  \draw[pmvb digital]
-    (m1e_pico) -- node[right]{\pmvblabel{SPI + DMA}} (m1e_dac);
+  \draw[pmvb bus]
+    (m1e_pico) --
+    node[pmvb bus width]{$\times 12$}
+    (m1e_dac);
   %
   % MCP4922 -> TL072 + input. Four-segment routing: DOWN, LEFT, DOWN, RIGHT
   % so the wire enters the op-amp's + (non-inverting) input from the LEFT

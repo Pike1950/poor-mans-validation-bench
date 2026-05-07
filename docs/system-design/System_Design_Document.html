@@ -3681,6 +3681,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <li>A representative simulator-backed test passes end-to-end (writes to InfluxDB, renders a Grafana panel, generates a Jinja2 report)</li>
 </ul>
 <p><strong>Table 13-1: Phase 0 BOM</strong></p>
+<p><em>Pricing audit status: only the Raspberry Pi 5 line below has been verified against a current supplier. Every other line is a placeholder from earlier drafts and pending a full audit against Mouser, Digi-Key, Microcenter, and Amazon (in priority order). Phase total is therefore approximate.</em></p>
 <table>
 <thead>
 <tr class="header">
@@ -3690,8 +3691,8 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </thead>
 <tbody>
 <tr class="odd">
-<td>Raspberry Pi 5 16 GB</td>
-<td>$120</td>
+<td>Raspberry Pi 5 16 GB <em>(Microcenter, current 2026-05-06; $300 on sale)</em></td>
+<td>$305</td>
 </tr>
 <tr class="even">
 <td>Active cooler / heatsink</td>
@@ -3735,7 +3736,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr>
 <td><strong>Phase 0 total</strong></td>
-<td><strong>~$252</strong></td>
+<td><strong>~$437</strong> (with Pi 5 verified at $305; remaining lines pending audit)</td>
 </tr>
 </tbody>
 </table>
@@ -3937,7 +3938,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <tbody>
 <tr class="odd">
 <td>Phase 0 (orchestration + PSU)</td>
-<td>~$252</td>
+<td>~$437*</td>
 </tr>
 <tr class="even">
 <td>Phase 1 (Tier 1 core)</td>
@@ -3962,15 +3963,18 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>v1.0 + v1.1 subtotal</strong></td>
-<td><strong>~$799</strong></td>
+<td><strong>~$984*</strong></td>
 </tr>
 <tr class="even">
 <td>Phase 4 (Tier 3, optional, includes chassis LAN switch)</td>
-<td>~$387</td>
+<td>~$387*</td>
 </tr>
 <tr class="odd">
 <td><strong>All phases total</strong></td>
-<td><strong>~$1,186</strong></td>
+<td><strong>~$1,371*</strong></td>
+</tr>
+<tr class="even">
+<td colspan="2"><em>* Totals include unverified placeholder line-items pending the full §13 BOM audit. Only the Raspberry Pi 5 16 GB line ($305, Microcenter) is currently verified.</em></td>
 </tr>
 </tbody>
 </table>

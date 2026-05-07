@@ -1,24 +1,21 @@
 % =============================================================================
 % Figure 1E-3: Module 1E typical application schematic
 % =============================================================================
-% Pico 2 W -> MCP4922 -> TL072 output buffer -> BNC, with the bypass network
-% from the MCP4922 datasheet figure 6-1 (DS22250A section 6.2).
+% Pico 2 W -> AD9742 (12 data bits + clock) -> 25-ohm termination -> 5th-order
+% Butterworth reconstruction filter -> 1k input resistor -> AD8056 op-amp ->
+% SP3T impedance switch (50/600/10k) -> BNC.
 %
-% This figure shows the SPI command path, the V_DD bypass network, and the
-% TL072 output buffer at unity-gain configuration for visual simplicity.
-% The full +/-10 V level-shift and gain network is described in the Module
-% 1E design doc, section 3.
+% Design representation note: the AD9742 has two complementary current outputs
+% (IOUTA, IOUTB) and the AD8056 is wired as a differential-to-single-ended
+% converter in the actual KiCad schematic. For figure readability, this
+% high-level functional view shows the signal flow as single-ended (one DAC
+% output line, one termination, one signal through the filter). The full
+% differential topology is documented in the design doc section 3 and lives
+% in the KiCad schematic.
 %
-% Layout decisions:
-%  - MCP4922 chip title placed at BOTTOM of the body so V_OUTA / V_OUTB pins
-%    can sit higher and align horizontally with their op-amp + inputs.
-%  - VOUTA at y=1.6 (matching bufa.+), VOUTB at y=-0.8 (matching bufb.+) so
-%    the 0--3.3 V analog wires are STRAIGHT HORIZONTAL, not diagonal.
-%  - Bypass network uses plain circuit wires (no colored arrows): +3.3 V text
-%    label sits at the top, white wire descends through the cap junction to
-%    the chip's V_DD pin, with V_DD labeled inside the chip body.
-%  - Op-amp feedback routes via a T-junction past the triangle apex (on the
-%    output wire), so the vertical-up segment is OUTSIDE the triangle.
+% Pin label convention: show GP0..GP2, an ellipsis, and GP11 to indicate the
+% 12-bit bus rather than enumerating every pin. CLK shown separately, with
+% vertical clearance from the IC title at the bottom of the box.
 %
 % Compile:  pdflatex 1e_typical_app.tex
 % Convert:  pdftocairo -svg 1e_typical_app.pdf
@@ -27,162 +24,232 @@
 %
 \input{../style/pmvb-figures.sty}
 %
+% Shrink default circuitikz bipole length so resistors fit cleanly inline.
+\ctikzset{bipoles/length=8mm}
+%
 \begin{document}
 \begin{circuitikz}[pmvb figure]
   %
   % =========================================================================
-  % LEFT: Pico 2 W
+  % LEFT: Pico 2 W with abbreviated GPIO label list on right edge
   % =========================================================================
-  \node[pmvb ic, minimum width=32mm, minimum height=44mm, anchor=west]
+  \node[pmvb ic, minimum width=24mm, minimum height=50mm, anchor=west]
     (pico) at (0, 0) {};
   %
+  % Title at the BOTTOM of the box. yshift=4mm of south places it at
+  % y = -2.5 + 0.4 = -2.1
   \node[font=\sffamily\bfseries\small, text=pmvbFg]
-    at ([yshift=-5mm]pico.north) {Pico 2 W};
+    at ([yshift=4mm]pico.south) {Pico 2 W};
   %
-  \coordinate (pico_cs)   at ($(pico.east) + (0,  1.0)$);
-  \coordinate (pico_sck)  at ($(pico.east) + (0,  0.3)$);
-  \coordinate (pico_sdi)  at ($(pico.east) + (0, -0.3)$);
-  \coordinate (pico_ldac) at ($(pico.east) + (0, -1.0)$);
+  % Abbreviated GPIO label list. Pin pitch 5mm; CLK row pulled higher
+  % (y=-1.4) so it's clear of the title (y=-2.1).
+  \coordinate (pico_gp0)  at ($(pico.east) + (0,  1.6)$);
+  \coordinate (pico_gp1)  at ($(pico.east) + (0,  1.1)$);
+  \coordinate (pico_gp2)  at ($(pico.east) + (0,  0.6)$);
+  \coordinate (pico_dots) at ($(pico.east) + (0,  0.1)$);
+  \coordinate (pico_gp11) at ($(pico.east) + (0, -0.4)$);
+  \coordinate (pico_gp12) at ($(pico.east) + (0, -1.4)$);
   %
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
-    at ($(pico_cs)   + (-2mm, 0)$) {GP17};
+    at ($(pico_gp0)  + (-2mm, 0)$) {GP0};
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
-    at ($(pico_sck)  + (-2mm, 0)$) {GP18};
+    at ($(pico_gp1)  + (-2mm, 0)$) {GP1};
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
-    at ($(pico_sdi)  + (-2mm, 0)$) {GP19};
+    at ($(pico_gp2)  + (-2mm, 0)$) {GP2};
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
-    at ($(pico_ldac) + (-2mm, 0)$) {GP20};
+    at ($(pico_dots) + (-2mm, 0)$) {\dots};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
+    at ($(pico_gp11) + (-2mm, 0)$) {GP11};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
+    at ($(pico_gp12) + (-2mm, 0)$) {GP12};
   %
   % =========================================================================
-  % MIDDLE: MCP4922 (title at BOTTOM of body)
+  % MIDDLE-LEFT: AD9742 with abbreviated DB pin label list on left edge
   % =========================================================================
-  \node[pmvb ic, minimum width=28mm, minimum height=44mm]
-    at (7.5, 0) (dac) {};
+  \node[pmvb ic, minimum width=28mm, minimum height=50mm]
+    at (5, 0) (dac) {};
   %
-  % Title at the BOTTOM of the chip body (yshift=+5mm of south)
   \node[font=\sffamily\bfseries\small, text=pmvbFg]
-    at ([yshift=5mm]dac.south) {MCP4922};
+    at ([yshift=4mm]dac.south) {AD9742};
   %
-  % MCP4922 pin coordinates.
-  % VOUTA / VOUTB y values chosen to MATCH bufa.+ / bufb.+ (which are at
-  % y=center+0.4 with yscale=-1) so the analog wires are horizontal.
-  \coordinate (dac_cs)    at ($(dac.west)  + (0,  1.0)$);
-  \coordinate (dac_sck)   at ($(dac.west)  + (0,  0.3)$);
-  \coordinate (dac_sdi)   at ($(dac.west)  + (0, -0.3)$);
-  \coordinate (dac_ldac)  at ($(dac.west)  + (0, -1.0)$);
-  \coordinate (dac_vdd)   at (dac.north);
-  \coordinate (dac_vss)   at (dac.south);
-  \coordinate (dac_vouta) at ($(dac.east)  + (0,  1.6)$);
-  \coordinate (dac_voutb) at ($(dac.east)  + (0, -0.8)$);
+  \coordinate (dac_db0)  at ($(dac.west) + (0,  1.6)$);
+  \coordinate (dac_db1)  at ($(dac.west) + (0,  1.1)$);
+  \coordinate (dac_db2)  at ($(dac.west) + (0,  0.6)$);
+  \coordinate (dac_dots) at ($(dac.west) + (0,  0.1)$);
+  \coordinate (dac_db11) at ($(dac.west) + (0, -0.4)$);
+  \coordinate (dac_clk)  at ($(dac.west) + (0, -1.4)$);
   %
-  % Pin labels INSIDE the MCP4922 body
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
-    at ($(dac_cs)   + (2mm, 0)$) {$\overline{\text{CS}}$};
+    at ($(dac_db0)  + (2mm, 0)$) {DB0};
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
-    at ($(dac_sck)  + (2mm, 0)$) {SCK};
+    at ($(dac_db1)  + (2mm, 0)$) {DB1};
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
-    at ($(dac_sdi)  + (2mm, 0)$) {SDI};
+    at ($(dac_db2)  + (2mm, 0)$) {DB2};
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
-    at ($(dac_ldac) + (2mm, 0)$) {$\overline{\text{LDAC}}$};
-  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
-    at ($(dac_vouta) + (-2mm, 0)$) {$V_{OUTA}$};
-  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
-    at ($(dac_voutb) + (-2mm, 0)$) {$V_{OUTB}$};
+    at ($(dac_dots) + (2mm, 0)$) {\dots};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
+    at ($(dac_db11) + (2mm, 0)$) {DB11};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
+    at ($(dac_clk)  + (2mm, 0)$) {CLK};
   %
-  % VDD pin label inside the chip body, hugging the top edge to keep clear
-  % of the V_OUTA pin label below
+  % VDD / VSS labels and connections
+  \coordinate (dac_vdd)  at (dac.north);
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=north]
     at ($(dac_vdd) + (0, -1mm)$) {$V_{DD}$};
   %
-  % --- SPI wires Pico -> MCP4922 ---
-  \draw[pmvb digital] (pico_cs)
-    -- node[above=0.5mm]{\pmvblabel{$\overline{\text{CS}}$}}    (dac_cs);
-  \draw[pmvb digital] (pico_sck)
-    -- node[above=0.5mm]{\pmvblabel{SCK 20\,MHz}}              (dac_sck);
-  \draw[pmvb digital] (pico_sdi)
-    -- node[above=0.5mm]{\pmvblabel{SDI \textbullet{} 16-bit frame}} (dac_sdi);
-  \draw[pmvb control] (pico_ldac)
-    -- node[above=0.5mm]{\pmvblabel{$\overline{\text{LDAC}}$}} (dac_ldac);
+  \coordinate (dac_vss)  at (dac.south);
+  \draw (dac_vss) to[short, *-] ++(0, -0.4) node[ground]{};
+  %
+  % IOUT (single-ended representation) on right edge.
+  % y=0.183 matches the op-amp's .+ input (offset above center by ~1.83mm at
+  % scale=0.85 with yscale=-1). With IOUT, LPF, and the 1k resistor all at
+  % y=0.183, the entire input side of the analog chain is horizontal. The
+  % op-amp's output sits at y=0 (center of triangle), so the output wire to
+  % SP3T is also horizontal at y=0. The ~1.83mm vertical step happens inside
+  % the op-amp triangle.
+  \coordinate (dac_iout) at ($(dac.east) + (0, 0.183)$);
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
+    at ($(dac_iout) + (-2mm, 0)$) {IOUT};
   %
   % =========================================================================
-  % BYPASS NETWORK above MCP4922 (all plain circuit wires, no colored arrows)
+  % Pico -> AD9742: 12-bit bus (no extra text label, x12 carries the meaning)
+  % + separate CLK line below
   % =========================================================================
-  % "+3.3 V" red text label at the top
+  % Bus center: at midpoint of GP0..GP11 cluster (≈ y=0.6)
+  \draw[pmvb bus] ($(pico.east) + (0, 0.6)$) --
+    node[pmvb bus width]{$\times 12$}
+    ($(dac.west) + (0, 0.6)$);
+  %
+  % CLK: separate single digital line
+  \draw[pmvb digital] (pico_gp12) --
+    node[above=0.5mm]{\pmvblabel{CLK}}
+    (dac_clk);
+  %
+  % =========================================================================
+  % BYPASS NETWORK above AD9742
+  % =========================================================================
+  % Coords raised 1cm vs initial draft: the AD9742 box (50mm tall) extends to
+  % y=2.5, so the cap+ground network needs to land well above that. Junction
+  % line at y=4.3, caps drop 0.7cm to ground glyphs at y=3.6 (11mm clearance
+  % above the box top).
   \node[font=\sffamily\scriptsize, text=pmvbRed]
-    at (7.5, 4.7) (vdd_label) {+3.3 V};
+    at (5, 5.0) (vdd_label) {+3.3 V};
   %
-  % Cap junction line and cap-top coordinates
-  \coordinate (c1_top)  at (6.0, 4.0);
-  \coordinate (vdd_jct) at (7.5, 4.0);
-  \coordinate (c2_top)  at (9.0, 4.0);
+  \coordinate (c1_top)  at (3.8, 4.3);
+  \coordinate (vdd_jct) at (5.0, 4.3);
+  \coordinate (c2_top)  at (6.2, 4.3);
   %
-  % Plain circuit wire from "+3.3 V" label down through the junction to the
-  % chip's V_DD pin. NO arrow head (this is a passive rail, not a signal).
   \draw[pmvbFg, line width=0.5pt]
     (vdd_label.south) -- (vdd_jct) -- (dac_vdd);
-  %
-  % Horizontal junction connecting the two cap tops
   \draw[pmvbFg, line width=0.5pt] (c1_top) -- (c2_top);
-  %
-  % Junction dot where the vertical wire meets the horizontal junction
   \fill[pmvbFg] (vdd_jct) circle (0.5mm);
   %
-  % Bypass caps (dot at top only; ground glyph implies the bottom connection)
   \draw (c1_top) to[C, l_={\pmvblabel{C1 10\,$\mu$F}}, *-]
-    ++(0, -1.0) node[ground]{};
+    ++(0, -0.7) node[ground]{};
   \draw (c2_top) to[C, l^={\pmvblabel{C2 0.1\,$\mu$F}}, *-]
-    ++(0, -1.0) node[ground]{};
-  %
-  % VSS to ground (small stub below chip)
-  \draw (dac_vss) to[short, *-] ++(0, -0.5) node[ground]{};
+    ++(0, -0.7) node[ground]{};
   %
   % =========================================================================
-  % RIGHT: MCP6232 unity-gain buffers, with horizontal VOUT wires
+  % MIDDLE: 25-ohm termination + LPF (single-ended representation)
   % =========================================================================
-  % bufa: center y = VOUTA.y - 0.4 = 1.2 (so bufa.+ aligns with VOUTA at y=1.6)
-  % bufb: center y = VOUTB.y - 0.4 = -1.2 (so bufb.+ aligns with VOUTB at y=-0.8)
-  \node[op amp, scale=0.8, yscale=-1] (bufa) at (15, 1.2) {};
-  \node[op amp, scale=0.8, yscale=-1] (bufb) at (15, -1.2) {};
+  % Single horizontal arrow from IOUT all the way to the LPF input. The 25Ω
+  % termination resistor branches off the wire at a tap point and goes down
+  % to ground. A junction dot at the tap shows the connection.
+  \node[pmvb ic, minimum width=22mm, minimum height=14mm,
+        draw=pmvbAmber, fill=pmvbBg]
+    at (10, 0.183) (lpf) {};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=-3mm]lpf.north) {5th-order};
+  \node[font=\sffamily\scriptsize, text=pmvbFg]
+    at (lpf.center) {Butterworth LPF};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=2mm]lpf.south) {12 MHz};
   %
-  % --- VOUTA -> bufa.+ (STRAIGHT horizontal at y=1.6) ---
-  \draw[pmvb analog] (dac_vouta) --
-    node[above=0.5mm]{\pmvblabel{0--3.3\,V analog}}
-    (bufa.+);
+  \coordinate (lpf_in)  at (lpf.west);
+  \coordinate (lpf_out) at (lpf.east);
   %
-  % --- VOUTB -> bufb.+ (STRAIGHT horizontal at y=-0.8) ---
-  \draw[pmvb analog] (dac_voutb) --
-    node[above=0.5mm]{\pmvblabel{0--3.3\,V analog}}
-    (bufb.+);
+  % Tap point on the IOUT-to-LPF wire (where the 25Ω branches off)
+  \coordinate (term_tap) at ($(dac_iout) + (0.7, 0)$);
   %
-  % --- BNC output connectors ---
-  \node[pmvb connector, right=14mm of bufa.out] (bnc_a) {OUT\\A};
-  \node[pmvb connector, right=14mm of bufb.out] (bnc_b) {OUT\\B};
+  % Single horizontal arrow from IOUT to LPF input (one continuous line,
+  % arrow head at the LPF end)
+  \draw[pmvb analog] (dac_iout) -- (lpf_in);
   %
-  % --- Output wires from op-amp .out to BNC, with feedback T-junctions ---
-  % Tap point on the output wire, sized so the feedback's vertical-up
-  % segment is clearly past the triangle apex (5mm clearance).
-  \coordinate (bufa_tap) at ($(bufa.out) + (5mm, 0)$);
-  \coordinate (bufb_tap) at ($(bufb.out) + (5mm, 0)$);
+  % 25Ω resistor branches off at the tap, vertical to ground
+  \draw (term_tap) to[R=\pmvblabel{25\,$\Omega$}]
+    ($(term_tap) + (0, -0.7)$) node[ground]{};
   %
-  \draw[pmvb analog] (bufa.out) -- (bnc_a.west);
-  \draw[pmvb analog] (bufb.out) -- (bnc_b.west);
-  %
-  % --- Feedback wires: from .- DOWN well past triangle bottom edge,
-  % then -| to a tap point past the apex. Larger 7mm down + 5mm right
-  % offsets give visible clearance from the triangle outline.
-  \draw (bufa.-) -- ++(0, -7mm) -| (bufa_tap);
-  \draw (bufb.-) -- ++(0, -7mm) -| (bufb_tap);
-  %
-  % Junction dots at the tap points
-  \fill[pmvbFg] (bufa_tap) circle (0.5mm);
-  \fill[pmvbFg] (bufb_tap) circle (0.5mm);
+  % Junction dot at the tap (indicates connection between signal wire and
+  % termination resistor)
+  \fill[pmvbFg] (term_tap) circle (0.5mm);
   %
   % =========================================================================
-  % Bottom annotation (caption is rendered in the design doc, not in SVG)
+  % MIDDLE-RIGHT: 1k input resistor -> AD8056 op-amp
   % =========================================================================
-  \node[pmvb annotation, below=14mm of dac.south]
-    {C1 = 10\,$\mu$F tantalum (bulk decoupling)\\
-     C2 = 0.1\,$\mu$F ceramic (HF decoupling)\\
-     Place both within 4\,mm of $V_{DD}$ pin (DS22250A \S6.2)};
+  % Op-amp default orientation (no yscale flip): + input at bottom-left,
+  % - input at top-left. The 1k resistor must enter the + input, not the -.
+  % We use yscale=-1 here to put + on TOP for visual convention; this also
+  % flips - to bottom, so the feedback loop drops cleanly down from .- and
+  % wraps under the triangle.
+  \node[op amp, scale=0.85, yscale=-1] (opa) at (13, 0) {};
+  % Title placed 6mm above op-amp center (above the triangle top vertex,
+  % which sits at center+4.25mm with scale=0.85 yscale=-1). Don't use
+  % opa.up — that anchor is the V+ supply pin which flips to the bottom
+  % under yscale=-1.
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ($(opa.center) + (0, 6mm)$) {AD8056};
+  %
+  % 1k resistor between LPF output and op-amp + input. With yscale=-1,
+  % .+ is at top-left of the triangle (above center). LPF output is at y=0.
+  % Route the wire LPF.east → small jog up → 1k resistor (still horizontal-ish)
+  % → op-amp .+. Acceptable to have a small vertical step here since the +
+  % input is offset from y=0 by ~1.7mm at scale=0.85.
+  \draw (lpf_out) to[R=\pmvblabel{1\,k$\Omega$}] (opa.+);
+  %
+  % Feedback wire from op-amp - input (now at bottom-left due to yscale=-1)
+  % to a T-junction point past the triangle apex on the output wire.
+  % Wire path: opa.- → DOWN 5mm → RIGHT past apex → UP to fb_tap.
+  % This routes well clear of the triangle outline.
+  \coordinate (fb_tap) at ($(opa.out) + (5mm, 0)$);
+  \draw (opa.-) -- ++(0, -5mm) -| (fb_tap);
+  \fill[pmvbFg] (fb_tap) circle (0.5mm);
+  %
+  % =========================================================================
+  % RIGHT: SP3T impedance switch + BNC output
+  % =========================================================================
+  % SP3T center y=0 matches the rest of the analog signal chain so the
+  % output wire from op-amp.out (also at y=0) is perfectly horizontal.
+  \node[pmvb ic, minimum width=22mm, minimum height=42mm]
+    at (16, 0) (sp3t) {};
+  \node[font=\sffamily\bfseries\small, text=pmvbFg]
+    at ([yshift=4mm]sp3t.south) {SP3T};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=8mm]sp3t.south) {(3 reeds)};
+  %
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
+    at ($(sp3t.west) + (2mm,  0.7)$) {50\,$\Omega$};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
+    at ($(sp3t.west) + (2mm,  0.0)$) {600\,$\Omega$};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
+    at ($(sp3t.west) + (2mm, -0.7)$) {10\,k$\Omega$};
+  %
+  % Op-amp output wire passes through the feedback tap (junction dot
+  % already drawn above) before continuing to the SP3T input.
+  \draw[pmvb analog] (opa.out) --
+    node[above=0.5mm]{\pmvblabel{$\pm$10\,V}}
+    (sp3t.west);
+  %
+  \node[pmvb connector, right=8mm of sp3t.east] (bnc) {BNC};
+  \draw[pmvb analog] (sp3t.east) -- (bnc.west);
+  %
+  % =========================================================================
+  % Bottom annotation
+  % =========================================================================
+  \node[pmvb annotation, below=10mm of dac.south]
+    {C1 = 10\,$\mu$F tantalum (bulk decoupling) \textbullet{} C2 = 0.1\,$\mu$F ceramic (HF decoupling)\\
+     LPF: 5th-order Butterworth, $\sim$12 MHz cutoff (L--C--L--C--L ladder, 50\,$\Omega$ characteristic)\\
+     SP3T: three Coto 9007-05-01 reed relays, mutually exclusive Pico GPIO drive\\
+     AD9742 actually has differential outputs (IOUTA, IOUTB); shown single-ended here for figure clarity};
+  %
 \end{circuitikz}
 \end{document}

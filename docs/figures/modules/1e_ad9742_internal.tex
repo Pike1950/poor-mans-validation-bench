@@ -1,20 +1,20 @@
 % =============================================================================
-% Figure 1E-2: MCP4922 internal functional block diagram
+% Figure 1E-2: AD9742 internal functional block diagram
 % =============================================================================
-% Embeds the official Microchip block diagram from the MCP4902/4912/4922
-% datasheet (DS22250A, page 1).
+% Embeds the official Analog Devices block diagram from the AD9742 datasheet
+% (Rev. C, page 1).
 %
 % The image must live at the path referenced below. By default it expects
 % the public-facing copy under docs/figures/modules/external/, NOT the
 % gitignored Reference Photos/ folder, so that GitHub Pages can render it.
 %
-% If you have not yet copied the image, run from project root:
+% Image source workflow (already done; documented for reproducibility):
 %   mkdir -p docs/figures/modules/external
-%   cp "Reference Photos/ICs/MCP4922/Screenshot 2026-05-06 104037.png" \
-%      docs/figures/modules/external/mcp4922_datasheet_block_diagram.png
+%   cp "Reference Photos/ICs/AD9742/AD9742-fbl.png" \
+%      docs/figures/modules/external/ad9742_datasheet_block_diagram.png
 %
-% Compile:  pdflatex 1e_mcp4922_internal.tex
-% Convert:  pdftocairo -svg 1e_mcp4922_internal.pdf
+% Compile:  pdflatex 1e_ad9742_internal.tex
+% Convert:  pdftocairo -svg 1e_ad9742_internal.pdf
 % =============================================================================
 \documentclass[border=8pt]{standalone}
 %
@@ -25,10 +25,10 @@
 \begin{tikzpicture}[pmvb figure]
   %
   % --- Embedded datasheet figure ------------------------------------------
-  % The image is placed at the origin. width=110mm gives a comfortable size
-  % for embedding in the SDD HTML; adjust if you need a different scale.
+  % Width set to 180mm so the rendered SVG carries enough intrinsic size
+  % to read clearly when scaled to width:100% in the design doc HTML.
   \node (img) at (0, 0)
-    {\includegraphics[width=110mm]{external/mcp4922_datasheet_block_diagram.png}};
+    {\includegraphics[width=180mm]{external/ad9742_datasheet_block_diagram.png}};
   %
   % Caption and attribution are rendered in the design doc, not embedded
   % in the SVG.
