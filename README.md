@@ -68,7 +68,7 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 
 **Chassis sourcing (verified BOM, ~$280)**
 
-- [ ] GeeekPi D-1188 ATX breakout — Amazon B08MC389FQ ($13)
+- [x] GeeekPi D-1188 ATX breakout — Amazon B08MC389FQ ($13)
 - [ ] Sabrent HB-BU10 USB 3.0 hub — Amazon B0797NZFYP ($47)
 - [ ] Phoenix MC 1,5/4 connector kit — Digi-Key 277-1208-ND + 277-1163-ND, ×14 pairs (~$170)
 - [ ] Fuse panel hardware — Eaton BK/HTB-22M-R holders ×3 + Bel BK1/GMC cartridges (5 A / 3 A / 0.5 A) (~$25)
