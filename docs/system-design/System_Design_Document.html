@@ -441,7 +441,7 @@ blockquote {
 <td>1E</td>
 <td>1</td>
 <td>Function Generator / AWG</td>
-<td>Pico 2 W + MCP4922</td>
+<td>Pico 2 W + AD9742 + AD8056</td>
 <td>USB-TMC</td>
 <td>Planned (v1.0)</td>
 </tr>
@@ -617,11 +617,11 @@ blockquote {
 </tr>
 <tr class="even">
 <td>DAC resolution</td>
-<td>12-bit (MCP4922)</td>
+<td>12-bit (MCP4922 dual-channel for Module 1D; AD9742 single-channel for Module 1E)</td>
 </tr>
 <tr class="odd">
 <td>DAC voltage range</td>
-<td>0 to 4.096 V (internal Vref)</td>
+<td>0 to 4.096 V (MCP4922 internal Vref); ±10 V after AD8056 op-amp output stage (AD9742-based Module 1E)</td>
 </tr>
 <tr class="even">
 <td>DC accuracy</td>
@@ -3555,14 +3555,14 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <p>This decision is intentional. A loose-on-bench chassis is the cheapest path to a working bench, allows incremental module addition without retooling, accommodates the variable depth of Tier 2 modules (which have three host devices stacked) without forcing a fixed-depth slot, and minimizes mechanical bring-up effort. The downside (it does not photograph as well as a rack-mount form factor) is acknowledged.</p>
 <p>A v2.0 form factor (DIN-rail or 3U Eurocard chassis) is reserved for after the module catalog stabilizes. The v2.0 enclosure design must accommodate the existing module dimensions; the architectural rule is that no module redesign is permitted to fit a future enclosure.</p>
 <h3 id="powered-usb-hub">11.2 Powered USB Hub</h3>
-<p>The chassis powered USB hub provides 5 V at 2.4 A per port to up to 8 USB-TMC instrument bridges. Required specifications:</p>
+<p>The chassis powered USB hub provides 5 V per port to up to 10 USB-TMC instrument bridges. Required specifications:</p>
 <ul>
 <li>Per-port current: 2.4 A minimum, 3.0 A preferred for headroom</li>
-<li>Total throughput: USB 2.0 high-speed aggregate at the hub uplink (the hub-to-Pi-5 link is full-speed because Pico 2 W is full-speed; high-speed at the uplink does not add value)</li>
-<li>Per-port power switching: preferred but not required; allows scripted module power cycling for boot debug</li>
-<li>Power input: 12 V DC barrel jack, 5 A minimum supply (60 W headroom for 8 ports at full draw)</li>
+<li>Hub uplink: USB 3.0 (5 Gbps) to the Pi 5. Each Pico 2 W downstream port still negotiates USB 2.0 full-speed (12 Mbps) natively, but a USB 3.0 uplink is required so that the Pi 5 ↔ hub link is not the bottleneck once Tier 2 streaming modules (Module 2E digitizer, Module 2A logic analyzer) come online.</li>
+<li>Per-port power switching: required; allows scripted module power cycling for boot debug, and per-port LEDs simplify chassis-level diagnosis.</li>
+<li>Power input: 12 V DC barrel jack, 5 A minimum supply (60 W headroom for full-port draw); external wall brick rather than chassis-PSU-derived to keep the digital domain isolated from the analog rails on the TFX backbone.</li>
 </ul>
-<p>A representative example is the Sabrent HB-UM43 or Plugable USB3-HUB7C. Cost approximately $25.</p>
+<p>The committed part is the Sabrent HB-BU10 (10-port USB 3.0, per-port switches and LEDs, 60 W wall brick included). Approximately $47 on Amazon (B0797NZFYP).</p>
 <h3 id="gigabit-lan-switch">11.3 Gigabit LAN Switch (v2.0 only)</h3>
 <p>v1.0 does not include a chassis LAN switch. The Pi 5's onboard wired Ethernet port connects directly to the bench network (workstation, home router, or whatever else InfluxDB, Grafana, and the MCP gateway need to be reachable from). USB-TMC is the canonical SCPI transport, and there is no per-module LAN traffic in v1.0 to aggregate.</p>
 <p>A switch is added when Tier 3 modules are built and bring per-module Pi Zero 2 W streaming sidecars into the chassis. At that point the switch's required specifications are:</p>
@@ -4042,6 +4042,8 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <li><strong>TI ADS1115 datasheet</strong>, Texas Instruments</li>
 <li><strong>TI ADS1256 datasheet</strong>, Texas Instruments</li>
 <li><strong>Microchip MCP4922 datasheet</strong>, Microchip Technology</li>
+<li><strong>Analog Devices AD9742 datasheet</strong>, Analog Devices</li>
+<li><strong>Analog Devices AD8056 datasheet</strong>, Analog Devices</li>
 <li><strong>Analog Devices AD9226 datasheet</strong>, Analog Devices</li>
 <li><strong>Analog Devices AD8421 datasheet</strong>, Analog Devices</li>
 <li><strong>Analog Devices AD8131 datasheet</strong>, Analog Devices</li>
