@@ -80,3 +80,11 @@ docs/templates/
 
 # Local-only reference material (third-party diagrams, photos, inspiration sources)
 Reference Photos/
+
+# PowerShell build/render scripts — local tooling, not part of the deliverable repo
+*.ps1
+
+# Local-only figure-pipeline documentation (style guide, build notes for the
+# figure author; not part of the published doc tree)
+docs/figures/STYLE_GUIDE.md
+docs/figures/BUILD.md
