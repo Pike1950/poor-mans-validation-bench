@@ -346,7 +346,7 @@ blockquote {
 <p><strong>Figure 4-0: PMVB Figure Legend</strong></p>
 <img src="../figures/system-design/00_legend.svg"
      alt="PMVB figure legend: decoder for box and wire conventions used in block diagrams and schematics."
-     style="max-width: 100%; display: block; margin: 0 auto;">
+     style="max-width: 900px; width: 100%; height: auto; display: block; margin: 1rem auto;">
 <h3 id="top-level-architecture">4.1 Top-Level Architecture</h3>
 <p>The platform decomposes into three physical layers.</p>
 <p>The orchestration layer is a single Raspberry Pi 5 hosting the test framework (PyVISA, pytest), the time-series database (InfluxDB), the dashboard server (Grafana), the report generator (Jinja2 with Matplotlib), and the MCP gateway. The Pi 5 carries no instrument hardware of its own; it is a pure software orchestrator and data sink.</p>
