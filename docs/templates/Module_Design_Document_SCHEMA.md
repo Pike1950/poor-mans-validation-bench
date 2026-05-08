@@ -153,8 +153,8 @@ and connects to the USB hub in the same way as every other module:
 
 **Module body envelope (mandatory):**
 
-- **Outer width (X, slot-pitch direction):** 16.5 mm including the 1 mm rail
-  lip. The 22.5 mm slot pitch leaves a 6 mm air gap between adjacent module
+- **Outer width (X, slot-pitch direction):** 16.3 mm including the 0.6 mm rail
+  lip. The 22.5 mm slot pitch leaves a 6.2 mm air gap between adjacent module
   bodies, which the chassis allocates to module components and assembly
   clearance per the convention below.
 - **PCB depth (Y, front-to-back):** 125 mm. The front edge sits at the
@@ -163,9 +163,10 @@ and connects to the USB hub in the same way as every other module:
 - **PCB height (Z, vertical):** 80 mm of usable PCB. The 86 mm total module
   height (3 mm bottom rail lip + 80 mm body + 3 mm top rail lip) engages
   the chassis floor and ceiling card guides.
-- **Module body shell:** 5 mm acrylic top/bottom shell walls, 1 mm right
-  wall (with the 1 mm × 3 mm rail lips at the top-right and bottom-right
-  corners), open left face. The cavity is 14.5 mm wide internally
+- **Module body shell:** 5 mm acrylic top/bottom shell walls, 1.2 mm right
+  wall (with the 0.6 mm × 3 mm rail lips at the top-right and bottom-right
+  corners that engage chassis grooves cut at 1 mm × 3 mm with 0.4 mm
+  sliding clearance), open left face. The cavity is 14.5 mm wide internally
   (x = −7.5 to +7), 70 mm tall (z = 11 to 81), 125 mm deep.
 
 **PCB mounting and component-stack convention (mandatory):**
@@ -176,7 +177,7 @@ the 6 mm inter-module gap. This convention has three consequences:
 
 - **Component-stack budget per module: 21.5 mm.** From the right wall (PCB
   surface at x = +7) leftward to the adjacent module's right wall
-  exterior (x_neighbor + 8 = x_this − 14.5). The 1 mm lip on the adjacent
+  exterior (x_neighbor + 8.2 = x_this − 14.3). The 0.6 mm lip on the adjacent
   module is above and below the cavity z-range and doesn't reduce the
   middle-cavity budget.
 - **Pico 2 W mounting flexibility:** both direct-solder (~6.2 mm stack,

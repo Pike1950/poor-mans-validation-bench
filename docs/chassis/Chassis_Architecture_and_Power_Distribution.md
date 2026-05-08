@@ -80,7 +80,7 @@ The frame is six laser-cut pieces of 4 mm clear acrylic plus internal card guide
 
 | Piece | Dimensions (mm) | Cuts/features |
 |---|---|---|
-| Floor plate | 420 × 238 | 4 corner mounting holes; 14 lip-engagement grooves at 22.5 mm pitch (each ~1 mm wide × 3 mm deep × 125 mm long, running front-to-back along the Y axis), accepting the bottom rail lip on each module body |
+| Floor plate | 420 × 238 | 4 corner mounting holes; 14 lip-engagement grooves at 22.5 mm pitch (each 1 mm wide × 3 mm deep × 125 mm long, running front-to-back along the Y axis), accepting the 0.6 mm wide × 3 mm tall bottom rail lip on each module body — the 0.4 mm width difference gives sliding clearance for assembly tolerance |
 | Top plate | 420 × 238 | 4 corner mounting holes; matching 14 lip-engagement grooves at 22.5 mm pitch on the underside (mirror of the floor pattern); ~6 × 12 grid of 5–6 mm round vent holes positioned over the TX300 footprint (X = −230 to −150, Y = −110 to +20) |
 | Left side | 90 × 238 | 4 corner mounting holes; optional venting slots if convection alone is insufficient |
 | Right side | 90 × 238 | 4 corner mounting holes |
@@ -91,7 +91,7 @@ The frame is six laser-cut pieces of 4 mm clear acrylic plus internal card guide
 
 Frame is assembled with **M3 corner standoffs** (12 mm tall for the spacing between top and floor plates plus the 90 mm side panels, and the side panels mount via M3 screws into the standoff threads). Total hardware: 16 corner standoffs, ~32 M3 × 6 mm screws, 4 M3 × 12 mm screws for component mounting (TX300, GeeekPi, USB hub).
 
-The lip-engagement grooves in the floor and ceiling form the card guides for module insertion. Each module's body has a 1 mm × 3 mm rail lip running along the bottom-right and top-right corners (the right side of each module body); these lips slide into the matching chassis grooves as the module is inserted from the front. The grooves stop short of the front edge of the floor/ceiling plate by ~3 mm so the module front-panel feature plays cleanly through the (eventually-cut) front-panel module-faceplate opening.
+The lip-engagement grooves in the floor and ceiling form the card guides for module insertion. Each module's body has a 0.6 mm × 3 mm rail lip running along the bottom-right and top-right corners (the right side of each module body); these lips slide into the chassis grooves (1 mm wide × 3 mm deep) as the module is inserted from the front. The 0.4 mm width difference between groove and lip gives sliding clearance — modules can be inserted and removed without binding under acrylic laser-cut tolerance variation. The grooves stop short of the front edge of the floor/ceiling plate by ~3 mm so the module front-panel feature plays cleanly through the (eventually-cut) front-panel module-faceplate opening.
 
 ### 3.3 TX300 PSU Mounting
 
@@ -125,20 +125,20 @@ The module bay occupies the right ~3/4 of the chassis floor: **14 slots at 22.5 
 
 <img src="../figures/chassis/photos/PMVBModule3.png" alt="" style="max-width: 350px; width: 100%; display: block; margin: 1.5rem auto;">
 
-*Figure 6: Side profile of a single module body. The C-shape cross-section is clearly visible: closed top and bottom shells, closed right wall, open left face. The two extensions at the top-right and bottom-right corners are the 1 mm × 3 mm rail lips that engage the chassis floor and ceiling grooves as the module slides in from the front. The host PCB mounts vertically against the cavity right wall and components extend leftward through the cavity and into the inter-module gap, giving 21.5 mm of stack budget per slot.*
+*Figure 6: Side profile of a single module body. The C-shape cross-section is clearly visible: closed top and bottom shells, closed right wall, open left face. The two extensions at the top-right and bottom-right corners are the 0.6 mm × 3 mm rail lips that engage the chassis floor and ceiling grooves (cut at 1 mm wide × 3 mm deep, giving 0.4 mm sliding clearance). The host PCB mounts vertically against the cavity right wall and components extend leftward through the cavity and into the inter-module gap, giving 21.5 mm of stack budget per slot.*
 
-**Module body envelope.** Each module body is **16.5 × 125 × 86 mm** with a C-shape cross-section:
+**Module body envelope.** Each module body is **16.3 × 125 × 86 mm** with a C-shape cross-section:
 
 - 5 mm thick acrylic top and bottom shells running the full 125 mm depth.
-- 1 mm thick right wall (closed) connecting top and bottom shells.
-- 1 mm × 3 mm rail lips at the top-right and bottom-right corners, extending the full 125 mm depth, that engage the chassis floor and ceiling grooves.
+- 1.2 mm thick right wall (closed) connecting top and bottom shells.
+- 0.6 mm × 3 mm rail lips at the top-right and bottom-right corners, extending the full 125 mm depth. These lips engage chassis floor and ceiling grooves cut at 1 mm wide × 3 mm deep, giving 0.4 mm sliding clearance to accommodate acrylic laser-cut tolerance variation.
 - **Open left face** — the module's left side has no shell. This is intentional and structural: it widens the effective component-stack budget per slot from 13 mm (a fully closed cavity) to 21.5 mm (cavity plus the 6 mm inter-module gap shared with the adjacent module's open face).
 
 Each module's body sits at Y = −116 (front edge, flush with the chassis front panel) to Y = +8 (rear edge, 35 mm forward of the back-wall harness to leave room for Phoenix plug body and cable strain relief), Z = 0 (3 mm bottom rail lip engages the chassis floor groove from Z = 0 to Z = 4) to Z = 90 (3 mm top rail lip engages the chassis ceiling groove from Z = 86 to Z = 90).
 
 **Internal cavity** is 14.5 × 125 × 70 mm (X = −7.5 to +7, Y = full 125 mm depth, Z = 11 to 81 between the 5 mm top and bottom shells).
 
-**Component stack budget per module: 21.5 mm.** Because every module's left face is open and every module follows the same orientation (lip-on-the-right), components on each module's PCB can extend leftward from the module's own cavity right wall (x = +7) all the way to the adjacent module's right wall outer edge (x = neighbor + 8 = this − 14.5 mm). The 1 mm rail lip on the adjacent module is above and below the cavity Z range and does not reduce the middle-cavity X budget. This is why we can fit headered Pico stacks (14.2 mm) and direct-soldered Pico stacks (6.2 mm) plus analog circuitry on the same side of the host PCB.
+**Component stack budget per module: 21.5 mm.** Because every module's left face is open and every module follows the same orientation (lip-on-the-right), components on each module's PCB can extend leftward from the module's own cavity right wall (x = +7) all the way to the adjacent module's right wall outer edge (x = neighbor + 8.2 = this − 14.3 mm). The 0.6 mm rail lip on the adjacent module is above and below the cavity Z range and does not reduce the middle-cavity X budget. This is why we can fit headered Pico stacks (14.2 mm) and direct-soldered Pico stacks (6.2 mm) plus analog circuitry on the same side of the host PCB.
 
 **Module mount convention (mandatory across all modules):** each module's host PCB is mounted vertically against the cavity right wall (PCB plane parallel to the chassis YZ plane, PCB normal pointing leftward into the cavity). All components are placed on the cavity-facing (left-pointing) face of the PCB. No components on the back face of the PCB (which is pressed against the right wall). This convention is what makes the 21.5 mm stack budget achievable — without it, adjacent modules could collide in the inter-module gap.
 
