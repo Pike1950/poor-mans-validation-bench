@@ -37,7 +37,7 @@ CAVITY_W            = MODULE_OUTER_W - RIGHT_WALL_T  # 14.3 mm
 CAVITY_H            = MODULE_BODY_H - 2 * SHELL_T    # 68 mm
 
 # Chassis geometry
-CHASSIS_W           = 420.0
+CHASSIS_W           = 435.0  # widened from 420 to clear front-left standoff vs TX300 (2026-05-10)
 CHASSIS_D           = 238.0
 CHASSIS_H           = 92.0   # bumped from 90 to fit lip-and-groove stack
 PANEL_T             = 3.0    # acrylic thickness for chassis panels
@@ -50,9 +50,10 @@ SLOT_GROOVE_LEN     = 125.0        # along Y, matches module length
 # First module slot starts X mm in from left wall.
 # TX300 zone occupies x = 0 to 86 mm (left side of chassis); 4 mm air gap;
 # module slot zone starts at x = 90 mm and extends 309 mm rightward.
+TX300_LEFT_CLEAR    = 10.0   # standoff (5 mm hex at x=5) plus 2.5 mm clearance
 TX300_ZONE_W        = 86.0   # left-side width reserved for TX300
 TX300_GAP           = 4.0    # air gap between TX300 zone and first module slot
-SLOT_X0             = TX300_ZONE_W + TX300_GAP   # 90 mm
+SLOT_X0             = TX300_LEFT_CLEAR + TX300_ZONE_W + TX300_GAP   # 100 mm
 
 # Layout offsets for nested DXF panels (panel-to-panel gap)
 DXF_GAP             = 10.0

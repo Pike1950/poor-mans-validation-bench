@@ -10,7 +10,7 @@ A modular SCPI instrument platform that mirrors NI PXIe rack-and-module test arc
 
 ### Chassis design
 
-- **[Chassis Architecture and Power Distribution](https://pike1950.github.io/poor-mans-validation-bench/docs/chassis/Chassis_Architecture_and_Power_Distribution.html)** — open-frame acrylic blade-style chassis (laser-cut from SendCutSend, 420 × 238 × 90 mm) housing the Silverstone TX300 PSU as an analog-rail backbone, the GeeekPi D-1188 ATX breakout, the Sabrent HB-BU10 USB 3.0 hub, and 14 module slots at 22.5 mm pitch. Covers mechanical architecture, electrical architecture (4-rail back-wall harness with Phoenix MC 1,5/4 module interconnect, per-rail fuse panel, banana-jack diagnostic test points), USB-TMC backplane, BOM with Digi-Key and Amazon cross-references, bring-up procedure, and safety protocols.
+- **[Chassis Architecture and Power Distribution](https://pike1950.github.io/poor-mans-validation-bench/docs/chassis/Chassis_Architecture_and_Power_Distribution.html)** — open-frame acrylic blade-style chassis (laser-cut from SendCutSend, 435 × 238 × 92 mm) housing the Silverstone TX300 PSU as an analog-rail backbone, the GeeekPi D-1188 ATX breakout, the Sabrent HB-BU10 USB 3.0 hub, and 14 module slots at 22.5 mm pitch. Covers mechanical architecture, electrical architecture (4-rail back-wall harness with Phoenix MC 1,5/4 module interconnect, per-rail fuse panel, banana-jack diagnostic test points), USB-TMC backplane, BOM with Digi-Key and Amazon cross-references, bring-up procedure, and safety protocols.
 
 ### Per-module design
 
@@ -62,10 +62,10 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 - [x] TFX (TX300) is analog-rail backbone, not chassis-wide power
 - [x] Pi 5, Sabrent hub, Picos run from independent external supplies
 - [x] Pi 5 ↔ USB hub link is USB 3.0
-- [x] Chassis envelope: 420 × 238 × 92 mm in 3 mm cast acrylic from SendCutSend
+- [x] Chassis envelope: 435 × 238 × 92 mm in 3 mm cast acrylic from SendCutSend
 - [x] Chassis topology v1.0: open-frame card cage (4 panels: floor, bottom groove plate, top groove plate, ceiling) held by 4 M3 corner standoffs. Side walls + rear wall + front panel deferred to v1.1 pending thermal review.
 - [x] Module form factor v10 (JLCPCB-FDM-compliant): 16.3 × 125 × 86 mm outer, 6 mm shells, 2 mm right wall, 1.5 × 3 × 125 mm rail lips at top-right and bottom-right edges, 14.3 × 125 × 68 mm cavity
-- [x] Chassis groove: 2 mm wide × 3 mm deep × 125 mm long, at 22.5 mm slot pitch starting at x = 90 mm (first 86 mm of chassis width reserved for TX300 zone). 0.5 mm sliding clearance.
+- [x] Chassis groove: 2 mm wide × 3 mm deep × 125 mm long, at 22.5 mm slot pitch starting at x = 100 mm (leftmost 10 mm reserved for M3 corner standoff clearance + 86 mm TX300 zone + 4 mm air gap). 0.5 mm sliding clearance.
 - [x] Module fabrication path: FDM PLA via US service for prototype (Baysinger's AM); FDM PETG via JLCPCB for the production batch of 14 once v10 fit validates
 - [x] Module Design Document Schema authored (local tooling)
 
@@ -93,7 +93,7 @@ Iterative build strategy: prototype-first. Order one chassis acrylic set (4 pane
 - [x] Chassis DXFs generated with M3 corner clearance holes: `panel_solid_plate.dxf` (qty 2 for floor + ceiling), `panel_groove_plate.dxf` (qty 2 for bottom + top divider, with 14 module slot cutouts each)
 - [x] Exploded-view assembly diagram + STL generated (`chassis_assembly_exploded.png`, `chassis_assembly_exploded.stl`)
 - [x] v10 prototype module ordered from Baysinger's AM (Texas, USA) via Craftcloud — order #465257381764, $24.77 express, ETA May 14-19
-- [ ] Order chassis acrylic from SendCutSend (~$130 for 4 panels in 3 mm blue cast acrylic, free US shipping)
+- [ ] Order chassis acrylic from SendCutSend (~$135 for 4 panels in 3 mm blue cast acrylic at the widened 435 × 238 × 92 mm envelope, free US shipping)
 - [ ] Order M3 hardware (4× M3 × 80 mm hex standoffs + M3 × 10 mm cap screws, ~$15)
 - [ ] Receive prototype module and chassis panels; verify dimensions
 - [ ] Slide-fit test: insert module body into one chassis slot, verify lip-and-groove engagement with 0.5 mm sliding clearance
@@ -233,48 +233,4 @@ Continuous work that spans phases.
 - [x] Module 1E Design Document v1.1
 - [x] PMVB figure legend (Figure 4-0)
 - [x] Figure 4-1 (top-level system block, TikZ)
-- [x] Chassis block diagram (TikZ, with analog/digital module split)
-- [x] Module 1E figures (×3)
-- [ ] Per-module figures for 1A / 1B / 1C / 1D / 1F / 1G / 1H / 2A / 2B / 2C / 2D / 2E
-- [ ] Front-panel cutout DXF (chassis re-cut once module faceplate I/O converges)
-- [ ] SDD revision history maintained as architecture evolves
-
-**Firmware infrastructure**
-
-- [ ] SCPI YAML schema specification (canonical command-set definition format)
-- [ ] YAML → C parser + YAML → PyVISA-sim backend codegen pipeline (one source feeds firmware and simulator)
-- [ ] TinyUSB / Pico 2 W USB-TMC integration recipe
-- [ ] Common module firmware template + Pico build pipeline (CMake + RP2350 SDK)
-- [ ] Calibration record format (YAML in Pico flash, sync to InfluxDB)
-- [ ] Firmware version reporting via `*IDN?` (module ID + firmware hash + build date)
-
-**Verification infrastructure**
-
-- [ ] pytest fixtures for module discovery (PyVISA `ResourceManager` listing → per-module fixture)
-- [ ] InfluxDB schema + tag taxonomy (`bench`, `module_id`, `run_id`, `dut_id`, `measurement_type`)
-- [ ] System test recipe catalog (audio analyzer, power sequencing, Firestick boot, etc.)
-- [ ] Optional: GitHub Actions CI (firmware build + pytest with simulator backend)
-
-**Bench infrastructure**
-
-- [x] Fluke 87V calibrated DMM on hand (confirm cal currency periodically)
-- [ ] GPSDO 10 MHz reference (Leo Bodnar mini, ~$50) — needed for Module 2C
-- [ ] Bench oscilloscope for live verification during module bring-up
-- [ ] Calibrated voltage reference (LM399-based or commercial precision reference)
-- [ ] Variable AC supply for HV testing (Module 1F)
-- [ ] Soldering equipment audit (iron, hot air, flux, paste, tweezers, ESD wrist strap)
-- [ ] ESD-safe workstation setup
-
-**Build / sourcing logistics**
-
-- [ ] Inventory tracker (parts on hand / ordered / incoming)
-- [ ] Sourcing aggregator (consolidate Mouser/Digi-Key orders to minimize shipping)
-- [ ] Receive-and-verify checklist for each order
-
-## License
-
-[MIT License](LICENSE) — see file for full text.
-
-## Author
-
-Bradley Ward
+- [x] Chassis block diagram (TikZ, wi
