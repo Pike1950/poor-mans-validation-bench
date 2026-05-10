@@ -3551,7 +3551,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <p>Reports are written to <code>reports/&lt;run_id&gt;/</code> on the Pi 5 with both <code>.pdf</code> and <code>.html</code> outputs. The HTML form is suitable for direct browsing or upload into a static-site portfolio.</p>
 <h2 id="chassis-and-mechanical-design-rationale">11. Chassis and Mechanical Design Rationale</h2>
 <h3 id="form-factor">11.1 Form Factor</h3>
-<p>The v1.0 chassis is an <strong>open-frame card-cage acrylic enclosure</strong>, 435 × 238 × 92 mm (~17.1" × 9.4" × 3.6"), built from four laser-cut 3 mm cast acrylic panels (floor, ceiling, and two internal divider plates with 14 module-slot through-cuts each) clamped vertically by four M3 × 80 mm corner standoffs. Modules slide into the chassis as vertical blades at 22.5 mm slot pitch, engaging 1.5 × 3 × 125 mm rail lips into the divider-plate groove cutouts (2.0 mm wide × 3 mm deep, 0.5 mm sliding clearance). Module bodies are FDM-printed (PLA for prototype, PETG for the production batch) at 16.3 × 125 × 86 mm with a C-shape cross-section.</p>
+<p>The v1.0 chassis is an <strong>open-frame card-cage acrylic enclosure</strong>, 435 × 238 × 92 mm (~17.1" × 9.4" × 3.6"), built from four laser-cut 3 mm cast acrylic panels (floor, ceiling, and two internal divider plates with 14 module-slot through-cuts each) clamped vertically by four M3 corner standoff stacks (each 80 mm tall, built from 3× M3 × 20 mm M-F + 1× F-F threaded together with Loctite 243 on the internal joints — sourced from a Csdtylh M3 assortment kit on Amazon). Modules slide into the chassis as vertical blades at 22.5 mm slot pitch, engaging 1.5 × 3 × 125 mm rail lips into the divider-plate groove cutouts (2.0 mm wide × 3 mm deep, 0.5 mm sliding clearance). Module bodies are FDM-printed (PLA for prototype, PETG for the production batch) at 16.3 × 125 × 86 mm with a C-shape cross-section.</p>
 <p>v1.0 is intentionally open-sided (no side walls, no rear wall, no front panel). The four corner standoffs handle structural rigidity on their own, and adding walls re-introduces TX300 thermal-management constraints that are scoped to v1.1. Until then, the bench operator gets unrestricted access to all chassis internals (TX300, GeeekPi breakout, USB hub, harness, modules) from any side.</p>
 <p>Full mechanical and electrical detail is in the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution document</a>. A v1.1 walled chassis with explicit ventilation geometry is described in §9 of that document. A v2.0 form factor (DIN-rail or 3U Eurocard chassis) is reserved for after the module catalog stabilizes; the architectural rule is that no module redesign is permitted to fit a future enclosure.</p>
 <h3 id="powered-usb-hub">11.2 Powered USB Hub</h3>
@@ -3700,7 +3700,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <h3 id="phase-0-orchestration-bring-up">13.1 Phase 0: Orchestration Bring-Up</h3>
 <p>Phase 0 establishes the orchestration layer with no instrument modules attached. Scope:</p>
 <ul>
-<li>Pi 5 2 GB with Raspberry Pi OS Bookworm, Python 3.11+, PyVISA, PyVISA-py, PyVISA-sim, pytest installed</li>
+<li>Pi 5 16 GB with Raspberry Pi OS Bookworm, Python 3.11+, PyVISA, PyVISA-py, PyVISA-sim, pytest installed</li>
 <li>InfluxDB 1.8 with the schema from section 10.2</li>
 <li>Grafana 10 OSS with template-variable dashboards (no live data yet)</li>
 <li>MCP gateway scaffolding (no module servers yet)</li>
@@ -3708,7 +3708,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <li>A representative simulator-backed test passes end-to-end (writes to InfluxDB, renders a Grafana panel, generates a Jinja2 report)</li>
 </ul>
 <p><strong>Table 13-1: Phase 0 BOM</strong></p>
-<p><em>Pricing audit status: as of 2026-05-07, the Raspberry Pi 5 (Microcenter, $305), Module 1E v1.1 (Digi-Key + Microcenter, $53), GeeekPi D-1188 ATX breakout (Amazon, $13), and Sabrent HB-BU10 powered USB 3.0 hub (Amazon, $47) have been verified against current suppliers. The full chassis BOM is documented in the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> doc. Phase total is approximate and excludes the chassis enclosure pending DXF generation and SendCutSend quote.</em></p>
+<p><em>Pricing audit status: as of 2026-05-10, all Phase 0 BOM lines are verified against actual purchases or current supplier quotes. The chassis enclosure (4-panel laser-cut acrylic from SendCutSend) is ordered at $142.57 invoice. The internal chassis DC distribution sub-BOM (Phoenix MC 1,5/4 ×2 pairs for prototype scope, fuse panel hardware, Pomona banana jacks, Wago lever-nuts ×10, 12/14 AWG wire kits, M3 + M2.5 standoff kits, ESKONKE 243 threadlocker) is fully scoped in the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> doc.</em></p>
 <table>
 <thead>
 <tr class="header">
@@ -3750,28 +3750,40 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <td>$15</td>
 </tr>
 <tr class="odd">
-<td>Silverstone SST-TX300 TFX PSU <em>(analog-rail backbone for instrument modules; not chassis-wide power)</em></td>
-<td>$0 (on hand)</td>
+<td>Silverstone SST-TX300 TFX PSU <em>(analog-rail backbone for instrument modules; not chassis-wide power; on hand from prior project)</em></td>
+<td>$99.99</td>
 </tr>
 <tr class="even">
-<td>GeeekPi D-1188 ATX 24-pin breakout, all rails incl. −12 V <em>(Amazon, verified)</em></td>
+<td>GeeekPi D-1188 ATX 24-pin breakout, all rails incl. −12 V <em>(Amazon B08MC389FQ, on hand)</em></td>
 <td>$13</td>
 </tr>
 <tr class="odd">
-<td>Chassis enclosure (architecture pending — Pi-cluster-style acrylic blade case under evaluation)</td>
-<td>TBD</td>
+<td>Chassis enclosure — 4-panel laser-cut acrylic open-frame card cage, 435 × 238 × 92 mm <em>(SendCutSend invoice #SL094002, ordered 2026-05-10)</em></td>
+<td>$142.57</td>
 </tr>
 <tr class="even">
-<td>Internal chassis DC distribution (Phoenix MC 1,5/4 connectors, fuses, harness wire)</td>
-<td>~$30 placeholder</td>
+<td>v10 prototype module body, FDM PLA <em>(Baysinger's AM order #465257381764, ETA May 14-19)</em></td>
+<td>$24.77</td>
+</tr>
+<tr class="odd">
+<td>M3 + M2.5 standoff/screw kits, Loctite 243 threadlocker <em>(Csdtylh B06Y5TJXY1 + HVAZI B01L06CUJG + ESKONKE B0CHM5QS3N, Amazon)</em></td>
+<td>$36.96</td>
+</tr>
+<tr class="even">
+<td>12 AWG + 14 AWG silicone hookup wire kits <em>(Fermerry B089CJ65SC + Fermerry 14 AWG, Amazon)</em></td>
+<td>$41.25</td>
+</tr>
+<tr class="odd">
+<td>Phoenix MC 1,5/4 ×2 pairs + fuse panel hardware + Pomona banana jacks + Wago 221-413 ×10 <em>(Digi-Key bundle, pending)</em></td>
+<td>~$76</td>
 </tr>
 <tr>
 <td><strong>Phase 0 total</strong></td>
-<td><strong>~$490 + chassis enclosure (TBD)</strong></td>
+<td><strong>~$766</strong></td>
 </tr>
 </tbody>
 </table>
-<p><em>The Silverstone TX300 is listed at $0 because Brad has one on hand from prior projects; replacement cost ~$50–$70 for a comparable 300 W TFX 80+ Bronze unit. Under the 2026-05-07 architecture revision, the TFX is the analog-rail backbone for instrument modules (±12 V op-amp rails, +5 V analog), not the chassis-wide power source. The Pi 5, USB hub, and Picos each run from their own external supplies (Pi 5 from its 27 W USB-C charger; hub from its own wall brick; Picos from USB downstream power). The full chassis BOM and architecture are documented in the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> doc.</em></p>
+<p><em>The Silverstone TX300 was $99.99 from a prior project and is on hand. Under the 2026-05-07 architecture revision, the TFX is the analog-rail backbone for instrument modules (±12 V op-amp rails, +5 V analog), not the chassis-wide power source. The Pi 5, USB hub, and Picos each run from their own external supplies (Pi 5 from its 27 W USB-C charger; hub from its own wall brick; Picos from USB downstream power). Phase 0 spend break-down: ~$447 has been committed against orders placed (Pi 5 stack + Sabrent hub + GeeekPi breakout + SendCutSend acrylic + Baysinger's prototype module + Amazon hardware/wire/threadlocker order), with ~$76 remaining in the pending Digi-Key bundle. The full chassis BOM and architecture are documented in the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> doc.</em></p>
 <h3 id="phase-1-tier-1-core-modules">13.2 Phase 1: Tier 1 Core Modules</h3>
 <p>Phase 1 adds Modules 1A, 1B, 1D, and 1E. Module 1C is deferred to Phase 1.5 because the dual-Pico architecture is more involved and not on the critical path for the audio analyzer recipe.</p>
 <p><strong>Table 13-2: Phase 1 BOM</strong></p>
@@ -3968,8 +3980,8 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </thead>
 <tbody>
 <tr class="odd">
-<td>Phase 0 (orchestration + PSU)</td>
-<td>~$437*</td>
+<td>Phase 0 (orchestration + chassis)</td>
+<td>~$766</td>
 </tr>
 <tr class="even">
 <td>Phase 1 (Tier 1 core)</td>
@@ -3994,7 +4006,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>v1.0 + v1.1 subtotal</strong></td>
-<td><strong>~$1,019*</strong></td>
+<td><strong>~$1,348</strong></td>
 </tr>
 <tr class="even">
 <td>Phase 4 (Tier 3, optional, includes chassis LAN switch)</td>
@@ -4002,10 +4014,10 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>All phases total</strong></td>
-<td><strong>~$1,406*</strong></td>
+<td><strong>~$1,735*</strong></td>
 </tr>
 <tr class="even">
-<td colspan="2"><em>* Totals include unverified placeholder line-items pending the full §13 BOM audit. Verified line-items so far: Raspberry Pi 5 16 GB ($305, Microcenter), Module 1E v1.1 ($53, Digi-Key + Microcenter).</em></td>
+<td colspan="2"><em>Phase 0 is fully verified against actual purchases and pending-order quotes. Phase 1 and onward include some placeholder line-items pending each module's BOM audit. * Phase 4 / All-phases totals include unverified Tier 3 FPGA + chassis LAN switch placeholders.</em></td>
 </tr>
 </tbody>
 </table>
