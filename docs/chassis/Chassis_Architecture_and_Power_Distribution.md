@@ -206,7 +206,23 @@ The GeeekPi D-1188 (Amazon B08MC389FQ, ~$13) takes the TX300's 24-pin ATX cable 
 
 ### 4.3 Per-Rail Fuse Panel
 
-Each rail passes through a panel-mount glass-cartridge fuse before reaching the back-wall harness. Fuses provide a fast-failure path independent of the breakout's onboard polyfuses (which reset themselves and don't visibly indicate a fault). The fuse panel is a small section of perfboard or terminal-block strip mounted to the chassis floor near the GeeekPi.
+Each rail passes through a panel-mount glass-cartridge fuse before reaching the back-wall harness. Fuses provide a fast-failure path independent of the breakout's onboard polyfuses (which reset themselves and don't visibly indicate a fault). The fuse panel is a small perfboard or terminal-block strip mounted to the chassis floor directly in front of the GeeekPi (X ~= 107..167, Y ~= 110..155, Z floor) so the pre-fuse 12 AWG jumpers from the GeeekPi screw terminals stay under 100 mm.
+
+**Fuse sizing rationale.** The fuse rating is set to the expected worst-case operating load with margin, **not** to the TX300's source capacity. A fuse exists to interrupt fault current (short circuit, runaway), so it must (a) pass normal operating current without nuisance-tripping and (b) trip quickly on fault current. Sizing at or near the source max would force a >10 A short before tripping; sizing just above the expected load lets even small downstream faults trip the fuse fast.
+
+| Rail | TX300 source max | Expected PMVB load | Fuse rating | Headroom |
+|---|---|---|---|---|
+| +5 V | 14 A | ~2-3 A (8 analog modules, ADC refs and analog supplies at 200-300 mA each) | 5 A slow-blow | ~60% utilization |
+| +12 V (combined +12V1 + +12V2) | 22 A | ~1-2 A (op-amp rails at 100-200 mA each across 8 analog modules, plus dynamic load for 1D SMU and 1E AWG drive) | 3 A slow-blow | ~50-70% utilization |
+| −12 V | 0.3 A (limited at the source) | ~150-200 mA (~20 mA op-amp quiescent per rail per module) | 500 mA slow-blow | ~30-40% utilization |
+
+The TX300 itself has internal ATX overcurrent protection that shuts down the entire PSU if any rail exceeds its rated max. The chassis-side fuses are additive protection that buys three things on top:
+
+1. **Per-rail isolation.** A short on +12 V trips only the +12 V fuse; +5 V and −12 V stay alive so the bench keeps running for whatever else is on those rails. Without the chassis fuses, the TX300 OCP would shut down all rails together.
+2. **Finer-grained fault detection.** A fault pulling ~5-10 A on +5 V trips the chassis fuse but is well under the TX300's 14 A OCP threshold and would otherwise persist. Smaller faults catch faster.
+3. **Visible fault indication.** A blown cartridge is visible through the holder cap and the rail-status LED on the diagnostic strip goes dark, so the operator immediately knows which rail failed.
+
+**Fuse selection details:**
 
 | Rail | Fuse rating | Fuse holder | Fuse cartridge |
 |---|---|---|---|
@@ -214,7 +230,11 @@ Each rail passes through a panel-mount glass-cartridge fuse before reaching the 
 | +12 V | 3 A slow-blow | Eaton BK/HTB-22M-R | Bel BK1/GMC-3-R |
 | −12 V | 500 mA slow-blow | Eaton BK/HTB-22M-R | Bel BK1/GMC-500MA-R (or equivalent) |
 
-A blown fuse is visible through the holder cap and replaceable without disassembly; the holder accepts standard 5 × 20 mm cartridges.
+A blown fuse is visible through the holder cap and replaceable without disassembly; the holder accepts standard 5 x 20 mm cartridges.
+
+**GND is not fused** — return paths are never fuse-protected. The GND wire runs directly from the GeeekPi GND terminal to the back-wall harness GND rail, bypassing the fuse panel.
+
+**If bring-up reveals higher actual loads** than estimated above, the fuse rating can be bumped up. Section 7.2 step 10 ("verify rail voltages") is the natural point to also measure actual rail current with a clamp or shunt; if for example Module 1E AWG turns out to pull 4 A peak on +5 V during inrush, replace the 5 A cartridge with a 7 A or 10 A slow-blow. The 12 AWG pre-fuse and 14 AWG post-fuse wire is rated well above any fuse value you would realistically pick (12 AWG is 41 A free-air, 14 AWG is 32 A), so the fuse rating can grow without re-pulling the wire.
 
 ### 4.4 4-Wire Back-Wall Harness
 
