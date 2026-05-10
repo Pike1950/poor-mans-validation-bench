@@ -407,4 +407,66 @@ This is overkill for solo hobbyist work but matches industry practice and is wor
 
 ## 9. Future Enhancements
 
-- **v1.1 walled chassis with explicit ventilation geometry.** v1.0 is intentionally open-frame to defer the thermal-management problem. The
+The v1.0 chassis is deliberately scoped to validate the architectural decisions (open-frame card cage, lip-and-groove module mating, TX300 as analog-rail backbone, Wago lever-nut harness taps, prototype-first 2-slot population) before committing to anything that is expensive or hard to change. The items below are explicitly deferred to v1.1 and beyond.
+
+### 9.1 v1.1 walled chassis with explicit ventilation geometry
+
+v1.0 is intentionally open-frame to defer the thermal-management problem. The four corner standoffs handle structural rigidity on their own, so side walls, rear wall, and front panel are not load-bearing in v1.0 and were dropped to avoid prematurely freezing intake/exhaust airflow geometry around the TX300 fan.
+
+v1.1 must re-introduce these walls as a single combined design problem with ventilation. Constraints to resolve simultaneously:
+
+- **TX300 fan exhaust path.** The TX300's 80 mm fan exhausts upward through the top of the PSU body at Z = 72. With the chassis ceiling at Z = 86 in v1.0, the fan has 14 mm of vertical clearance to push hot air upward and out. v1.1 must either (a) cut a vent grid in the chassis ceiling directly above the TX300 exhaust face, or (b) route the exhaust through a vent in the rear wall above the TX300.
+- **Module passive convection.** Modules dissipate up to about 4 W each at sustained workloads (Tier 2 modules with active FPGAs). With 14 modules at full power and a sealed enclosure, the chassis interior could reach 15-20 C above ambient. Vent geometry on both the front panel (intake) and rear or top (exhaust) is needed to set up a convection current across the module bay.
+- **Sabrent HB-BU10 thermal.** The hub's wall brick is external, but the hub itself dissipates a few watts and is positioned in the rear-center of the chassis floor. Its top face needs vertical clearance to the chassis ceiling and shouldn't sit directly downstream of the TX300 exhaust.
+- **EMI considerations.** Open-mesh vents (rather than louvered slots) constrain RFI shielding effectiveness. v1.0 is open-frame so this is moot; v1.1 vent design should consider whether the bench needs the chassis to act as a Faraday cage for low-level analog measurements (probably not for audio-bandwidth Tier 1 measurements; possibly yes for Module 2E digitizer bring-up).
+
+Vent geometry will be parameterized in `tools/fabrication/` and the v1.1 panel set will include rear-wall, side-wall, and front-panel DXFs alongside the v1.0 floor/ceiling/groove plates. The four M3 corner stacks remain unchanged; v1.1 walls bolt to the same corner positions via additional through-holes in their corner regions.
+
+### 9.2 Front panel with per-module faceplate cutouts and diagnostic strip
+
+The v1.0 front panel is not in the BOM. v1.1 adds a 435 by 92 mm front panel with:
+
+- **Per-module faceplate cutouts.** A region 100 to 409 mm in X (the module-bay X range) is divided into 14 rectangular cutouts at 22.5 mm pitch, each roughly 16.5 by 60 mm, exposing the front face of each module body for its labels, indicator LEDs, and any module-specific I/O (BNC jacks on Module 1E AWG, banana jacks on Module 1F HV probe, and so on).
+- **Chassis-level diagnostic strip.** The leftmost approximately 90 mm of the front panel (corresponding to the TX300 X zone) carries the chassis-level diagnostics: 4 Pomona 3760 banana jacks (color-coded for +5 V / +12 V / -12 V / GND) and 3 VCC 5102H LED rail-status indicators. The IEC inlet cutout (35 by 28 mm) for the TX300's AC entry also sits in this zone.
+
+The diagnostic strip is functionally optional. The same test points can be reached with a DMM directly at the fuse panel, but the strip is a quality-of-life upgrade for bench-side diagnostics that costs about $25 in additional parts.
+
+### 9.3 Custom 4-rail distribution PCB
+
+v1.0 uses Wago 221-413 lever-nut connectors at each module slot to tap the 4-rail back-wall harness (one Wago per rail per slot, three conductors: bus IN, bus OUT, branch to module pigtail). 56 Wagos at full 14-slot population is mechanically dense and not the cleanest implementation.
+
+v1.1 alternative: a single PCB the full length of the module bay (309 by 25 mm) with:
+
+- Four copper traces running parallel along the long axis for the rails (sized for 5 A / 3 A / 0.5 A respectively per the v1.0 fuse spec)
+- One Phoenix MC 1,5/4 right-angle PCB header per slot at 22.5 mm pitch
+- Input terminal at one end for the post-fuse harness from the GeeekPi and fuse panel
+- M2.5 mounting holes aligned with the back-wall standoff positions
+
+The PCB replaces 56 Wagos with a single roughly $10-15 fabricated PCB plus 14 Phoenix headers. Wire dressing becomes a single 4-conductor cable from the fuse panel to the PCB's input terminal, rather than a 14-tap harness. The Wago approach in v1.0 is the prototype-validation step before committing to this PCB layout.
+
+### 9.4 v2.0 chassis form factor
+
+v2.0 is reserved for after the module catalog stabilizes (post-Phase 3, all v1.0 + v1.1 modules built and validated). Candidate form factors:
+
+- **DIN-rail mount.** Modules become DIN-rail clip-on housings, suitable for permanent lab installations or rack-mount industrial use.
+- **3U Eurocard.** Modules become standard 3U cards mating to a passive backplane. This is closest to the NI PXIe paradigm that PMVB is consciously modeled after.
+
+The architectural rule (per SDD 11.1) is that no module electrical redesign is permitted to fit a future enclosure. Modules must remain electrically identical to v1.0; only the mechanical housing changes between v1.0 / v1.1 (FDM-printed blade) and v2.0 (DIN-rail clip or 3U Eurocard front panel + backplane edge connector).
+
+### 9.5 Chassis LAN switch
+
+Reserved for Phase 4 (Tier 3 modules), when per-module Pi Zero 2 W streaming sidecars are introduced and need their own LAN network distinct from the bench Ethernet. Specified at SDD 11.3 as a 5-8 port unmanaged gigabit switch (TP-Link TL-SG108 representative). Not on the v1.0 + v1.1 critical path.
+
+---
+
+## 10. References
+
+- [PMVB System Design Document](../system-design/System_Design_Document.html) - canonical architecture and module catalog.
+- [Module 1E Design Document](../modules/Module_1E_Design_Document.html) - first module to fully populate, drives the chassis bring-up.
+- Silverstone TX300 datasheet (300 W TFX 80+ Bronze).
+- GeeekPi D-1188 ATX 24-pin breakout product page (Amazon B08MC389FQ).
+- Sabrent HB-BU10 USB 3.0 10-port hub product page (Amazon B0797NZFYP).
+- SendCutSend laser-cut acrylic service: dimensional rules and material datasheet.
+- JLCPCB FDM 3D printing service: design rules for module body fabrication.
+- Wago 221-413 datasheet: 3-conductor compact splicing connector, 12-24 AWG.
+- Phoenix Contact MC 1,5/4-G-3,81 and MC 1,5/4-ST-3,81 datasheets: pluggable PCB header and cable plug pair.
