@@ -75,7 +75,7 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 **Chassis sourcing (verified BOM, ~$280)**
 
 - [x] GeeekPi D-1188 ATX breakout — Amazon B08MC389FQ ($13)
-- [ ] Sabrent HB-BU10 USB 3.0 hub — Amazon B0797NZFYP ($47)
+- [x] Sabrent HB-BU10 USB 3.0 hub — Amazon B0797NZFYP ($47), ordered + on hand
 - [ ] Phoenix MC 1,5/4 connector kit — Digi-Key 277-1208-ND + 277-1163-ND, ×14 pairs (~$170)
 - [ ] Fuse panel hardware — Eaton BK/HTB-22M-R holders ×3 + Bel BK1/GMC cartridges (5 A / 3 A / 0.5 A) (~$25)
 - [ ] Pomona 3760 banana jacks ×4, color-coded (~$20)
@@ -90,32 +90,40 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 
 **Chassis fabrication + assembly**
 
-Iterative build strategy: prototype-first. Order one chassis acrylic set (4 panels) plus one PLA module body, slide-test the v10 lip-and-groove fit, then commit to the JLCPCB batch order for the remaining 13 module bodies and proceed with the full chassis assembly + harness build-out. Module 1E is still the first module to fully populate (analog complexity shakes out harness, USB, and faceplate clearances better than simpler modules); Pi 5 software-stack work runs in parallel.
+Prototype-first iterative build: order chassis acrylic + one PLA module, slide-test the v10 lip-and-groove fit, then commit the JLCPCB batch order for 13 more modules and proceed with full assembly + harness. Module 1E is the first module to fully populate; Pi 5 software-stack work runs in parallel.
 
-- [x] Tinkercad reference design committed (chassis + module + slot grooves + vent grid)
-- [x] Parametric DXF + STL generator authored (`tools/fabrication/generate_prototype_v10.py`) using ezdxf + trimesh
-- [x] v10 module STL generated (`module_body_v10.stl`, 44 triangles, watertight, 42.6 cm³)
-- [x] Chassis DXFs generated with M3 corner clearance holes: `panel_solid_plate.dxf` (qty 2 for floor + ceiling), `panel_groove_plate.dxf` (qty 2 for bottom + top divider, with 14 module slot cutouts each)
-- [x] Exploded-view assembly diagram + STL generated (`chassis_assembly_exploded.png`, `chassis_assembly_exploded.stl`)
-- [x] v10 prototype module ordered from Baysinger's AM (Texas, USA) via Craftcloud — order #465257381764, $24.77 express, ETA May 14-19
-- [x] SendCutSend acrylic ordered (invoice #SL094002, 2026-05-10) — **$142.57 total** ($131.70 subtotal + $10.87 TX sales tax + free shipping). 4 panels in 3 mm blue cast acrylic: panel_solid_plate.dxf qty 2 (floor + ceiling) + panel_groove_plate.dxf qty 2 (bottom + top divider). The 2-design-at-qty-2 approach saved ~$70 over 4 unique designs. Slot cutouts implemented as front-edge notches in the outer outline to satisfy SendCutSend's parts-within-parts validator.
-- [ ] Order M3 + M2.5 chassis hardware (~$22 combined: 4× M3 × 80 mm standoffs + 8× M3 × 12 mm screws + 4× M2.5 × 5 mm standoffs + 4× M2.5 × 12 mm screws)
-- [ ] Order Wago 221-413 lever-nuts (×25 initial, ~$10 from Mouser 651-221-413)
-- [ ] Receive prototype module and chassis panels; verify dimensions
-- [ ] Slide-fit test: insert module body into one chassis slot, verify lip-and-groove engagement with 0.5 mm sliding clearance
-- [ ] Iterate v10 design if slide-fit fails (edit constants in generator script, regenerate, re-order)
-- [ ] If slide-fit passes: order JLCPCB batch of 14 module bodies in PETG (~$84)
-- [ ] Frame assembly: stack floor + bottom groove plate + 4 corner standoffs + top groove plate + ceiling, clamp with 8 M3 × 12 mm screws
-- [ ] Mount TX300 inside the open-frame chassis (IEC inlet at front, fan up). Position: X = 9.5..95.5, Y = 4..182, Z = 8..74
-- [ ] Mount GeeekPi D-1188 to chassis ceiling via 4× M2.5 × 5 mm standoffs hanging from underside of top groove plate; M2.5 × 12 mm screws come from above the ceiling through both panels into the standoffs. GeeekPi sits at X = 107..166, Y = 158.5..228.5, Z = 65..81 (rotated 90°)
-- [ ] Run 24-pin ATX cable from TX300 (top of PSU at Z = 74) up to the GeeekPi (bottom at Z = 65), short ~10 mm vertical run
-- [ ] Mount Sabrent HB-BU10 to chassis floor at X = 102.6..247.4, Y = 175.4..223.7 (rear-center). VHB tape acceptable for v1.0 prototype phase.
+*Design tooling and fabrication files (complete)*
+
+- [x] Tinkercad reference design + parametric DXF/STL generator (`tools/fabrication/generate_prototype_v10.py`, ezdxf + trimesh) producing `panel_solid_plate.dxf`, `panel_groove_plate.dxf`, `module_body_v10.stl`, `chassis_v10.stl`, `chassis_v10_assembled.stl`, `chassis_assembly_exploded.{stl,png}`
+
+*Orders*
+
+- [x] v10 prototype module — Baysinger's AM (TX, USA) via Craftcloud, order #465257381764, $24.77 express, ETA May 14-19
+- [x] Chassis acrylic — SendCutSend invoice #SL094002, **$142.57** ($131.70 subtotal + $10.87 TX tax + free shipping), 4 panels in 3 mm blue cast acrylic
+- [ ] M3 + M2.5 chassis hardware (~$22): 4× M3 × 80 mm + 8× M3 × 12 mm screws + 4× M2.5 × 5 mm + 4× M2.5 × 12 mm screws
+- [ ] Wago 221-413 lever-nuts (×25 initial, ~$10 from Mouser 651-221-413)
+
+*Receive + slide-fit validation*
+
+- [ ] Receive prototype module + chassis panels; verify dimensions match v10 spec
+- [ ] Slide-fit test: insert one module into one slot, verify 0.5 mm sliding clearance on the lip-and-groove engagement
+- [ ] If fail: edit generator-script constants, regenerate, re-order. If pass: order JLCPCB batch of 14 module bodies in PETG (~$84)
+
+*Frame + component install*
+
+- [ ] Stack assembly: floor + bottom groove plate + 4× M3 corner standoffs + top groove plate + ceiling, clamped with 8× M3 × 12 mm screws
+- [ ] Install TX300 (X=9.5..95.5, Y=4..182, Z=8..74), GeeekPi (ceiling-mounted via M2.5 standoffs at X=107..166, Y=158.5..228.5, Z=65..81), and Sabrent (X=102.6..247.4, Y=175.4..223.7, VHB-tape to floor)
+- [ ] Run 24-pin ATX cable TX300 top (Z=74) up to GeeekPi bottom (Z=65)
 - [ ] Build per-rail fuse panel + wire to GeeekPi outputs
-- [ ] Build 4-wire back-wall harness (~330 mm × 14 AWG, color-coded), with Wago 221-413 tap at slot 1 only for Module 1E shakedown (4 Wagos: one per rail)
-- [ ] Single-slot shakedown: install Module 1E in slot 1, verify Phoenix mate + USB cable run + harness tap routing
-- [ ] After single-slot shakedown passes, add Wago taps at remaining 13 slots (4 Wagos per slot × 13 = 52 more Wagos, total 56)
-- [ ] Install + wire front-panel diagnostic strip (banana jacks ×4 + LED indicators ×3) on a separate small acrylic strip mounted to the chassis floor (front-panel proper deferred to v1.1)
-- [ ] **Deferred to v1.1:** chassis side walls, rear wall, front panel, ventilation geometry, module-specific faceplate cutouts, custom 4-rail distribution PCB to replace Wago lever-nuts. Walls + vents must be co-designed because closing the chassis re-introduces TX300 cooling constraints.
+
+*Harness + module shakedown*
+
+- [ ] Build 4-wire back-wall harness (~330 mm × 14 AWG, color-coded). Tap slot 1 only for Module 1E shakedown via 4× Wago 221-413 (one per rail)
+- [ ] Single-slot shakedown: install Module 1E, verify Phoenix mate + USB cable run + harness tap
+- [ ] On pass: add Wago taps at remaining 13 slots (52 more Wagos, total 56)
+- [ ] Install front-panel diagnostic strip (×4 banana jacks + ×3 LED indicators) on a small acrylic strip on the chassis floor
+
+*Deferred to v1.1:* chassis side walls, rear wall, front panel, ventilation geometry, module-specific faceplate cutouts, custom 4-rail distribution PCB. Walls + vents must be co-designed because closing the chassis re-introduces TX300 cooling constraints.
 
 **Chassis bring-up**
 
@@ -156,9 +164,38 @@ Iterative build strategy: prototype-first. Order one chassis acrylic set (4 pane
 
 Four foundational Tier 1 modules using the chassis from Phase 0. Each follows the per-module template.
 
-- [ ] **Module 1A — Digital I/O Controller**: design doc · BOM · PCB · assembly · firmware · bring-up · calibration · service
-- [ ] **Module 1B — Voltage Measurement Unit**: design doc · BOM · PCB · assembly · firmware · bring-up · calibration · service (front-end: ADS1115 + instrumentation amp on ±12 V rails)
-- [ ] **Module 1D — Source-Measure Unit Lite**: design doc · BOM · PCB · assembly · firmware · bring-up · calibration · service (front-end: DAC + force/sense op-amp loop on ±12 V rails)
+- **Module 1A — Digital I/O Controller**:
+  - [ ] Design doc
+  - [ ] Block diagram
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: Pico + level shifters + I/O protection)
+  - [ ] PCB fab + assembly
+  - [ ] Firmware (SCPI YAML for read/write/pulse, configurable per-pin direction)
+  - [ ] Bring-up
+  - [ ] Module enters service
+- **Module 1B — Voltage Measurement Unit** (front-end: ADS1115 + instrumentation amp on ±12 V rails):
+  - [ ] Design doc
+  - [ ] Functional figures (system context + front-end schematic)
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: ADS1115 + instrumentation amp + ±12 V analog supplies)
+  - [ ] PCB fab + assembly
+  - [ ] Firmware (SCPI YAML for voltage measurement, range selection, averaging)
+  - [ ] Bring-up
+  - [ ] Calibration (offset, gain across ranges)
+  - [ ] Module enters service
+- **Module 1D — Source-Measure Unit Lite** (front-end: DAC + force/sense op-amp loop on ±12 V rails):
+  - [ ] Design doc
+  - [ ] Functional figures
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: 12-bit DAC + force/sense op-amp loop + ±12 V analog supplies)
+  - [ ] PCB fab + assembly
+  - [ ] Firmware (SCPI YAML for V-source/I-measure, sweep, IV-curve)
+  - [ ] Bring-up
+  - [ ] Calibration (V-source, I-measure across ranges)
+  - [ ] Module enters service
 - **Module 1E — Function Generator / AWG**:
   - [x] Design doc v1.1
   - [x] Functional figures (system context, AD9742 datasheet embed, typical app)
@@ -178,22 +215,88 @@ Four foundational Tier 1 modules using the chassis from Phase 0. Each follows th
 
 ### Phase 1.5 — HID Module + Tier 2 Bridge Bring-Up
 
-- [ ] **Module 1C — USB HID Protocol Analyzer**: design doc · BOM · PCB · assembly · firmware · bring-up · service (architecture: dual-Pico bridge)
-- [ ] **Tier 2 bridge stack (Tang Primer 25K + Pico)**: bridge module PCB · fab + assembly · Tang Primer placeholder HDL · Pico bridge firmware · `*IDN?` through bridge returns placeholder string · Phase 1.5 verification milestone per SDD §13.3
+- **Module 1C — USB HID Protocol Analyzer** (architecture: dual-Pico bridge):
+  - [ ] Design doc
+  - [ ] Block diagram
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: dual Pico, USB-host on capture Pico, USB-device on target side)
+  - [ ] PCB fab + assembly
+  - [ ] Firmware (SCPI YAML for HID enumeration, capture, parse)
+  - [ ] Bring-up
+  - [ ] Module enters service
+- **Tier 2 bridge stack (Tang Primer 25K + Pico)**:
+  - [ ] Bridge module PCB design
+  - [ ] PCB fab + assembly
+  - [ ] Tang Primer placeholder HDL (verify Pico ↔ FPGA SPI link)
+  - [ ] Pico bridge firmware (SCPI YAML pass-through skeleton)
+  - [ ] `*IDN?` through bridge returns placeholder string
+  - [ ] Phase 1.5 verification milestone per SDD §13.3
 
 ### Phase 1.7 — Module 1H DMM
 
-- [ ] **Module 1H — Multi-Function DMM**: design doc · BOM · PCB · assembly · firmware · bring-up · per-range calibration · service (front-end: ADS1256 24-bit ADC + relay-switched multi-range network on ±12 V rails)
+- **Module 1H — Multi-Function DMM** (front-end: ADS1256 24-bit ADC + relay-switched multi-range network on ±12 V rails):
+  - [ ] Design doc
+  - [ ] Functional figures
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: ADS1256 + relay-switched multi-range network + ±12 V analog supplies)
+  - [ ] PCB fab + assembly
+  - [ ] Firmware (SCPI YAML for DC V/I/R, AC V, continuity, frequency)
+  - [ ] Bring-up
+  - [ ] Per-range calibration
+  - [ ] Module enters service
 - [ ] Phase 1.7 verification milestone per SDD §13.3.5: 9 V battery, 1 kΩ ±1 % reference, 1 kHz sine from 1E all read within stated module accuracy
 
 ### Phase 2 — Tier 2 Core (2A, 2B, 2C, 2D)
 
 Four primary Tier 2 modules using the bridge stack from Phase 1.5. Each adds Tang Primer 25K HDL alongside the Pico bridge firmware (synthesis on shared FPGA per project rule).
 
-- [ ] **Module 2A — Logic Analyzer**: design doc · BOM · PCB · assembly · HDL (capture + buffer + SPI register IF) · firmware · bring-up · service
-- [ ] **Module 2B — Protocol Exerciser / Analyzer**: design doc · BOM · PCB · assembly · HDL (protocol bit-banger + decoder) · firmware · bring-up · service
-- [ ] **Module 2C — Frequency Counter**: design doc · BOM · PCB · assembly · HDL (count state machine) · firmware · bring-up · TCXO calibration via GPSDO · service
-- [ ] **Module 2D — Ethernet MAC and Network Analyzer**: design doc · BOM · PCB · assembly · HDL (MAC frame analyzer) · firmware · bring-up · service
+- **Module 2A — Logic Analyzer**:
+  - [ ] Design doc
+  - [ ] Functional figures
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: probe inputs + level shifters + Tang Primer 25K)
+  - [ ] PCB fab + assembly
+  - [ ] HDL (sample capture FSM + sample buffer + SPI register interface)
+  - [ ] Pico bridge firmware (SCPI YAML for capture/trigger/decode)
+  - [ ] Bring-up
+  - [ ] Module enters service
+- **Module 2B — Protocol Exerciser / Analyzer**:
+  - [ ] Design doc
+  - [ ] Functional figures
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: protocol I/O + level shifters + Tang Primer 25K)
+  - [ ] PCB fab + assembly
+  - [ ] HDL (protocol bit-banger + decoder)
+  - [ ] Pico bridge firmware
+  - [ ] Bring-up
+  - [ ] Module enters service
+- **Module 2C — Frequency Counter**:
+  - [ ] Design doc
+  - [ ] Functional figures
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: input conditioning + TCXO + Tang Primer 25K)
+  - [ ] PCB fab + assembly
+  - [ ] HDL (count state machine, gate timing)
+  - [ ] Pico bridge firmware
+  - [ ] Bring-up
+  - [ ] TCXO calibration via GPSDO
+  - [ ] Module enters service
+- **Module 2D — Ethernet MAC and Network Analyzer**:
+  - [ ] Design doc
+  - [ ] Functional figures
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: PHY + magnetics + Tang Primer 25K)
+  - [ ] PCB fab + assembly
+  - [ ] HDL (MAC frame analyzer + buffer)
+  - [ ] Pico bridge firmware
+  - [ ] Bring-up
+  - [ ] Module enters service
 
 **Phase 2 verification milestone (SDD §13.4)**
 
@@ -203,7 +306,18 @@ Four primary Tier 2 modules using the bridge stack from Phase 1.5. Each adds Tan
 
 ### Phase 2.5 — Module 2E Digitizer
 
-- [ ] **Module 2E — Mixed-Signal Digitizer / Oscilloscope**: design doc · BOM · PCB · assembly · HDL (ADC capture + trigger logic) · firmware · bring-up · calibration (offset, gain, bandwidth) · service (front-end: high-speed multi-channel ADC + analog conditioning on ±5 V or ±12 V rails)
+- **Module 2E — Mixed-Signal Digitizer / Oscilloscope** (front-end: high-speed multi-channel ADC + analog conditioning on ±5 V or ±12 V rails):
+  - [ ] Design doc
+  - [ ] Functional figures
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: high-speed ADC + analog conditioning + Tang Primer 25K)
+  - [ ] PCB fab + assembly
+  - [ ] HDL (ADC capture + trigger logic + sample buffer)
+  - [ ] Pico bridge firmware (SCPI YAML for capture/trigger/FFT readback)
+  - [ ] Bring-up
+  - [ ] Calibration (offset, gain, bandwidth)
+  - [ ] Module enters service
 
 **Phase 2.5 system tests (SDD §13.5)**
 
@@ -212,8 +326,28 @@ Four primary Tier 2 modules using the bridge stack from Phase 1.5. Each adds Tan
 
 ### Phase 3 — v1.1 Tier 1 (1F, 1G)
 
-- [ ] **Module 1F — High-Voltage Differential Probe**: design doc · HV safety review · BOM · PCB · assembly · firmware · bring-up (low-V → ramp to ±300 V) · calibration · service (front-end: AD8421 instrumentation amp + 100:1 attenuator on ±12 V rails). Document v1.2 fully-isolated variant as future enhancement.
-- [ ] **Module 1G — IR Capture and Transmit**: design doc · BOM · PCB · assembly · firmware (NEC, RC5, Sony SIRC encode/decode) · bring-up · service
+- **Module 1F — High-Voltage Differential Probe** (front-end: AD8421 instrumentation amp + 100:1 attenuator on ±12 V rails; v1.2 fully-isolated variant noted as future enhancement):
+  - [ ] Design doc
+  - [ ] HV safety review
+  - [ ] Functional figures
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: AD8421 + 100:1 attenuator + ±12 V analog supplies)
+  - [ ] PCB fab + assembly
+  - [ ] Firmware (SCPI YAML for HV differential measurement)
+  - [ ] Bring-up (low-V validation → ramp to ±300 V)
+  - [ ] Calibration
+  - [ ] Module enters service
+- **Module 1G — IR Capture and Transmit**:
+  - [ ] Design doc
+  - [ ] Block diagram
+  - [ ] BOM verified at Digi-Key + Mouser
+  - [ ] BOM ordered
+  - [ ] PCB design (KiCad: IR LED + photodiode + Pico)
+  - [ ] PCB fab + assembly
+  - [ ] Firmware (SCPI YAML, NEC / RC5 / Sony SIRC encode/decode)
+  - [ ] Bring-up
+  - [ ] Module enters service
 
 **Phase 3 verification milestone**
 
@@ -240,4 +374,31 @@ Continuous work that spans phases.
 - [x] Module 1E Design Document v1.1
 - [x] PMVB figure legend (Figure 4-0)
 - [x] Figure 4-1 (top-level system block, TikZ)
-- [x] Chassis block diagram (TikZ, wi
+- [x] Chassis block diagram (TikZ, with analog/digital module split)
+- [x] Module 1E figures (functional block, AD9742 datasheet embed, typical app)
+- [x] Module Design Document Schema (local tooling, gitignored)
+- [ ] Per-module design docs for 1A, 1B, 1C, 1D, 1F, 1G, 1H, 2A-2E (authored as each module enters Phase 1+)
+
+**Tooling**
+
+- [x] TikZ figure pipeline with `pmvb-figures.sty` (FMCW dark theme)
+- [x] Pandoc-rendered HTML for SDD and chassis arch doc, served via GitHub Pages
+- [x] Parametric DXF + STL generator for chassis fabrication (`tools/fabrication/`)
+- [ ] KiCad project template + symbol/footprint library for per-module PCBs
+- [ ] Pico SDK build environment (CMake + arm-none-eabi-gcc) for firmware development
+- [ ] Tang Primer 25K HDL toolchain (Gowin EDA + open-source flow as backup)
+
+**Test infrastructure**
+
+- [ ] pytest harness with parametric fixtures keyed off module catalog
+- [ ] PyVISA-sim YAML schemas (one per module, generated mechanically from `modules/<id>/commands.yaml`)
+- [ ] InfluxDB tag schema spec (instrument, channel, dut, run_id, measurement_type)
+- [ ] Jinja2 + Matplotlib report templates (PDF + HTML output)
+- [ ] MCP gateway scaffolding (Anthropic Python SDK, exposes per-module tool surface)
+
+**Workflow**
+
+- [x] GitHub repository published at github.com/Pike1950/poor-mans-validation-bench
+- [x] GitHub Pages deployment for SDD + chassis arch doc
+- [ ] Per-module branch + PR workflow once Phase 1 module work begins
+- [ ] CI for SCPI YAML schema validation + Pandoc HTML re-rendering on doc changes
