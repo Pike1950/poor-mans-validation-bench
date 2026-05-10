@@ -81,11 +81,11 @@ Detailed rationale (gauge sizing, standoff stacking, fastener stack-up, Wago vs 
 - [ ] Phoenix MC 1,5/4 connector pairs ×2 — Digi-Key 277-1208-ND + 277-1163-ND (~$28)
 - [ ] Eaton BK/HTB-22M-R fuse holders ×3 + Bel BK1/GMC cartridges 5 A / 3 A / 0.5 A — Digi-Key (~$25)
 - [ ] Pomona 3760 banana jacks ×4 — Digi-Key (~$20)
-- [ ] 12 AWG silicone wire kit, 6 colors × 5 ft — Fermerry, Amazon B089CJ65SC ($20.29)
-- [ ] 14 AWG silicone wire kit, 6 colors × 10 ft — Fermerry, Amazon ($20.96)
-- [ ] M3 standoff/screw/nut kit, 320 pc — Csdtylh, Amazon B06Y5TJXY1 ($14.98)
-- [ ] M2.5 standoff/screw/nut kit, 160 pc — HVAZI, Amazon B01L06CUJG ($11.99)
-- [ ] Blue 243 threadlocker, 50 mL — ESKONKE, Amazon B0CHM5QS3N ($9.99)
+- [x] 12 AWG silicone wire kit, 6 colors × 5 ft — Fermerry, Amazon B089CJ65SC ($20.29)
+- [x] 14 AWG silicone wire kit, 6 colors × 10 ft — Fermerry, Amazon ($20.96)
+- [x] M3 standoff/screw/nut kit, 320 pc — Csdtylh, Amazon B06Y5TJXY1 ($14.98)
+- [x] M2.5 standoff/screw/nut kit, 160 pc — HVAZI, Amazon B01L06CUJG ($11.99)
+- [x] Blue 243 threadlocker, 50 mL — ESKONKE, Amazon B0CHM5QS3N ($9.99)
 - [ ] Wago 221-413 lever-nuts ×10 — Digi-Key (~$6.45)
 - [ ] USB-C-to-USB-A cables ×14, ~150 mm — Amazon (~$30)
 - [x] 22 AWG signal wire on hand
@@ -105,7 +105,7 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 
 - [x] v10 prototype module — Baysinger's AM #465257381764, $24.77, ETA May 14-19
 - [x] Chassis acrylic — SendCutSend #SL094002, $142.57
-- [ ] Amazon order (hardware + wire + threadlocker, ~$78)
+- [x] Amazon order (hardware + wire + threadlocker, $78.21), ETA May 12
 - [ ] Digi-Key order (Phoenix + fuse panel + banana jacks + Wago, ~$76)
 
 *Receive + slide-fit validation*
