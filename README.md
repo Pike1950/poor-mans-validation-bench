@@ -103,10 +103,10 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 
 *Orders placed*
 
-- [x] v10 prototype module — Baysinger's AM #465257381764, $24.77, ETA May 14-19
-- [x] Chassis acrylic — SendCutSend #SL094002, $142.57
-- [x] Amazon order (hardware + wire + threadlocker, $78.21), ETA May 12
-- [x] Digi-Key order — Web ID 371601396, placed 2026-05-10 17:10 ($62.19 total: $46.64 subtotal + $6.99 shipping + $3.82 tariff + $4.74 sales tax)
+- [x] v10 prototype module — Baysinger's AM, $24.77, ETA May 14-19
+- [x] Chassis acrylic — SendCutSend, $142.57
+- [x] Amazon order (hardware + wire + threadlocker), $78.21, ETA May 12
+- [x] Digi-Key order (Phoenix + fuse panel + Wago), $62.19, placed 2026-05-10
 
 *Receive + slide-fit validation*
 
