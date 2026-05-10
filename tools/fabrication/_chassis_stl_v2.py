@@ -1,94 +1,94 @@
-# Replacement chassis STL builder using boolean operations (manifold3d backend).
-# Replaces make_chassis_stl() and build_groove_plate_mesh() in generate_prototype_v10.py.
+"""Chassis STL builder: composes panels and groove plates from solid boxes.
+   No boolean operations (avoids manifold3d edge cases that produced
+   internal-void cutouts instead of through-holes)."""
 
 import trimesh
+
 
 def make_chassis_stl(CHASSIS_W, CHASSIS_D, CHASSIS_H, PANEL_T,
                      N_SLOTS, SLOT_X0, SLOT_PITCH, MODULE_OUTER_W,
                      LIP_W, GROOVE_W, SLOT_GROOVE_LEN):
-    """
-    Single coherent chassis mesh:
-      - 5 walls (floor, ceiling, left, right, rear; front is OPEN for module insertion)
-      - bottom groove plate at Z = 3..6 with 14 through-cuts
-      - top groove plate at Z = 86..89 with 14 through-cuts
-    Module slot pattern offset rightward by SLOT_X0 to leave TX300 zone clear.
-    """
-    # Outer envelope
-    outer = trimesh.creation.box(extents=[CHASSIS_W, CHASSIS_D, CHASSIS_H])
-    outer.apply_translation([CHASSIS_W / 2, CHASSIS_D / 2, CHASSIS_H / 2])
+    """v1.0 open-frame chassis: 4 panels (floor, bottom groove plate, top groove
+    plate, ceiling), no walls, held by external M3 corner standoffs."""
+    parts = []
 
-    # Inner cavity that includes the front face (front wall removed)
-    # Y extent: from below front face (negative Y) to inside-rear (CHASSIS_D - PANEL_T)
-    cavity_w = CHASSIS_W - 2 * PANEL_T
-    cavity_d = CHASSIS_D - PANEL_T + 1.0   # +1 mm to clear front face cleanly
-    cavity_h = CHASSIS_H - 2 * PANEL_T
-    cavity = trimesh.creation.box(extents=[cavity_w, cavity_d, cavity_h])
-    cavity.apply_translation([
-        CHASSIS_W / 2,
-        (cavity_d / 2) - 0.5,            # offset toward Y=0 so front is open
-        CHASSIS_H / 2,
-    ])
-    chassis = outer.difference(cavity)
+    # Floor: solid 420 x 238 x 3 mm
+    floor = trimesh.creation.box(extents=[CHASSIS_W, CHASSIS_D, PANEL_T])
+    floor.apply_translation([CHASSIS_W / 2, CHASSIS_D / 2, PANEL_T / 2])
+    parts.append(floor)
 
-    # Bottom and top groove plates
-    bot_plate = make_groove_plate_with_holes(
+    # Bottom groove plate at Z = 3..6
+    parts.extend(make_groove_plate_strips(
         z_bottom=PANEL_T,
         CHASSIS_W=CHASSIS_W, CHASSIS_D=CHASSIS_D, PANEL_T=PANEL_T,
         N_SLOTS=N_SLOTS, SLOT_X0=SLOT_X0, SLOT_PITCH=SLOT_PITCH,
         MODULE_OUTER_W=MODULE_OUTER_W, LIP_W=LIP_W,
         GROOVE_W=GROOVE_W, SLOT_GROOVE_LEN=SLOT_GROOVE_LEN,
-    )
-    top_plate = make_groove_plate_with_holes(
+    ))
+
+    # Top groove plate at Z = CHASSIS_H - 2*PANEL_T = 86..89
+    parts.extend(make_groove_plate_strips(
         z_bottom=CHASSIS_H - 2 * PANEL_T,
         CHASSIS_W=CHASSIS_W, CHASSIS_D=CHASSIS_D, PANEL_T=PANEL_T,
         N_SLOTS=N_SLOTS, SLOT_X0=SLOT_X0, SLOT_PITCH=SLOT_PITCH,
         MODULE_OUTER_W=MODULE_OUTER_W, LIP_W=LIP_W,
         GROOVE_W=GROOVE_W, SLOT_GROOVE_LEN=SLOT_GROOVE_LEN,
-    )
-    chassis = chassis.union(bot_plate)
-    chassis = chassis.union(top_plate)
+    ))
 
-    return chassis
+    # Ceiling: solid 420 x 238 x 3 mm
+    ceiling = trimesh.creation.box(extents=[CHASSIS_W, CHASSIS_D, PANEL_T])
+    ceiling.apply_translation([CHASSIS_W / 2, CHASSIS_D / 2, CHASSIS_H - PANEL_T / 2])
+    parts.append(ceiling)
+
+    return trimesh.util.concatenate(parts)
 
 
-def make_groove_plate_with_holes(z_bottom, *,
-                                  CHASSIS_W, CHASSIS_D, PANEL_T,
-                                  N_SLOTS, SLOT_X0, SLOT_PITCH,
-                                  MODULE_OUTER_W, LIP_W,
-                                  GROOVE_W, SLOT_GROOVE_LEN):
-    """
-    Build a single groove-plate mesh: solid plate that fills the chassis cavity
-    in X and Y, sized PANEL_T thick, with 14 rectangular through-cuts where
-    module lips engage. Through-cuts run from the front of the chassis
-    (Y = PANEL_T) for SLOT_GROOVE_LEN mm rearward (Y = PANEL_T + 125 mm).
-    """
-    plate_w = CHASSIS_W - 2 * PANEL_T
-    plate_d = CHASSIS_D - 2 * PANEL_T
-    plate = trimesh.creation.box(extents=[plate_w, plate_d, PANEL_T])
-    plate.apply_translation([
-        CHASSIS_W / 2,
-        CHASSIS_D / 2,
-        z_bottom + PANEL_T / 2,
-    ])
+def make_groove_plate_strips(z_bottom, *, CHASSIS_W, CHASSIS_D, PANEL_T,
+                              N_SLOTS, SLOT_X0, SLOT_PITCH,
+                              MODULE_OUTER_W, LIP_W,
+                              GROOVE_W, SLOT_GROOVE_LEN):
+    """Build a groove plate as a list of solid box strips.
+       The plate is 420 x 238 x 3 mm. 14 module-slot cutouts run from Y=0 to
+       Y=SLOT_GROOVE_LEN (125 mm), at X positions determined by the slot pitch.
+       The back portion of the plate (Y > SLOT_GROOVE_LEN) is fully solid."""
+    parts = []
 
-    # Build all 14 cutout boxes, union them, then subtract once
-    cutouts = []
+    # Compute the X positions of each groove cutout
+    cutouts_x = []  # list of (x0, x1) for each of the 14 cutouts
     for i in range(N_SLOTS):
         slot_left_x = SLOT_X0 + i * SLOT_PITCH
         lip_left_x = slot_left_x + MODULE_OUTER_W - LIP_W
         groove_x0 = lip_left_x - (GROOVE_W - LIP_W) / 2
-        cutout = trimesh.creation.box(
-            extents=[GROOVE_W, SLOT_GROOVE_LEN, PANEL_T + 0.2]
-        )
-        cutout.apply_translation([
-            groove_x0 + GROOVE_W / 2,
-            PANEL_T + SLOT_GROOVE_LEN / 2,
-            z_bottom + PANEL_T / 2,
-        ])
-        cutouts.append(cutout)
+        cutouts_x.append((groove_x0, groove_x0 + GROOVE_W))
 
-    cuts_union = cutouts[0]
-    for c in cutouts[1:]:
-        cuts_union = cuts_union.union(c)
+    # 1. Back strip (Y = SLOT_GROOVE_LEN to CHASSIS_D, full width, no cutouts)
+    if CHASSIS_D > SLOT_GROOVE_LEN:
+        h = CHASSIS_D - SLOT_GROOVE_LEN
+        b = trimesh.creation.box(extents=[CHASSIS_W, h, PANEL_T])
+        b.apply_translation([CHASSIS_W / 2,
+                             SLOT_GROOVE_LEN + h / 2,
+                             z_bottom + PANEL_T / 2])
+        parts.append(b)
 
-    return plate.difference(cuts_union)
+    # 2. Strips between cutouts (Y = 0 to SLOT_GROOVE_LEN)
+    cur_x = 0.0
+    for x0, x1 in cutouts_x:
+        # Solid strip from cur_x to x0
+        if x0 > cur_x:
+            w = x0 - cur_x
+            b = trimesh.creation.box(extents=[w, SLOT_GROOVE_LEN, PANEL_T])
+            b.apply_translation([cur_x + w / 2,
+                                 SLOT_GROOVE_LEN / 2,
+                                 z_bottom + PANEL_T / 2])
+            parts.append(b)
+        cur_x = x1
+    # Final strip from last cutout right edge to CHASSIS_W
+    if cur_x < CHASSIS_W:
+        w = CHASSIS_W - cur_x
+        b = trimesh.creation.box(extents=[w, SLOT_GROOVE_LEN, PANEL_T])
+        b.apply_translation([cur_x + w / 2,
+                             SLOT_GROOVE_LEN / 2,
+                             z_bottom + PANEL_T / 2])
+        parts.append(b)
+
+    return parts
