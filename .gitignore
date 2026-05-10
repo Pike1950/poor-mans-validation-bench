@@ -75,6 +75,9 @@ MCP_and_AI_Tooling_Notes.md
 # Local-only setup and bring-up notes (contain hostnames, usernames, tokens, paths)
 docs/setup/
 
+# Session handoff docs (per-session continuity scratchpad, not part of the deliverable repo)
+docs/handoff/
+
 # Document-generation templates and schemas (project tooling, not deliverables)
 docs/templates/
 
