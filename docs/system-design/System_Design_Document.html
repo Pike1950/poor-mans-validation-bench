@@ -3774,16 +3774,16 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <td>$41.25</td>
 </tr>
 <tr class="odd">
-<td>Phoenix MC 1,5/4 ×2 pairs + fuse panel hardware + Pomona banana jacks + Wago 221-413 ×10 <em>(Digi-Key bundle, pending)</em></td>
-<td>~$76</td>
+<td>Phoenix MC 1,5/4 ×2 pairs + fuse panel hardware (×3 holders, ×2 each of 5 A/3 A/500 mA cartridges) + Wago 221-413 ×10 <em>(Digi-Key Web ID 371601396, placed 2026-05-10)</em>. Banana jacks and rail-status LEDs deferred to v1.1 diagnostic strip.</td>
+<td>$57.45</td>
 </tr>
 <tr>
 <td><strong>Phase 0 total</strong></td>
-<td><strong>~$766</strong></td>
+<td><strong>~$868</strong></td>
 </tr>
 </tbody>
 </table>
-<p><em>The Silverstone TX300 was $99.99 from a prior project and is on hand. Under the 2026-05-07 architecture revision, the TFX is the analog-rail backbone for instrument modules (±12 V op-amp rails, +5 V analog), not the chassis-wide power source. The Pi 5, USB hub, and Picos each run from their own external supplies (Pi 5 from its 27 W USB-C charger; hub from its own wall brick; Picos from USB downstream power). Phase 0 spend break-down: ~$447 has been committed against orders placed (Pi 5 stack + Sabrent hub + GeeekPi breakout + SendCutSend acrylic + Baysinger's prototype module + Amazon hardware/wire/threadlocker order), with ~$76 remaining in the pending Digi-Key bundle. The full chassis BOM and architecture are documented in the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> doc.</em></p>
+<p><em>The Silverstone TX300 was $99.99 from a prior project and is on hand. Under the 2026-05-07 architecture revision, the TFX is the analog-rail backbone for instrument modules (±12 V op-amp rails, +5 V analog), not the chassis-wide power source. The Pi 5, USB hub, and Picos each run from their own external supplies (Pi 5 from its 27 W USB-C charger; hub from its own wall brick; Picos from USB downstream power). All Phase 0 orders are placed as of 2026-05-10: Pi 5 stack + Sabrent hub + GeeekPi breakout (on hand), SendCutSend acrylic ($142.57), Baysinger's prototype module ($24.77), Amazon hardware/wire/threadlocker ($78.21, ETA May 12), and the Digi-Key fuse/Phoenix/Wago bundle ($57.45 BOM cost; $62.19 including Texas sales tax). The full chassis BOM and architecture are documented in the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> doc.</em></p>
 <h3 id="phase-1-tier-1-core-modules">13.2 Phase 1: Tier 1 Core Modules</h3>
 <p>Phase 1 adds Modules 1A, 1B, 1D, and 1E. Module 1C is deferred to Phase 1.5 because the dual-Pico architecture is more involved and not on the critical path for the audio analyzer recipe.</p>
 <p><strong>Table 13-2: Phase 1 BOM</strong></p>
@@ -3981,7 +3981,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <tbody>
 <tr class="odd">
 <td>Phase 0 (orchestration + chassis)</td>
-<td>~$766</td>
+<td>~$868</td>
 </tr>
 <tr class="even">
 <td>Phase 1 (Tier 1 core)</td>
@@ -4006,7 +4006,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>v1.0 + v1.1 subtotal</strong></td>
-<td><strong>~$1,348</strong></td>
+<td><strong>~$1,450</strong></td>
 </tr>
 <tr class="even">
 <td>Phase 4 (Tier 3, optional, includes chassis LAN switch)</td>
@@ -4014,7 +4014,7 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 </tr>
 <tr class="odd">
 <td><strong>All phases total</strong></td>
-<td><strong>~$1,735*</strong></td>
+<td><strong>~$1,837*</strong></td>
 </tr>
 <tr class="even">
 <td colspan="2"><em>Phase 0 is fully verified against actual purchases and pending-order quotes. Phase 1 and onward include some placeholder line-items pending each module's BOM audit. * Phase 4 / All-phases totals include unverified Tier 3 FPGA + chassis LAN switch placeholders.</em></td>

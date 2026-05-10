@@ -78,15 +78,15 @@ Detailed rationale (gauge sizing, standoff stacking, fastener stack-up, Wago vs 
 
 - [x] GeeekPi D-1188 ATX breakout — Amazon B08MC389FQ ($13)
 - [x] Sabrent HB-BU10 USB 3.0 hub — Amazon B0797NZFYP ($47)
-- [ ] Phoenix MC 1,5/4 connector pairs ×2 — Digi-Key 277-1208-ND + 277-1163-ND (~$28)
-- [ ] Eaton BK/HTB-22M-R fuse holders ×3 + Bel BK1/GMC cartridges 5 A / 3 A / 0.5 A — Digi-Key (~$25)
-- [ ] Pomona 3760 banana jacks ×4 — Digi-Key (~$20)
+- [x] Phoenix MC 1,5/4 connector pairs ×2 — Digi-Key 277-1208-ND + 277-1163-ND ($11.40)
+- [x] Eaton BK/HTB-22M-R fuse holders ×3 + Bel BK1/GMC cartridges ×2 each (5 A / 3 A / 500 mA, in-service + spare) — Digi-Key 283-3041-ND + 283-BK1/GMC-{5,3,500}-R-ND ($28.79)
+- Pomona 3760 banana jacks ×4 — *deferred to v1.1 diagnostic strip*; open-frame chassis gives direct access to fuse-panel terminals for DMM spot-checks
 - [x] 12 AWG silicone wire kit, 6 colors × 5 ft — Fermerry, Amazon B089CJ65SC ($20.29)
 - [x] 14 AWG silicone wire kit, 6 colors × 10 ft — Fermerry, Amazon ($20.96)
 - [x] M3 standoff/screw/nut kit, 320 pc — Csdtylh, Amazon B06Y5TJXY1 ($14.98)
 - [x] M2.5 standoff/screw/nut kit, 160 pc — HVAZI, Amazon B01L06CUJG ($11.99)
 - [x] Blue 243 threadlocker, 50 mL — ESKONKE, Amazon B0CHM5QS3N ($9.99)
-- [ ] Wago 221-413 lever-nuts ×10 — Digi-Key (~$6.45)
+- [x] Wago 221-413 lever-nuts ×10 — Digi-Key 2946-221-413-ND ($6.45)
 - [ ] USB-C-to-USB-A cables ×14, ~150 mm — Amazon (~$30)
 - [x] 22 AWG signal wire on hand
 - [x] LEDs for diagnostic strip on hand
@@ -106,7 +106,7 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 - [x] v10 prototype module — Baysinger's AM #465257381764, $24.77, ETA May 14-19
 - [x] Chassis acrylic — SendCutSend #SL094002, $142.57
 - [x] Amazon order (hardware + wire + threadlocker, $78.21), ETA May 12
-- [ ] Digi-Key order (Phoenix + fuse panel + banana jacks + Wago, ~$76)
+- [x] Digi-Key order — Web ID 371601396, placed 2026-05-10 17:10 ($62.19 total: $46.64 subtotal + $6.99 shipping + $3.82 tariff + $4.74 sales tax)
 
 *Receive + slide-fit validation*
 

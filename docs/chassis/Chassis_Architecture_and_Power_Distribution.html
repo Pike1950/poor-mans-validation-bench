@@ -209,7 +209,7 @@ blockquote {
 <li><a href="#geeekpi-d-1188-mounting">3.4 GeeekPi D-1188 Mounting</a></li>
 <li><a href="#sabrent-hb-bu10-usb-hub-mounting">3.5 Sabrent HB-BU10 USB Hub Mounting</a></li>
 <li><a href="#module-slot-geometry-and-form-factor">3.6 Module Slot Geometry and Form Factor</a></li>
-<li><a href="#diagnostic-strip-front-panel-proxy-in-v10">3.7 Diagnostic Strip (front-panel proxy in v1.0)</a></li>
+<li><a href="#diagnostic-strip-deferred-to-v11">3.7 Diagnostic Strip (deferred to v1.1)</a></li>
 <li><a href="#tx300-fan-ventilation-v10-open-frame">3.8 TX300 Fan Ventilation (v1.0 open-frame)</a></li>
 </ul></li>
 <li><a href="#electrical-architecture">4. Electrical Architecture</a>
@@ -358,13 +358,8 @@ blockquote {
 <li><strong>Phoenix MC 1,5/4-G (1803293):</strong> top edge near the rear corner, pointing upward (+Z direction). When the module is fully seated, the chassis's per-slot Phoenix MC 1,5/4-ST plug from the back-wall harness drops down onto this header from above (the harness wires run at Z ≈ 76, just 5 mm above the top edge of the module body's top shell at Z = 86 minus 5 mm shell = effectively at the top of the cavity).</li>
 <li><strong>Faceplate connectors:</strong> front edge, fitting within ~17 mm wide × 80 mm tall front-face real estate per slot.</li>
 </ul>
-<h3 id="37-diagnostic-strip-front-panel-proxy-in-v10">3.7 Diagnostic Strip (front-panel proxy in v1.0)</h3>
-<p>In v1.0 the chassis has no front panel, so the chassis-level diagnostics (banana jacks + LED indicators) mount on a <strong>separate small acrylic strip</strong> that bolts to the chassis floor near the front edge rather than to a dedicated front-panel piece.</p>
-<p>The diagnostic strip carries:</p>
-<ul>
-<li><strong>4 banana jacks</strong> (Pomona 3760 series, color-coded red/yellow/blue/black for +5 V, +12 V, −12 V, GND) at the leftmost ~80 mm. Diagnostic test points: a user can clip a DMM directly onto a rail without disconnecting any module.</li>
-<li><strong>3 VCC 5102H LED indicators</strong> (5 V variant for +5 V OK, 12 V variant for +12 V OK, optional second 12 V variant for −12 V OK). At-a-glance rail status visible from across the bench.</li>
-</ul>
+<h3 id="37-diagnostic-strip-deferred-to-v11">3.7 Diagnostic Strip (deferred to v1.1)</h3>
+<p><strong>v1.0 ships without the chassis-level diagnostic strip.</strong> With the open-frame chassis, the bench operator has direct unobstructed access to the fuse panel terminals on the chassis floor and can clip a DMM probe onto each rail there for spot-checks during bring-up. The fuse cap itself is also visible from above, providing an at-a-glance blown-fuse indicator that supplants the rail-status LEDs. The 4 banana jacks (Pomona 3760 color-coded) and 3 LED indicators (VCC 5102H rail status) that would have populated this strip are deferred to v1.1, where they migrate onto the actual front panel alongside the per-module faceplate cutouts (see §9.2).</p>
 <p><strong>Module front-panel cutouts:</strong> with no chassis front panel, each module's front-edge faceplate I/O sits exposed in v1.0. Each module body's front face (Y = 3 in chassis coordinates) carries the module-specific connectors directly. This is acceptable for bring-up and bench operation; v1.1 will add a chassis front panel with per-module cutouts to restore a finished look once each module's faceplate I/O converges.</p>
 <h3 id="38-tx300-fan-ventilation-v10-open-frame">3.8 TX300 Fan Ventilation (v1.0 open-frame)</h3>
 <p>The TX300's 80 mm fan exhausts upward (Z = +72 face, the top of the PSU). With no chassis ceiling above the TX300 in v1.0, the fan exhausts directly to room air through the open chassis top — no vent grid needed. (The ceiling plate covers the right portion of the chassis above the module zone, but the leftmost 86 mm of chassis width — the TX300 zone — has the ceiling plate optionally cut back or simply offset away from the TX300 footprint.)</p>
@@ -469,8 +464,9 @@ blockquote {
 <p>Each populated slot uses one Phoenix MC 1,5/4-ST plug terminating a short pigtail of 4 stranded wires (~30 mm long) tapping into the back-wall harness. <strong>For the v1.0 prototype phase, taps are made with Wago 221-413 3-port lever-nut connectors</strong> (Mouser 651-221-413, ~$0.34 each, 4 per slot). For each rail at each tap point: bus IN goes into one Wago port, bus OUT goes into another, and a short pigtail to the Phoenix plug pin goes into the third. No stripping or crimping required for the bus wires; just trim the pigtail to length, push the lever, insert, close.</p>
 <p>Empty slots (no module installed) skip the Wago entirely — the bus wire is one continuous run with no break. When a new module is added, the user cuts the bus at the slot's X position, inserts the cut ends and a fresh pigtail into a Wago, and continues.</p>
 <p><strong>v1.1+ option:</strong> replace the Wago lever-nuts with a custom <strong>4-rail distribution PCB</strong> mounted along the back wall. The PCB has one 4-pin Phoenix input header (from the GeeekPi feed) and 14 4-pin Phoenix output headers at 22.5 mm pitch matching the module slot pitch, with internal copper traces connecting all the same-rail pins. This eliminates the lever-nut bulk and gives a single-point harness attachment. JLCPCB fabrication is roughly $10 for 5 pieces in a 1-2 week turnaround. The distribution PCB is deferred from v1.0 because Wago lever-nuts let you re-route taps freely during chassis bring-up; once the layout is verified, the PCB locks it in.</p>
-<h3 id="46-banana-jack-diagnostic-test-points">4.6 Banana-Jack Diagnostic Test Points</h3>
-<p>Four 4 mm panel-mount banana jacks (Pomona 3760 series) are installed in the front-panel strip at the leftmost ~80 mm. Color mapping (verified against Digi-Key 2026-05-07):</p>
+<h3 id="46-banana-jack-diagnostic-test-points-deferred-to-v11">4.6 Banana-Jack Diagnostic Test Points (deferred to v1.1)</h3>
+<p><strong>v1.0 does not include the banana-jack test points.</strong> Section 3.7 explains the deferral rationale: the open-frame chassis gives direct access to the fuse-panel terminals for DMM spot-checks, so the dedicated test-point jacks are not load-bearing in v1.0. The design below is retained for the v1.1 rollout, where the jacks migrate onto the chassis front panel alongside the LED indicators in §4.7.</p>
+<p>Four 4 mm panel-mount banana jacks (Pomona 3760 series) will be installed in the front-panel strip at the leftmost ~80 mm. Color mapping (verified against Digi-Key 2026-05-07):</p>
 <table>
 <thead>
 <tr class="header">
@@ -483,34 +479,35 @@ blockquote {
 <tbody>
 <tr class="odd">
 <td>Black</td>
-<td>3760-0</td>
-<td>501-1041-ND family</td>
+<td>Pomona 3760-0</td>
+<td>501-1094-ND</td>
 <td>GND</td>
 </tr>
 <tr class="even">
 <td>Red</td>
-<td>3760-2</td>
-<td>501-1041-ND family</td>
+<td>Pomona 3760-2</td>
+<td>501-1095-ND</td>
 <td>+5 V</td>
 </tr>
 <tr class="odd">
 <td>Yellow</td>
-<td>3760-4</td>
-<td>501-1041-ND family</td>
+<td>Pomona 3760-4</td>
+<td>501-1747-ND</td>
 <td>+12 V</td>
 </tr>
 <tr class="even">
 <td>Blue</td>
-<td>3760-6</td>
-<td>501-1041-ND family</td>
+<td>Pomona 3760-6</td>
+<td>501-1650-ND</td>
 <td>−12 V</td>
 </tr>
 </tbody>
 </table>
 <p>(Note: the Pomona 3760 color suffix mapping is opposite to what's intuitive — <code>3760-0</code> is <strong>black</strong>, not red. Verified by Digi-Key catalog lookup.)</p>
 <p>Each jack ties to its rail via a short 22 AWG wire from the fuse panel output (after the fuse, before the harness). With the panel jacks fed post-fuse, a fault that blows a fuse will also remove voltage from the test-point jack, providing a cross-check on which rail failed.</p>
-<h3 id="47-front-panel-indicator-leds">4.7 Front-Panel Indicator LEDs</h3>
-<p>Three panel-mount LED indicators (VCC 5102H series, integrated current-limiting resistor for the rated voltage) sit in the front-panel strip just to the right of the banana jacks:</p>
+<h3 id="47-front-panel-indicator-leds-deferred-to-v11">4.7 Front-Panel Indicator LEDs (deferred to v1.1)</h3>
+<p><strong>v1.0 does not include the rail-status LED indicators.</strong> As with the banana jacks in §4.6, the LEDs are part of the v1.1 diagnostic strip / front panel rollout. In v1.0, the fuse cartridge caps are visible from above in the open chassis, so a blown rail is visually obvious without needing a dedicated indicator LED. The design below is retained for v1.1.</p>
+<p>Three panel-mount LED indicators (VCC 5102H series, integrated current-limiting resistor for the rated voltage) will sit in the front-panel strip just to the right of the banana jacks:</p>
 <table>
 <thead>
 <tr class="header">
@@ -610,35 +607,35 @@ blockquote {
 <td>Digi-Key</td>
 <td>283-3041-ND</td>
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">$4.20</td>
+<td style="text-align: right;">$6.43</td>
 <td>One per active rail (+5 V, +12 V, −12 V)</td>
 </tr>
 <tr class="even">
-<td>Slow-blow glass fuse 5×20 mm 5 A 125 V</td>
+<td>Slow-blow glass fuse 5×20 mm 5 A</td>
 <td>Bel BK1/GMC-5-R</td>
 <td>Digi-Key</td>
-<td>(search direct)</td>
-<td style="text-align: right;">5</td>
-<td style="text-align: right;">$1.75</td>
-<td>+5 V rail; pack with spares</td>
+<td>283-BK1/GMC-5-R-ND</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">$1.49</td>
+<td>+5 V rail (1 in service + 1 spare)</td>
 </tr>
 <tr class="odd">
-<td>Slow-blow glass fuse 5×20 mm 3 A 125 V</td>
+<td>Slow-blow glass fuse 5×20 mm 3 A</td>
 <td>Bel BK1/GMC-3-R</td>
 <td>Digi-Key</td>
-<td>(search direct)</td>
-<td style="text-align: right;">5</td>
-<td style="text-align: right;">$1.75</td>
-<td>+12 V rail; pack with spares</td>
+<td>283-BK1/GMC-3-R-ND</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">$1.63</td>
+<td>+12 V rail (1 in service + 1 spare)</td>
 </tr>
 <tr class="even">
-<td>Slow-blow glass fuse 5×20 mm 0.5 A 125 V</td>
-<td>Bel BK1/GMC-500MA-R</td>
+<td>Slow-blow glass fuse 5×20 mm 500 mA</td>
+<td>Bel BK1/GMC-500-R</td>
 <td>Digi-Key</td>
-<td>(search direct)</td>
-<td style="text-align: right;">5</td>
-<td style="text-align: right;">$1.75</td>
-<td>−12 V rail; pack with spares</td>
+<td>283-BK1/GMC-500-R-ND</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">$1.63</td>
+<td>-12 V rail (1 in service + 1 spare)</td>
 </tr>
 <tr class="odd">
 <td><strong>Module power interconnect</strong></td>
@@ -713,69 +710,24 @@ blockquote {
 <td></td>
 </tr>
 <tr class="odd">
-<td>Banana jack panel-mount, 4 mm</td>
-<td>Pomona 3760-0 (black)</td>
+<td>Banana jacks ×4 color-coded (deferred to v1.1)</td>
+<td>Pomona 3760-{0,2,4,6}</td>
 <td>Digi-Key</td>
-<td>501-1041-ND</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">$5</td>
-<td>GND test point</td>
+<td>501-{1094,1095,1747,1650}-ND</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">$0</td>
+<td>v1.1 only; v1.0 uses direct fuse-panel terminal access</td>
 </tr>
 <tr class="even">
-<td>Banana jack panel-mount, 4 mm</td>
-<td>Pomona 3760-2 (red)</td>
+<td>LED panel indicators ×3 (deferred to v1.1)</td>
+<td>VCC 5102H series</td>
 <td>Digi-Key</td>
-<td>501-1041-ND</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">$5</td>
-<td>+5 V test point</td>
+<td>L10021-ND / 5102H1-12V-ND / 5102H5-12V-ND</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">$0</td>
+<td>v1.1 diagnostic strip only; fuse cartridge caps are visible from above in the open v1.0 chassis</td>
 </tr>
 <tr class="odd">
-<td>Banana jack panel-mount, 4 mm</td>
-<td>Pomona 3760-4 (yellow)</td>
-<td>Digi-Key</td>
-<td>501-1041-ND</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">$5</td>
-<td>+12 V test point</td>
-</tr>
-<tr class="even">
-<td>Banana jack panel-mount, 4 mm</td>
-<td>Pomona 3760-6 (blue)</td>
-<td>Digi-Key</td>
-<td>501-1041-ND</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">$5</td>
-<td>−12 V test point</td>
-</tr>
-<tr class="odd">
-<td>LED panel indicator, red, 5 V</td>
-<td>VCC 5102H1-5V</td>
-<td>Digi-Key</td>
-<td>L10021-ND</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">$1.92</td>
-<td>+5 V OK</td>
-</tr>
-<tr class="even">
-<td>LED panel indicator, red, 12 V</td>
-<td>VCC 5102H1-12V</td>
-<td>Digi-Key</td>
-<td>5102H1-12V-ND</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">$1.92</td>
-<td>+12 V OK</td>
-</tr>
-<tr class="odd">
-<td>LED panel indicator, green, 12 V</td>
-<td>VCC 5102H5-12V</td>
-<td>Digi-Key</td>
-<td>5102H5-12V-ND</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">$1.92</td>
-<td>−12 V OK</td>
-</tr>
-<tr class="even">
 <td><strong>USB-TMC backplane</strong></td>
 <td></td>
 <td></td>
@@ -784,7 +736,7 @@ blockquote {
 <td style="text-align: right;"></td>
 <td></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Sabrent HB-BU10 USB 3.0 hub, 10-port, self-powered</td>
 <td>Sabrent HB-BU10</td>
 <td>Amazon</td>
@@ -793,7 +745,7 @@ blockquote {
 <td style="text-align: right;">$47</td>
 <td>Verified 2026-05-07; uses own 60 W brick, not chassis PSU</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>USB-C to USB-A cable, 150 mm</td>
 <td>Generic</td>
 <td>Amazon</td>
@@ -802,7 +754,7 @@ blockquote {
 <td style="text-align: right;">$2</td>
 <td>Per-module cable from Pico 2 W USB-C to hub USB-A</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><strong>Mechanical (acrylic frame, hardware)</strong></td>
 <td></td>
 <td></td>
@@ -811,7 +763,7 @@ blockquote {
 <td style="text-align: right;"></td>
 <td></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Custom laser-cut acrylic frame, 3 mm cast acrylic blue</td>
 <td>n/a</td>
 <td>SendCutSend</td>
@@ -820,7 +772,7 @@ blockquote {
 <td style="text-align: right;">~$135</td>
 <td>4 panels for v1.0 open-frame, fabricated as 2 unique designs at qty 2 each. Both solid plates carry the GeeekPi mounting holes (only the ceiling uses them); both groove plates carry the GeeekPi clearance holes (only the top divider uses them). This avoids ~$70 in SendCutSend per-unique-part setup fees. Side walls + rear wall + front panel deferred to v1.1.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Csdtylh M3 320-piece standoff/screw/nut assortment kit (M-F + F-F + screws + nuts)</td>
 <td>Csdtylh</td>
 <td>Amazon</td>
@@ -829,7 +781,7 @@ blockquote {
 <td style="text-align: right;">$14.98</td>
 <td>Source for all M3 hardware. Per chassis: 12× M-F 20 mm + 4× F-F 20 mm stacked into 4 corner stacks of 80 mm each + 8× M3 × 8 mm screws. Kit holds 20 of each length, leaving plenty for spares and component mounting.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>HVAZI M2.5 160-piece standoff/screw/nut assortment kit (M-F + F-F + screws + nuts)</td>
 <td>HVAZI</td>
 <td>Amazon</td>
@@ -838,7 +790,7 @@ blockquote {
 <td style="text-align: right;">$11.99</td>
 <td>Source for all M2.5 hardware. Per chassis: 4× M2.5 × 6 mm F-F + 4× M2.5 × 8 mm screws (bottom, through ceiling) + 4× M2.5 × 6 mm screws (top, through GeeekPi PCB). Kit's shortest length is 6 mm vs the original 5 mm spec; harmless 1 mm extra clearance.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>ESKONKE blue 243 threadlocker, medium-strength removable, 50 mL (Loctite 243 equivalent)</td>
 <td>ESKONKE</td>
 <td>Amazon</td>
@@ -847,7 +799,7 @@ blockquote {
 <td style="text-align: right;">$9.99</td>
 <td>Applied to each of the 12 internal joints of the M3 corner stacks (3 joints per corner × 4 corners). Bare on the floor/ceiling screws so the chassis remains disassemblable for v1.1.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>On hand (no purchase)</strong></td>
 <td></td>
 <td></td>
@@ -856,7 +808,7 @@ blockquote {
 <td style="text-align: right;"></td>
 <td></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>ElectroBits Thin Wall Heat Shrink Tubing, assorted</td>
 <td>ElectroBits</td>
 <td>n/a</td>
@@ -865,7 +817,7 @@ blockquote {
 <td style="text-align: right;">$0</td>
 <td>On hand; covers harness taps and solder joints</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><strong>Subtotal</strong></td>
 <td></td>
 <td></td>
@@ -874,23 +826,14 @@ blockquote {
 <td style="text-align: right;"></td>
 <td></td>
 </tr>
-<tr class="odd">
-<td>v1.0 minimum (no diagnostic strip)</td>
-<td></td>
-<td></td>
-<td></td>
-<td style="text-align: right;"></td>
-<td style="text-align: right;"><strong>~$330</strong></td>
-<td>4-panel chassis with TX300, breakout, fuse panel, harness, hub, modules connected. Includes Wago 221-413 lever-nuts as the back-wall harness tap solution.</td>
-</tr>
 <tr class="even">
-<td>v1.0 with diagnostic strip (banana jacks + LEDs)</td>
+<td>v1.0 (open-frame, no diagnostic strip)</td>
 <td></td>
 <td></td>
 <td></td>
 <td style="text-align: right;"></td>
-<td style="text-align: right;"><strong>~$355</strong></td>
-<td>Adds chassis-level rail diagnostics</td>
+<td style="text-align: right;"><strong>~$505 (all orders placed)</strong></td>
+<td>4-panel open-frame chassis with TX300, GeeekPi breakout, fuse panel, 4-wire harness, Wago lever-nuts, Sabrent hub, 2 modules wired (slot 1 + slot 2). Banana-jack test points and LED indicators deferred to v1.1. Excludes Pi 5 orchestration head (separate Phase 0 line).</td>
 </tr>
 </tbody>
 </table>
