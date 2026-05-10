@@ -62,8 +62,11 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 - [x] TFX (TX300) is analog-rail backbone, not chassis-wide power
 - [x] Pi 5, Sabrent hub, Picos run from independent external supplies
 - [x] Pi 5 ↔ USB hub link is USB 3.0
-- [x] Chassis: open-frame acrylic blade case, laser-cut from SendCutSend
-- [x] Module form factor: 16.3 × 125 × 86 mm body, C-shape, 22.5 mm slot pitch, PCB-against-right-wall convention
+- [x] Chassis envelope: 420 × 238 × 92 mm in 3 mm cast acrylic from SendCutSend
+- [x] Chassis topology v1.0: open-frame card cage (4 panels: floor, bottom groove plate, top groove plate, ceiling) held by 4 M3 corner standoffs. Side walls + rear wall + front panel deferred to v1.1 pending thermal review.
+- [x] Module form factor v10 (JLCPCB-FDM-compliant): 16.3 × 125 × 86 mm outer, 6 mm shells, 2 mm right wall, 1.5 × 3 × 125 mm rail lips at top-right and bottom-right edges, 14.3 × 125 × 68 mm cavity
+- [x] Chassis groove: 2 mm wide × 3 mm deep × 125 mm long, at 22.5 mm slot pitch starting at x = 90 mm (first 86 mm of chassis width reserved for TX300 zone). 0.5 mm sliding clearance.
+- [x] Module fabrication path: FDM PLA via US service for prototype (Baysinger's AM); FDM PETG via JLCPCB for the production batch of 14 once v10 fit validates
 - [x] Module Design Document Schema authored (local tooling)
 
 **Chassis sourcing (verified BOM, ~$280)**
@@ -75,28 +78,37 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 - [ ] Pomona 3760 banana jacks ×4, color-coded (~$20)
 - [ ] VCC 5102H LED indicators ×3 (red 5 V, red 12 V, green 12 V) ($6)
 - [ ] Hookup wire kit (14 AWG harness colors + 22 AWG signal assortment, ~$25)
-- [ ] M3 hardware kit (corner standoffs, screws qty ~50) (~$20)
+- [ ] M3 hardware: 4× M3 × 80 mm hex aluminum standoffs + bag of M3 × 10 mm button head cap screws (~$15 from Amazon / McMaster)
 - [ ] USB-C-to-USB-A short cables ×14, ~150 mm (~$30)
 - [x] Heat-shrink tubing on hand (ElectroBits)
 - [x] TX300 PSU on hand
 
 **Chassis fabrication + assembly**
 
-Iterative build strategy: fab the empty chassis + one Module 1E first, validate wiring and positioning with the single module, then iterate slot-by-slot before fabricating Modules 1A/1B/1D in parallel. Module 1E is the most demanding analog module and shakes out harness routing, USB cable lengths, Phoenix MC connector ergonomics, and faceplate clearances better than the simpler modules. Pi 5 + orchestration software stack work runs in parallel with chassis fab since the Pi 5 components are already on hand.
+Iterative build strategy: prototype-first. Order one chassis acrylic set (4 panels) plus one PLA module body, slide-test the v10 lip-and-groove fit, then commit to the JLCPCB batch order for the remaining 13 module bodies and proceed with the full chassis assembly + harness build-out. Module 1E is still the first module to fully populate (analog complexity shakes out harness, USB, and faceplate clearances better than simpler modules); Pi 5 software-stack work runs in parallel.
 
 - [x] Tinkercad reference design committed (chassis + module + slot grooves + vent grid)
-- [ ] Generate SendCutSend DXF from Tinkercad / Inkscape; order acrylic frame (~$40-80)
-- [ ] Front-panel module-faceplate cutouts (deferred until Modules 1A/1B/1D/1E faceplate I/O converges; chassis is designed so the front panel can be re-cut independently)
-- [ ] Receive acrylic; verify dimensions match DXF
-- [ ] Frame assembly (corner standoffs + side / top / bottom / front / back panels)
-- [ ] Mount TX300 (IEC inlet to front, fan up, ATX cable to rear)
+- [x] Parametric DXF + STL generator authored (`tools/fabrication/generate_prototype_v10.py`) using ezdxf + trimesh
+- [x] v10 module STL generated (`module_body_v10.stl`, 44 triangles, watertight, 42.6 cm³)
+- [x] Chassis DXFs generated with M3 corner clearance holes: `panel_solid_plate.dxf` (qty 2 for floor + ceiling), `panel_groove_plate.dxf` (qty 2 for bottom + top divider, with 14 module slot cutouts each)
+- [x] Exploded-view assembly diagram + STL generated (`chassis_assembly_exploded.png`, `chassis_assembly_exploded.stl`)
+- [x] v10 prototype module ordered from Baysinger's AM (Texas, USA) via Craftcloud — order #465257381764, $24.77 express, ETA May 14-19
+- [ ] Order chassis acrylic from SendCutSend (~$130 for 4 panels in 3 mm blue cast acrylic, free US shipping)
+- [ ] Order M3 hardware (4× M3 × 80 mm hex standoffs + M3 × 10 mm cap screws, ~$15)
+- [ ] Receive prototype module and chassis panels; verify dimensions
+- [ ] Slide-fit test: insert module body into one chassis slot, verify lip-and-groove engagement with 0.5 mm sliding clearance
+- [ ] Iterate v10 design if slide-fit fails (edit constants in generator script, regenerate, re-order)
+- [ ] If slide-fit passes: order JLCPCB batch of 14 module bodies in PETG (~$84)
+- [ ] Frame assembly: stack floor + bottom groove plate + 4 corner standoffs + top groove plate + ceiling, clamp with 8 M3 × 10 mm screws
+- [ ] Mount TX300 inside the open-frame chassis (IEC inlet at front, fan up)
 - [ ] Mount GeeekPi D-1188 on TX300 rear top + connect 24-pin ATX
 - [ ] Mount Sabrent HB-BU10 to floor, rear-center
 - [ ] Build per-rail fuse panel + wire to GeeekPi outputs
 - [ ] Build 4-wire back-wall harness (303 mm × 14 AWG, color-coded) — initially only tap slot 1 for Module 1E shakedown
-- [ ] Single-slot shakedown: install Module 1E in slot 1, verify Phoenix mate + USB cable run + faceplate clearance + harness tap routing
+- [ ] Single-slot shakedown: install Module 1E in slot 1, verify Phoenix mate + USB cable run + harness tap routing
 - [ ] After single-slot shakedown passes, tap remaining 13 harness positions
-- [ ] Install + wire front-panel banana jacks (×4) and LED indicators (×3)
+- [ ] Install + wire front-panel diagnostic strip (banana jacks ×4 + LED indicators ×3) on a separate small acrylic strip mounted to the chassis floor (front-panel proper deferred to v1.1)
+- [ ] **Deferred to v1.1:** chassis side walls, rear wall, front panel, ventilation geometry, module-specific faceplate cutouts. Walls + vents must be co-designed because closing the chassis re-introduces TX300 cooling constraints.
 
 **Chassis bring-up**
 
