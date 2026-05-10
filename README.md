@@ -81,8 +81,9 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 - [ ] Pomona 3760 banana jacks ×4, color-coded (~$20)
 - [ ] VCC 5102H LED indicators ×3 (red 5 V, red 12 V, green 12 V) ($6)
 - [ ] Hookup wire kit (14 AWG harness colors + 22 AWG signal assortment, ~$25)
-- [ ] M3 hardware: 4× M3 × 80 mm hex aluminum standoffs + bag of M3 × 12 mm button head cap screws (chassis corners, ~$15 from Amazon / McMaster)
-- [ ] M2.5 hardware: 4× M2.5 × 5 mm hex aluminum standoffs + 4× M2.5 × 12 mm button head cap screws (GeeekPi ceiling mount, ~$7 from Amazon / McMaster)
+- [ ] M3 hardware: HVAZI M3 stainless steel standoff assortment kit — Amazon B01L06CUJG. Per corner: 3× M3 × 20 mm M-F + 1× M3 × 20 mm F-F stacked to 80 mm total. F-F goes at the top so the ceiling screw threads into a clean female socket. Total across 4 corners: 12× M-F + 4× F-F at 20 mm + 8× M3 × 8 mm screws (kit includes screws). Loctite 243 (blue) on the 12 internal stack joints; bare on floor/ceiling screws.
+- [ ] M2.5 hardware: Csdtylh M2.5 stainless steel standoff assortment kit — Amazon B06Y5TJXY1. 4× M2.5 × 6 mm F-F for GeeekPi ceiling mount (1 mm more clearance than the original 5 mm spec, harmless) + 4× M2.5 × 8 mm screws (bottom, through acrylic) + 4× M2.5 × 6 mm screws (top, through GeeekPi PCB). All from kit.
+- [ ] Loctite 243 medium-strength threadlocker (blue) — Amazon, ~$8 (one tube covers the project)
 - [ ] Wago 221-413 3-port lever-nut connectors — Mouser 651-221-413, ×25 initial (covers 6 modules with spares), eventually ×56 for full 14-slot population (~$10 initial)
 - [ ] USB-C-to-USB-A short cables ×14, ~150 mm (~$30)
 - [x] Heat-shrink tubing on hand (ElectroBits)
@@ -100,7 +101,7 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 
 - [x] v10 prototype module — Baysinger's AM (TX, USA) via Craftcloud, order #465257381764, $24.77 express, ETA May 14-19
 - [x] Chassis acrylic — SendCutSend invoice #SL094002, **$142.57** ($131.70 subtotal + $10.87 TX tax + free shipping), 4 panels in 3 mm blue cast acrylic
-- [ ] M3 + M2.5 chassis hardware (~$22): 4× M3 × 80 mm + 8× M3 × 12 mm screws + 4× M2.5 × 5 mm + 4× M2.5 × 12 mm screws
+- [ ] M3 + M2.5 chassis hardware: HVAZI M3 assortment kit (B01L06CUJG) + Csdtylh M2.5 assortment kit (B06Y5TJXY1) + Loctite 243. 12× M3 × 20 mm M-F + 4× M3 × 20 mm F-F per chassis (stacked 4-high per corner); 4× M2.5 × 6 mm F-F for GeeekPi mount.
 - [ ] Wago 221-413 lever-nuts (×25 initial, ~$10 from Mouser 651-221-413)
 
 *Receive + slide-fit validation*
@@ -111,7 +112,8 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 
 *Frame + component install*
 
-- [ ] Stack assembly: floor + bottom groove plate + 4× M3 corner standoffs + top groove plate + ceiling, clamped with 8× M3 × 12 mm screws
+- [ ] Per-corner standoff stack: thread 3× M3 × 20 mm M-F together (Loctite 243 on each of the 3 internal joints), then thread 1× M3 × 20 mm F-F onto the top male thread (Loctite 243 on that joint too). Repeat for all 4 corners. Verify assembled length is 80 mm ±0.3 mm before proceeding.
+- [ ] Stack assembly: floor + bottom groove plate + 4× M3 corner stacks + top groove plate + ceiling, clamped with 8× M3 × 8 mm screws (4 up through floor, 4 down through ceiling)
 - [ ] Install TX300 (X=9.5..95.5, Y=4..182, Z=8..74), GeeekPi (ceiling-mounted via M2.5 standoffs at X=107..166, Y=158.5..228.5, Z=65..81), and Sabrent (X=102.6..247.4, Y=175.4..223.7, VHB-tape to floor)
 - [ ] Run 24-pin ATX cable TX300 top (Z=74) up to GeeekPi bottom (Z=65)
 - [ ] Build per-rail fuse panel + wire to GeeekPi outputs

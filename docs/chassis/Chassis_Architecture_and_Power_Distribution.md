@@ -93,9 +93,9 @@ DXF files are at `tools/fabrication/out/panel_solid_plate.dxf` and `panel_groove
 
 **Frame assembly** uses just **four M3 hex aluminum standoffs** plus eight M3 button head cap screws — no acrylic tapping required, no glue:
 
-- 4× M3 × 80 mm hex aluminum standoffs (Amazon or McMaster, ~$8 total). One at each chassis interior corner, female-threaded M3 on both ends. Standoffs span Z = 3 to Z = 89 (between the inside-top of the floor plate and the inside-bottom of the ceiling plate).
-- 8× M3 × 12 mm button head cap screws (~$5 for a bag of 100). Four thread up through the floor's corner clearance holes into the bottom of each standoff; four thread down through the ceiling's corner clearance holes into the top of each standoff.
-- Acrylic panels each carry only clearance holes — no tapped threads. The standoff is the thread-bearing component; the acrylic is just a stack of plates sandwiched between the standoff ends.
+- 4× corner stacks, each built from 3× M3 × 20 mm M-F standoffs threaded together (each internal joint Loctite-243-locked) plus 1× M3 × 20 mm F-F at the top so the ceiling screw threads into a clean female socket. Total assembled stack length: 80 mm ±0.3 mm. One stack at each chassis interior corner; stack spans Z = 3 to Z = 89 (between the inside-top of the floor plate and the inside-bottom of the ceiling plate). Source: HVAZI M3 stainless assortment kit, Amazon B01L06CUJG (kit contains 20× of each length, well over the 12 M-F + 4 F-F needed).
+- 8× M3 × 8 mm button head cap screws (included in the same HVAZI kit). Four thread up through the floor's corner clearance holes into the bottom of each stack; four thread down through the ceiling's corner clearance holes into the top of each stack. No threadlocker on these so the chassis can be disassembled for v1.1.
+- Acrylic panels each carry only clearance holes — no tapped threads. The standoff stack is the thread-bearing component; the acrylic is just a stack of plates sandwiched between the standoff ends.
 
 The two groove plates sit between the floor and ceiling, held in place by the floor and ceiling sandwiching them and by the M3 corner standoffs passing through their corner holes. The bottom groove plate sits at Z = 3..6 (top face flush with the cavity floor at Z = 6); the top groove plate sits at Z = 86..89 (bottom face flush with the cavity ceiling at Z = 86). Module bodies span Z = 3..89, with their bottom rail lip engaged in the bottom groove plate's cutouts (Z = 3..6) and their top lip engaged in the top groove plate's cutouts (Z = 86..89).
 
@@ -115,7 +115,7 @@ Internal AC routing is contained entirely within the TX300's certified enclosure
 
 The GeeekPi D-1188 ATX breakout (70 × 58.5 × 15.9 mm) **hangs from the chassis ceiling** above the rear-center of the chassis, with its mounting positions at X = 107..166, Y = 158.5..228.5, Z = 65..81. The breakout's component-side faces down (into the chassis interior) so the screw terminals point downward and the 24-pin ATX header is accessible from below for the cable run from the TX300. The breakout is rotated 90° from its as-marked orientation so the power-rail status LEDs face the chassis rear and the screw terminals face the chassis front.
 
-The breakout mounts via four M2.5 × 5 mm female-female hex aluminum standoffs that hang from the underside of the top groove plate, with M2.5 × 12 mm button head cap screws coming from above the chassis ceiling, passing through the ceiling (3 mm) and the top groove plate (3 mm), threading into the standoff. The standoffs hold the GeeekPi PCB top face at Z = 81, with the underside of the top groove plate at Z = 86, giving 5 mm of clearance for solder bumps and the standoff body. The four mounting holes are at:
+The breakout mounts via four M2.5 × 6 mm female-female hex aluminum standoffs that hang from the underside of the top groove plate, with M2.5 × 8 mm button head cap screws coming from above the chassis ceiling, passing through the ceiling (3 mm) and the top groove plate (3 mm), threading into the standoff. The standoffs hold the GeeekPi PCB top face at Z = 80, with the underside of the top groove plate at Z = 86, giving 6 mm of clearance for solder bumps and the standoff body. Source: Csdtylh M2.5 stainless assortment kit, Amazon B06Y5TJXY1 (kit's shortest length is 6 mm; the extra 1 mm vs the original 5 mm spec is harmless added clearance). The four mounting holes are at:
 
 | Hole | X (mm) | Y (mm) |
 |---|---|---|
@@ -310,11 +310,9 @@ Verified against current sourcing as of 2026-05-07. Sourcing priority: Mouser �
 | USB-C to USB-A cable, 150 mm | Generic | Amazon | (any) | 14 | $2 | Per-module cable from Pico 2 W USB-C to hub USB-A |
 | **Mechanical (acrylic frame, hardware)** | | | | | | |
 | Custom laser-cut acrylic frame, 3 mm cast acrylic blue | n/a | SendCutSend | (DXFs: panel_solid_plate.dxf qty 2 + panel_groove_plate.dxf qty 2) | 1 set | ~$135 | 4 panels for v1.0 open-frame, fabricated as 2 unique designs at qty 2 each. Both solid plates carry the GeeekPi mounting holes (only the ceiling uses them); both groove plates carry the GeeekPi clearance holes (only the top divider uses them). This avoids ~$70 in SendCutSend per-unique-part setup fees. Side walls + rear wall + front panel deferred to v1.1. |
-| M3 × 80 mm hex aluminum standoff (female-female) | Generic | Amazon or McMaster | (assorted) | 4 | $2 | Chassis interior corner posts, span Z = 3..89 |
-| M3 × 12 mm button head cap screw | Generic | Amazon or McMaster | (assorted) | 8 | $0.05 | 4 from below through floor + 4 from above through ceiling, threading into the four corner standoffs |
-| M2.5 × 5 mm hex aluminum standoff (female-female) | Generic | Amazon or McMaster | (assorted) | 4 | $0.50 | GeeekPi mounting posts; hang from underside of top groove plate, support GeeekPi PCB at Z = 81 |
-| M2.5 × 12 mm button head cap screw | Generic | Amazon or McMaster | (assorted) | 4 | $0.10 | From above the ceiling, through ceiling + top groove plate (6 mm), into the M2.5 standoff |
-| M3 × 6 mm screws | Generic | Amazon or McMaster | (assorted) | 8 | $0.10 | Component mounting (TX300 to floor, hub to floor) |
+| HVAZI M3 stainless steel standoff assortment kit (M-F + F-F + screws + nuts) | HVAZI | Amazon | B01L06CUJG | 1 kit | ~$18 | Source for all M3 hardware. Per chassis: 12× M-F 20 mm + 4× F-F 20 mm stacked into 4 corner stacks of 80 mm each + 8× M3 × 8 mm screws. Kit holds 20 of each length, leaving plenty for spares and component mounting. |
+| Csdtylh M2.5 stainless steel standoff assortment kit (M-F + F-F + screws + nuts) | Csdtylh | Amazon | B06Y5TJXY1 | 1 kit | ~$15 | Source for all M2.5 hardware. Per chassis: 4× M2.5 × 6 mm F-F + 4× M2.5 × 8 mm screws (bottom, through ceiling) + 4× M2.5 × 6 mm screws (top, through GeeekPi PCB). Kit's shortest length is 6 mm vs the original 5 mm spec; harmless 1 mm extra clearance. |
+| Loctite 243 medium-strength threadlocker (blue), 6 mL | Henkel | Amazon | (any) | 1 | ~$8 | Applied to each of the 12 internal joints of the M3 corner stacks (3 joints per corner × 4 corners). Bare on the floor/ceiling screws so the chassis remains disassemblable for v1.1. |
 | **On hand (no purchase)** | | | | | | |
 | ElectroBits Thin Wall Heat Shrink Tubing, assorted | ElectroBits | n/a | n/a | 1 set | $0 | On hand; covers harness taps and solder joints |
 | **Subtotal** | | | | | | |
@@ -332,19 +330,20 @@ In order on first power-up, before any module is installed:
 ### 7.1 Mechanical assembly verification
 
 1. **Visual inspection of the frame.** Confirm all four acrylic pieces (2 solid plates + 2 groove plates) are flat, free of cracks, and match the DXF dimensions. Confirm the 14 module-slot through-cuts on each groove plate are at 22.5 mm pitch starting at x = 100 mm, each measuring 2.0 mm wide × 125 mm long. Confirm the four M3 corner clearance holes (3.4 mm dia) are at the corner positions (5, 5), (430, 5), (5, 233), (430, 233) on every panel.
-2. **Dry-fit the frame** without electrical components. Stack floor + bottom groove plate + four M3 × 80 mm corner standoffs + top groove plate + ceiling. Thread M3 × 10 mm screws through the four corner holes from below into the bottom of each standoff; repeat from above through the ceiling into the top of each standoff. Tighten until snug. Confirm panels stack square (groove cutouts in the bottom and top plates align in X and Y), no panel flexes more than ~1 mm under hand pressure, and no standoff or screw head protrudes into the module slot envelope.
-3. **Slide-fit one module.** With the empty chassis assembled, insert one module body into any slot from any open side. Verify the lip slides smoothly along the groove cutout in both the bottom and top groove plates, the module seats fully (Y = 3 to Y = 128), and there is no binding or excessive play. Sliding clearance should feel like a good drawer fit: snug but free.
+2. **Build the four corner standoff stacks.** For each corner: thread three M3 × 20 mm M-F standoffs together (with a small drop of Loctite 243 on each of the two internal joints), then thread an M3 × 20 mm F-F standoff onto the topmost M-F's male thread (Loctite 243 on that joint too). Set aside for ~30 minutes for the threadlocker to set. Verify each assembled stack is 80 mm ±0.3 mm long with calipers before proceeding.
+3. **Dry-fit the frame** without electrical components. Stack floor + bottom groove plate + four M3 corner stacks + top groove plate + ceiling. Thread M3 × 8 mm screws through the four corner holes from below into the bottom of each stack; repeat from above through the ceiling into the top of each stack. Tighten until snug. Confirm panels stack square (groove cutouts in the bottom and top plates align in X and Y), no panel flexes more than ~1 mm under hand pressure, and no standoff or screw head protrudes into the module slot envelope.
+4. **Slide-fit one module.** With the empty chassis assembled, insert one module body into any slot from any open side. Verify the lip slides smoothly along the groove cutout in both the bottom and top groove plates, the module seats fully (Y = 3 to Y = 128), and there is no binding or excessive play. Sliding clearance should feel like a good drawer fit: snug but free.
 
 ### 7.2 Electrical bring-up, no modules
 
-3. **Mount the TX300** to the floor plate. Verify the IEC inlet aligns with the front-panel cutout (left end of the front panel) and the 24-pin ATX output cable exits toward the back of the chassis where the GeeekPi will mount.
-4. **Mount the GeeekPi D-1188** to the TX300's top face. Connect the TX300's 24-pin ATX cable to the breakout's 24-pin input.
-5. **Wire the per-rail fuse panel.** From the breakout's screw terminals, run +5 V, +12 V, and −12 V through their respective fuse holders (5 A, 3 A, 0.5 A) to short stub wires. Leave the stub wires unconnected for now.
-6. **Verify continuity (mains disconnected)**: with the IEC cord unplugged, confirm no short between any two rails or between any rail and the GeeekPi's metal housing. Use a DMM at the breakout's screw terminals.
-7. **Plug the IEC cord** into the front-panel cutout. Switch the GeeekPi's PS_ON# slide switch ON.
-8. **Verify rail voltages** at the post-fuse stub wires: +5 V should read 4.95 to 5.05 V, +12 V should read 11.85 to 12.15 V, −12 V should read −11.7 to −12.3 V.
-9. **Verify the front-panel LEDs light** (+5 V OK red, +12 V OK red, −12 V OK green). Verify the GeeekPi's onboard rail-status LEDs are also lit.
-10. **Verify the banana-jack test points** read the correct rail voltage with a DMM.
+5. **Mount the TX300** to the floor plate. Verify the IEC inlet aligns with the front-panel cutout (left end of the front panel) and the 24-pin ATX output cable exits toward the back of the chassis where the GeeekPi will mount.
+6. **Mount the GeeekPi D-1188** to the TX300's top face. Connect the TX300's 24-pin ATX cable to the breakout's 24-pin input.
+7. **Wire the per-rail fuse panel.** From the breakout's screw terminals, run +5 V, +12 V, and −12 V through their respective fuse holders (5 A, 3 A, 0.5 A) to short stub wires. Leave the stub wires unconnected for now.
+8. **Verify continuity (mains disconnected)**: with the IEC cord unplugged, confirm no short between any two rails or between any rail and the GeeekPi's metal housing. Use a DMM at the breakout's screw terminals.
+9. **Plug the IEC cord** into the front-panel cutout. Switch the GeeekPi's PS_ON# slide switch ON.
+10. **Verify rail voltages** at the post-fuse stub wires: +5 V should read 4.95 to 5.05 V, +12 V should read 11.85 to 12.15 V, −12 V should read −11.7 to −12.3 V.
+11. **Verify the front-panel LEDs light** (+5 V OK red, +12 V OK red, −12 V OK green). Verify the GeeekPi's onboard rail-status LEDs are also lit.
+12. **Verify the banana-jack test points** read the correct rail voltage with a DMM.
 
 ### 7.3 Back-wall harness bring-up
 
