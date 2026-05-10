@@ -284,7 +284,7 @@ Verified against current sourcing as of 2026-05-07. Sourcing priority: Mouser �
 | Item | Manufacturer P/N | Source | Source P/N | Qty | Unit Price | Notes |
 |---|---|---|---|---:|---:|---|
 | **Power supply and breakout** | | | | | | |
-| Silverstone TX300 TFX PSU (300 W) | Silverstone SST-TX300 | n/a | n/a | 1 | $0 | On hand |
+| Silverstone TX300 TFX PSU (300 W) | Silverstone SST-TX300 | Amazon | (on hand) | 1 | $99.99 | Purchased $99.99; analog-rail backbone for ±12 V / +5 V instrument modules. |
 | GeeekPi D-1188 ATX 24-pin breakout | GeeekPi D-1188 | Amazon | B08MC389FQ | 1 | $13 | All rails incl. −12 V; per-rail status LEDs; PS_ON# slide switch; verified 2026-05-07 |
 | **Per-rail fuse panel** | | | | | | |
 | Panel-mount fuse holder, 5×20 mm cartridge | Eaton BK/HTB-22M-R | Digi-Key | 283-3041-ND | 3 | $4.20 | One per active rail (+5 V, +12 V, −12 V) |

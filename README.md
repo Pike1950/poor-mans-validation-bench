@@ -91,7 +91,7 @@ Detailed rationale (gauge sizing, standoff stacking, fastener stack-up, Wago vs 
 - [x] 22 AWG signal wire on hand
 - [x] LEDs for diagnostic strip on hand
 - [x] Heat-shrink tubing on hand (ElectroBits)
-- [x] TX300 PSU on hand
+- [x] Silverstone SST-TX300 TFX PSU — Amazon ($99.99), on hand
 
 **Chassis fabrication + assembly**
 
