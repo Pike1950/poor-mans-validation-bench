@@ -202,7 +202,7 @@ The GeeekPi D-1188 (Amazon B08MC389FQ, ~$13) takes the TX300's 24-pin ATX cable 
 
 - **PS_ON# slide switch** on the breakout PCB. This is the master enable for the TX300's main rails. With the switch off, only +5 V Standby is alive (which we don't use externally); with the switch on, all rails come up. There is no chassis-level master toggle; the GeeekPi's onboard switch is accessed through the open frame.
 - **Per-rail status LEDs** on the breakout PCB. These show +5 V Standby, +3.3 V, +5 V, +12 V, −12 V, PS_ON, and PWROK status. The chassis also has separate front-panel LED indicators (section 4.7) for at-a-glance visibility, but the breakout's onboard LEDs are useful for diagnosing PSU faults during bring-up.
-- **Screw terminals** for +5 V, +12 V, −12 V, GND. From these, short hookup wires (16 AWG for +5 V and +12 V; 20 AWG is sufficient for −12 V) carry the rails to the per-rail fuse panel.
+- **Screw terminals** for +5 V, +12 V, −12 V, GND. From these, short hookup wires carry the rails to the per-rail fuse panel. **Pre-fuse jumpers are sized for the TX300 source maximum, not the downstream fuse**: 12 AWG for +5 V (14 A source max) and +12 V (22 A source max); 22 AWG for −12 V (0.3 A source max). The fuse cannot protect the wire upstream of itself, so the pre-fuse wire must be rated for the worst case the source can deliver into a downstream short. Keep these jumpers as short as physically possible (50-100 mm) by mounting the fuse panel adjacent to the GeeekPi.
 
 ### 4.3 Per-Rail Fuse Panel
 
@@ -218,7 +218,7 @@ A blown fuse is visible through the holder cap and replaceable without disassemb
 
 ### 4.4 4-Wire Back-Wall Harness
 
-After the fuse panel, each rail (+5 V, +12 V, −12 V, GND) runs as a 14 AWG stranded wire along the upper-rear region of the chassis interior, at approximately Z = 76 (10 mm below the chassis ceiling) and Y = 14 to 34 (35 mm forward of the back wall). The four wires run parallel along the X axis, ~303 mm long, spanning from just past the GeeekPi's screw terminals (X ≈ −142) to past the rightmost module slot (X ≈ +161).
+After the fuse panel, each rail (+5 V, +12 V, −12 V, GND) runs as a 14 AWG stranded wire along the upper-rear region of the chassis interior, at approximately Z = 76 (10 mm below the chassis ceiling) and Y = 14 to 34 (35 mm forward of the back wall). The four wires run parallel along the X axis, ~303 mm long, spanning from just past the GeeekPi's screw terminals (X ≈ −142) to past the rightmost module slot (X ≈ +161). Post-fuse wire is sized for the fuse-limited current (5 A / 3 A / 0.5 A), not the TX300 source max, since a downstream short trips the fuse before the wire can overheat. 14 AWG is electrically overkill for the highest-fused rail (+5 V at 5 A) but is the dominant gauge for Wago 221-413 and Phoenix MC 1,5/4 compatibility, and its stiffness helps the harness hold shape across the back wall.
 
 <img src="../figures/chassis/photos/PMVBChassis3.png" alt="" style="max-width: 800px; width: 100%; display: block; margin: 1.5rem auto;">
 
@@ -295,8 +295,9 @@ Verified against current sourcing as of 2026-05-07. Sourcing priority: Mouser �
 | Phoenix MC 1,5/4-G-3,81 PCB header (chassis-side) | Phoenix Contact 1803293 | Digi-Key | 277-1208-ND | 2 (prototype) → 14 (full chassis) | $3.51 | One per active module slot, mounted on per-module PCB. v1.0 prototype orders 2 to match the 10-Wago lever-nut quantity (wires up 2 slots: shakedown + first Phase 1 module). Remaining 12 ordered as each subsequent module is built. |
 | Phoenix MC 1,5/4-ST-3,81 cable plug (back-wall harness) | Phoenix Contact 1803594 | Digi-Key | 277-1163-ND | 2 (prototype) → 14 (full chassis) | $8.73 | One per active slot; pigtail from Wago tap to module's PCB header. Quantity tracks Phoenix header order. |
 | Wago 221-413 3-port lever-nut connector | Wago 221-413 | Digi-Key | (bundled with Phoenix order) | 10 (slot-1 shakedown + spares) → 56 (full chassis) | $0.65 | Per-rail tap on back-wall harness — bus IN, bus OUT, branch to module pigtail. v1.0 prototype starts with 10 to validate the lever-nut approach at slot 1 before committing to bulk quantity. v1.1+ may replace lever-nuts with a custom 4-rail distribution PCB, in which case the Wago step is skipped entirely. |
-| Hookup wire 14 AWG stranded, red/yellow/blue/black | Alpha 3050 series | Mouser | 602-3050-* | 1.5 m each color | $5/color | 4-rail back-wall harness, ~330 mm × 4 colors |
-| Hookup wire 22 AWG stranded, assorted colors | Alpha 3050 series | Mouser | 602-3050-* | 30 m total | $20 | LED wiring, banana-jack wiring, pigtails |
+| 12 AWG silicone hookup wire kit, 6 colors × 5 ft | Fermerry | Amazon | B089CJ65SC | 1 kit | $20.29 | Pre-fuse jumpers from GeeekPi screw terminals to fuse holder inputs, sized for TX300 +5 V (14 A) and +12 V (22 A) rail maxima. |
+| 14 AWG silicone hookup wire kit, 6 colors × 10 ft | Fermerry | Amazon | (Fermerry 14 AWG-6C) | 1 kit | $20.96 | Post-fuse back-wall harness, fuse-limited to 5 A / 3 A / 0.5 A. |
+| 22 AWG hookup wire, assorted | Generic | (on hand) | n/a | as needed | $0 | LED leads, banana-jack jumpers, indicator wiring. |
 | **Front-panel diagnostic features** | | | | | | |
 | Banana jack panel-mount, 4 mm | Pomona 3760-0 (black) | Digi-Key | 501-1041-ND | 1 | $5 | GND test point |
 | Banana jack panel-mount, 4 mm | Pomona 3760-2 (red) | Digi-Key | 501-1041-ND | 1 | $5 | +5 V test point |
