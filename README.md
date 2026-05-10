@@ -67,6 +67,9 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 - [x] Module form factor v10 (JLCPCB-FDM-compliant): 16.3 × 125 × 86 mm outer, 6 mm shells, 2 mm right wall, 1.5 × 3 × 125 mm rail lips at top-right and bottom-right edges, 14.3 × 125 × 68 mm cavity
 - [x] Chassis groove: 2 mm wide × 3 mm deep × 125 mm long, at 22.5 mm slot pitch starting at x = 100 mm (leftmost 10 mm reserved for M3 corner standoff clearance + 86 mm TX300 zone + 4 mm air gap). 0.5 mm sliding clearance.
 - [x] Module fabrication path: FDM PLA via US service for prototype (Baysinger's AM); FDM PETG via JLCPCB for the production batch of 14 once v10 fit validates
+- [x] GeeekPi D-1188 mounted to chassis ceiling via 4× M2.5 × 5 mm standoffs (rotated 90° so terminal blocks face chassis front, status LEDs face rear). Mounting holes at (110.1, 161.6), (162.9, 161.6), (110.1, 225.4), (162.9, 225.4) on both ceiling and top groove plate
+- [x] Sabrent HB-BU10 actual dimensions verified: 144.8 × 48.3 × 23.9 mm. Positioned at X = 102.6..247.4, Y = 175.4..223.7, Z = 6..29.9 (rear-center on chassis floor)
+- [x] Back-wall harness taps: Wago 221-413 lever-nut connectors for v1.0 (one per rail per module). Custom 4-rail distribution PCB deferred to v1.1+ once layout is verified
 - [x] Module Design Document Schema authored (local tooling)
 
 **Chassis sourcing (verified BOM, ~$280)**
@@ -78,7 +81,9 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 - [ ] Pomona 3760 banana jacks ×4, color-coded (~$20)
 - [ ] VCC 5102H LED indicators ×3 (red 5 V, red 12 V, green 12 V) ($6)
 - [ ] Hookup wire kit (14 AWG harness colors + 22 AWG signal assortment, ~$25)
-- [ ] M3 hardware: 4× M3 × 80 mm hex aluminum standoffs + bag of M3 × 10 mm button head cap screws (~$15 from Amazon / McMaster)
+- [ ] M3 hardware: 4× M3 × 80 mm hex aluminum standoffs + bag of M3 × 12 mm button head cap screws (chassis corners, ~$15 from Amazon / McMaster)
+- [ ] M2.5 hardware: 4× M2.5 × 5 mm hex aluminum standoffs + 4× M2.5 × 12 mm button head cap screws (GeeekPi ceiling mount, ~$7 from Amazon / McMaster)
+- [ ] Wago 221-413 3-port lever-nut connectors — Mouser 651-221-413, ×25 initial (covers 6 modules with spares), eventually ×56 for full 14-slot population (~$10 initial)
 - [ ] USB-C-to-USB-A short cables ×14, ~150 mm (~$30)
 - [x] Heat-shrink tubing on hand (ElectroBits)
 - [x] TX300 PSU on hand
@@ -93,22 +98,24 @@ Iterative build strategy: prototype-first. Order one chassis acrylic set (4 pane
 - [x] Chassis DXFs generated with M3 corner clearance holes: `panel_solid_plate.dxf` (qty 2 for floor + ceiling), `panel_groove_plate.dxf` (qty 2 for bottom + top divider, with 14 module slot cutouts each)
 - [x] Exploded-view assembly diagram + STL generated (`chassis_assembly_exploded.png`, `chassis_assembly_exploded.stl`)
 - [x] v10 prototype module ordered from Baysinger's AM (Texas, USA) via Craftcloud — order #465257381764, $24.77 express, ETA May 14-19
-- [ ] Order chassis acrylic from SendCutSend (~$135 for 4 panels in 3 mm blue cast acrylic at the widened 435 × 238 × 92 mm envelope, free US shipping)
-- [ ] Order M3 hardware (4× M3 × 80 mm hex standoffs + M3 × 10 mm cap screws, ~$15)
+- [x] SendCutSend acrylic ordered (invoice #SL094002, 2026-05-10) — **$142.57 total** ($131.70 subtotal + $10.87 TX sales tax + free shipping). 4 panels in 3 mm blue cast acrylic: panel_solid_plate.dxf qty 2 (floor + ceiling) + panel_groove_plate.dxf qty 2 (bottom + top divider). The 2-design-at-qty-2 approach saved ~$70 over 4 unique designs. Slot cutouts implemented as front-edge notches in the outer outline to satisfy SendCutSend's parts-within-parts validator.
+- [ ] Order M3 + M2.5 chassis hardware (~$22 combined: 4× M3 × 80 mm standoffs + 8× M3 × 12 mm screws + 4× M2.5 × 5 mm standoffs + 4× M2.5 × 12 mm screws)
+- [ ] Order Wago 221-413 lever-nuts (×25 initial, ~$10 from Mouser 651-221-413)
 - [ ] Receive prototype module and chassis panels; verify dimensions
 - [ ] Slide-fit test: insert module body into one chassis slot, verify lip-and-groove engagement with 0.5 mm sliding clearance
 - [ ] Iterate v10 design if slide-fit fails (edit constants in generator script, regenerate, re-order)
 - [ ] If slide-fit passes: order JLCPCB batch of 14 module bodies in PETG (~$84)
-- [ ] Frame assembly: stack floor + bottom groove plate + 4 corner standoffs + top groove plate + ceiling, clamp with 8 M3 × 10 mm screws
-- [ ] Mount TX300 inside the open-frame chassis (IEC inlet at front, fan up)
-- [ ] Mount GeeekPi D-1188 on TX300 rear top + connect 24-pin ATX
-- [ ] Mount Sabrent HB-BU10 to floor, rear-center
+- [ ] Frame assembly: stack floor + bottom groove plate + 4 corner standoffs + top groove plate + ceiling, clamp with 8 M3 × 12 mm screws
+- [ ] Mount TX300 inside the open-frame chassis (IEC inlet at front, fan up). Position: X = 9.5..95.5, Y = 4..182, Z = 8..74
+- [ ] Mount GeeekPi D-1188 to chassis ceiling via 4× M2.5 × 5 mm standoffs hanging from underside of top groove plate; M2.5 × 12 mm screws come from above the ceiling through both panels into the standoffs. GeeekPi sits at X = 107..166, Y = 158.5..228.5, Z = 65..81 (rotated 90°)
+- [ ] Run 24-pin ATX cable from TX300 (top of PSU at Z = 74) up to the GeeekPi (bottom at Z = 65), short ~10 mm vertical run
+- [ ] Mount Sabrent HB-BU10 to chassis floor at X = 102.6..247.4, Y = 175.4..223.7 (rear-center). VHB tape acceptable for v1.0 prototype phase.
 - [ ] Build per-rail fuse panel + wire to GeeekPi outputs
-- [ ] Build 4-wire back-wall harness (303 mm × 14 AWG, color-coded) — initially only tap slot 1 for Module 1E shakedown
+- [ ] Build 4-wire back-wall harness (~330 mm × 14 AWG, color-coded), with Wago 221-413 tap at slot 1 only for Module 1E shakedown (4 Wagos: one per rail)
 - [ ] Single-slot shakedown: install Module 1E in slot 1, verify Phoenix mate + USB cable run + harness tap routing
-- [ ] After single-slot shakedown passes, tap remaining 13 harness positions
+- [ ] After single-slot shakedown passes, add Wago taps at remaining 13 slots (4 Wagos per slot × 13 = 52 more Wagos, total 56)
 - [ ] Install + wire front-panel diagnostic strip (banana jacks ×4 + LED indicators ×3) on a separate small acrylic strip mounted to the chassis floor (front-panel proper deferred to v1.1)
-- [ ] **Deferred to v1.1:** chassis side walls, rear wall, front panel, ventilation geometry, module-specific faceplate cutouts. Walls + vents must be co-designed because closing the chassis re-introduces TX300 cooling constraints.
+- [ ] **Deferred to v1.1:** chassis side walls, rear wall, front panel, ventilation geometry, module-specific faceplate cutouts, custom 4-rail distribution PCB to replace Wago lever-nuts. Walls + vents must be co-designed because closing the chassis re-introduces TX300 cooling constraints.
 
 **Chassis bring-up**
 
