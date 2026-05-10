@@ -284,7 +284,7 @@ blockquote {
 <p>DXF files are at <code>tools/fabrication/out/panel_solid_plate.dxf</code> and <code>panel_groove_plate.dxf</code>. Each file contains a single closed outer outline plus interior cutouts (circles for the M3 and M2.5 holes, rectangles for the slot grooves) wound clockwise so SendCutSend’s interpreter reads them as holes rather than nested parts.</p>
 <p><strong>Frame assembly</strong> uses just <strong>four M3 hex aluminum standoffs</strong> plus eight M3 button head cap screws — no acrylic tapping required, no glue:</p>
 <ul>
-<li>4× corner stacks, each built from 3× M3 × 20 mm M-F standoffs threaded together (each internal joint Loctite-243-locked) plus 1× M3 × 20 mm F-F at the top so the ceiling screw threads into a clean female socket. Total assembled stack length: 80 mm ±0.3 mm. One stack at each chassis interior corner; stack spans Z = 3 to Z = 89 (between the inside-top of the floor plate and the inside-bottom of the ceiling plate). Source: HVAZI M3 stainless assortment kit, Amazon B01L06CUJG (kit contains 20× of each length, well over the 12 M-F + 4 F-F needed).</li>
+<li>4× corner stacks, each built from 3× M3 × 20 mm M-F standoffs threaded together (each internal joint Loctite-243-locked) plus 1× M3 × 20 mm F-F at the top so the ceiling screw threads into a clean female socket. Total assembled stack length: 80 mm ±0.3 mm. One stack at each chassis interior corner; stack spans Z = 3 to Z = 89 (between the inside-top of the floor plate and the inside-bottom of the ceiling plate). Source: Csdtylh M3 320-piece assortment kit, Amazon B06Y5TJXY1 (kit contains 20× of each length, well over the 12 M-F + 4 F-F needed).</li>
 <li>8× M3 × 8 mm button head cap screws (included in the same HVAZI kit). Four thread up through the floor’s corner clearance holes into the bottom of each stack; four thread down through the ceiling’s corner clearance holes into the top of each stack. No threadlocker on these so the chassis can be disassembled for v1.1.</li>
 <li>Acrylic panels each carry only clearance holes — no tapped threads. The standoff stack is the thread-bearing component; the acrylic is just a stack of plates sandwiched between the standoff ends.</li>
 </ul>
@@ -297,7 +297,7 @@ blockquote {
 <p>Internal AC routing is contained entirely within the TX300’s certified enclosure; no external mains wiring exits the PSU body. The IEC inlet is exposed through a 35 × 28 mm rectangular cutout in the <strong>front</strong> panel at the TX300 IEC inlet position (occupying the leftmost ~90 mm of the front-panel face, separate from the diagnostic strip and module faceplate region).</p>
 <h3 id="geeekpi-d-1188-mounting">3.4 GeeekPi D-1188 Mounting</h3>
 <p>The GeeekPi D-1188 ATX breakout (70 × 58.5 × 15.9 mm) <strong>hangs from the chassis ceiling</strong> above the rear-center of the chassis, with its mounting positions at X = 107..166, Y = 158.5..228.5, Z = 65..81. The breakout’s component-side faces down (into the chassis interior) so the screw terminals point downward and the 24-pin ATX header is accessible from below for the cable run from the TX300. The breakout is rotated 90° from its as-marked orientation so the power-rail status LEDs face the chassis rear and the screw terminals face the chassis front.</p>
-<p>The breakout mounts via four M2.5 × 6 mm female-female hex aluminum standoffs that hang from the underside of the top groove plate, with M2.5 × 8 mm button head cap screws coming from above the chassis ceiling, passing through the ceiling (3 mm) and the top groove plate (3 mm), threading into the standoff. The standoffs hold the GeeekPi PCB top face at Z = 80, with the underside of the top groove plate at Z = 86, giving 6 mm of clearance for solder bumps and the standoff body. Source: Csdtylh M2.5 stainless assortment kit, Amazon B06Y5TJXY1 (kit’s shortest length is 6 mm; the extra 1 mm vs the original 5 mm spec is harmless added clearance). The four mounting holes are at:</p>
+<p>The breakout mounts via four M2.5 × 6 mm female-female hex aluminum standoffs that hang from the underside of the top groove plate, with M2.5 × 8 mm button head cap screws coming from above the chassis ceiling, passing through the ceiling (3 mm) and the top groove plate (3 mm), threading into the standoff. The standoffs hold the GeeekPi PCB top face at Z = 80, with the underside of the top groove plate at Z = 86, giving 6 mm of clearance for solder bumps and the standoff body. Source: HVAZI M2.5 160-piece assortment kit, Amazon B01L06CUJG (kit’s shortest length is 6 mm; the extra 1 mm vs the original 5 mm spec is harmless added clearance). The four mounting holes are at:</p>
 <table>
 <thead>
 <tr class="header">
@@ -647,11 +647,11 @@ blockquote {
 <tr class="even">
 <td>Wago 221-413 3-port lever-nut connector</td>
 <td>Wago 221-413</td>
-<td>Mouser</td>
-<td>651-221-413</td>
-<td style="text-align: right;">25 (initial) → 56 (full chassis)</td>
-<td style="text-align: right;">$0.34</td>
-<td>Per-rail tap on back-wall harness — bus IN, bus OUT, branch to module pigtail. v1.0 uses lever-nuts; v1.1+ may replace with a custom 4-rail distribution PCB.</td>
+<td>Digi-Key</td>
+<td>(bundled with Phoenix order)</td>
+<td style="text-align: right;">10 (slot-1 shakedown + spares) → 56 (full chassis)</td>
+<td style="text-align: right;">$0.65</td>
+<td>Per-rail tap on back-wall harness — bus IN, bus OUT, branch to module pigtail. v1.0 prototype starts with 10 to validate the lever-nut approach at slot 1 before committing to bulk quantity. v1.1+ may replace lever-nuts with a custom 4-rail distribution PCB, in which case the Wago step is skipped entirely.</td>
 </tr>
 <tr class="odd">
 <td>Hookup wire 14 AWG stranded, red/yellow/blue/black</td>
@@ -789,30 +789,30 @@ blockquote {
 <td>4 panels for v1.0 open-frame, fabricated as 2 unique designs at qty 2 each. Both solid plates carry the GeeekPi mounting holes (only the ceiling uses them); both groove plates carry the GeeekPi clearance holes (only the top divider uses them). This avoids ~$70 in SendCutSend per-unique-part setup fees. Side walls + rear wall + front panel deferred to v1.1.</td>
 </tr>
 <tr class="even">
-<td>HVAZI M3 stainless steel standoff assortment kit (M-F + F-F + screws + nuts)</td>
-<td>HVAZI</td>
-<td>Amazon</td>
-<td>B01L06CUJG</td>
-<td style="text-align: right;">1 kit</td>
-<td style="text-align: right;">~$18</td>
-<td>Source for all M3 hardware. Per chassis: 12× M-F 20 mm + 4× F-F 20 mm stacked into 4 corner stacks of 80 mm each + 8× M3 × 8 mm screws. Kit holds 20 of each length, leaving plenty for spares and component mounting.</td>
-</tr>
-<tr class="odd">
-<td>Csdtylh M2.5 stainless steel standoff assortment kit (M-F + F-F + screws + nuts)</td>
+<td>Csdtylh M3 320-piece standoff/screw/nut assortment kit (M-F + F-F + screws + nuts)</td>
 <td>Csdtylh</td>
 <td>Amazon</td>
 <td>B06Y5TJXY1</td>
 <td style="text-align: right;">1 kit</td>
-<td style="text-align: right;">~$15</td>
+<td style="text-align: right;">$14.98</td>
+<td>Source for all M3 hardware. Per chassis: 12× M-F 20 mm + 4× F-F 20 mm stacked into 4 corner stacks of 80 mm each + 8× M3 × 8 mm screws. Kit holds 20 of each length, leaving plenty for spares and component mounting.</td>
+</tr>
+<tr class="odd">
+<td>HVAZI M2.5 160-piece standoff/screw/nut assortment kit (M-F + F-F + screws + nuts)</td>
+<td>HVAZI</td>
+<td>Amazon</td>
+<td>B01L06CUJG</td>
+<td style="text-align: right;">1 kit</td>
+<td style="text-align: right;">$11.99</td>
 <td>Source for all M2.5 hardware. Per chassis: 4× M2.5 × 6 mm F-F + 4× M2.5 × 8 mm screws (bottom, through ceiling) + 4× M2.5 × 6 mm screws (top, through GeeekPi PCB). Kit’s shortest length is 6 mm vs the original 5 mm spec; harmless 1 mm extra clearance.</td>
 </tr>
 <tr class="even">
-<td>Loctite 243 medium-strength threadlocker (blue), 6 mL</td>
-<td>Henkel</td>
+<td>ESKONKE blue 243 threadlocker, medium-strength removable, 50 mL (Loctite 243 equivalent)</td>
+<td>ESKONKE</td>
 <td>Amazon</td>
-<td>(any)</td>
+<td>B0CHM5QS3N</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">~$8</td>
+<td style="text-align: right;">$9.99</td>
 <td>Applied to each of the 12 internal joints of the M3 corner stacks (3 joints per corner × 4 corners). Bare on the floor/ceiling screws so the chassis remains disassemblable for v1.1.</td>
 </tr>
 <tr class="odd">

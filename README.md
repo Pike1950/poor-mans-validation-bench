@@ -76,15 +76,17 @@ Phase 0 brings up the orchestration head and chassis power subsystem to the poin
 
 - [x] GeeekPi D-1188 ATX breakout — Amazon B08MC389FQ ($13)
 - [x] Sabrent HB-BU10 USB 3.0 hub — Amazon B0797NZFYP ($47), ordered + on hand
-- [ ] Phoenix MC 1,5/4 connector kit — Digi-Key 277-1208-ND + 277-1163-ND, ×14 pairs (~$170)
+- [ ] Phoenix MC 1,5/4 connector pairs — Digi-Key 277-1208-ND (PCB header) + 277-1163-ND (cable plug), ×2 pairs for prototype (~$28). Sized to match the 10-Wago order — wires up 2 slots for shakedown + first Phase 1 module. Remaining 12 pairs deferred until those modules are built (one pair per module).
 - [ ] Fuse panel hardware — Eaton BK/HTB-22M-R holders ×3 + Bel BK1/GMC cartridges (5 A / 3 A / 0.5 A) (~$25)
 - [ ] Pomona 3760 banana jacks ×4, color-coded (~$20)
-- [ ] VCC 5102H LED indicators ×3 (red 5 V, red 12 V, green 12 V) ($6)
-- [ ] Hookup wire kit (14 AWG harness colors + 22 AWG signal assortment, ~$25)
-- [ ] M3 hardware: HVAZI M3 stainless steel standoff assortment kit — Amazon B01L06CUJG. Per corner: 3× M3 × 20 mm M-F + 1× M3 × 20 mm F-F stacked to 80 mm total. F-F goes at the top so the ceiling screw threads into a clean female socket. Total across 4 corners: 12× M-F + 4× F-F at 20 mm + 8× M3 × 8 mm screws (kit includes screws). Loctite 243 (blue) on the 12 internal stack joints; bare on floor/ceiling screws.
-- [ ] M2.5 hardware: Csdtylh M2.5 stainless steel standoff assortment kit — Amazon B06Y5TJXY1. 4× M2.5 × 6 mm F-F for GeeekPi ceiling mount (1 mm more clearance than the original 5 mm spec, harmless) + 4× M2.5 × 8 mm screws (bottom, through acrylic) + 4× M2.5 × 6 mm screws (top, through GeeekPi PCB). All from kit.
-- [ ] Loctite 243 medium-strength threadlocker (blue) — Amazon, ~$8 (one tube covers the project)
-- [ ] Wago 221-413 3-port lever-nut connectors — Mouser 651-221-413, ×25 initial (covers 6 modules with spares), eventually ×56 for full 14-slot population (~$10 initial)
+- [x] LEDs for diagnostic strip on hand (3× rail status indicators)
+- [ ] 12 AWG hookup wire (pre-fuse jumpers from GeeekPi terminals to fuse holders, sized for TX300 +5V/+12V rail max of 16 A and 18 A respectively): Fermerry 12 AWG silicone wire kit, 6 colors × 5 ft — Amazon B089CJ65SC ($20.29)
+- [ ] 14 AWG hookup wire (post-fuse back-wall harness, fuse-limited to 5 A / 3 A / 0.5 A): Fermerry 14 AWG silicone wire kit, 6 colors × 10 ft ($20.96)
+- [x] 22 AWG signal wire (front-panel diagnostic strip, indicator wiring) on hand
+- [ ] M3 hardware: Csdtylh M3 320-piece standoff/screw/nut kit — Amazon B06Y5TJXY1 ($14.98). Per corner: 3× M3 × 20 mm M-F + 1× M3 × 20 mm F-F stacked to 80 mm total. F-F goes at the top so the ceiling screw threads into a clean female socket. Total across 4 corners: 12× M-F + 4× F-F at 20 mm + 8× M3 × 8 mm screws (kit includes screws). Loctite 243 (blue) on the 12 internal stack joints; bare on floor/ceiling screws.
+- [ ] M2.5 hardware: HVAZI M2.5 160-piece standoff/screw/nut kit — Amazon B01L06CUJG ($11.99). 4× M2.5 × 6 mm F-F for GeeekPi ceiling mount (1 mm more clearance than the original 5 mm spec, harmless) + 4× M2.5 × 8 mm screws (bottom, through acrylic) + 4× M2.5 × 6 mm screws (top, through GeeekPi PCB). All from kit.
+- [ ] ESKONKE blue 243 threadlocker (medium-strength removable, equivalent to Loctite 243) — Amazon B0CHM5QS3N ($9.99, 50 mL). Applied to the 12 internal joints of the M3 corner stacks. Bare on floor/ceiling screws.
+- [ ] Wago 221-413 3-port lever-nut connectors — Digi-Key, ×10 at $6.45 (combined with Phoenix/fuse-panel order). Covers single-slot shakedown (4 Wagos for slot 1, one per rail) + 6 spares. Larger quantity deferred: once the Wago tap approach validates at slot 1, decide whether to scale to 56 total (4 × 14 slots) or skip ahead to the custom 4-rail distribution PCB.
 - [ ] USB-C-to-USB-A short cables ×14, ~150 mm (~$30)
 - [x] Heat-shrink tubing on hand (ElectroBits)
 - [x] TX300 PSU on hand
@@ -101,8 +103,9 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 
 - [x] v10 prototype module — Baysinger's AM (TX, USA) via Craftcloud, order #465257381764, $24.77 express, ETA May 14-19
 - [x] Chassis acrylic — SendCutSend invoice #SL094002, **$142.57** ($131.70 subtotal + $10.87 TX tax + free shipping), 4 panels in 3 mm blue cast acrylic
-- [ ] M3 + M2.5 chassis hardware: HVAZI M3 assortment kit (B01L06CUJG) + Csdtylh M2.5 assortment kit (B06Y5TJXY1) + Loctite 243. 12× M3 × 20 mm M-F + 4× M3 × 20 mm F-F per chassis (stacked 4-high per corner); 4× M2.5 × 6 mm F-F for GeeekPi mount.
-- [ ] Wago 221-413 lever-nuts (×25 initial, ~$10 from Mouser 651-221-413)
+- [ ] M3 + M2.5 chassis hardware: Csdtylh M3 320-pc kit (B06Y5TJXY1) + HVAZI M2.5 160-pc kit (B01L06CUJG) + Loctite 243. 12× M3 × 20 mm M-F + 4× M3 × 20 mm F-F per chassis (stacked 4-high per corner); 4× M2.5 × 6 mm F-F for GeeekPi mount.
+- [ ] 12 AWG + 14 AWG hookup wire (Fermerry 6-color silicone kits: 12 AWG B089CJ65SC for pre-fuse jumpers, 14 AWG 10 ft × 6 for post-fuse harness)
+- [ ] Wago 221-413 lever-nuts ×10 — Digi-Key ($6.45, bundled with Phoenix/fuse-panel order). Covers slot-1 shakedown + spares. Scale-up decision deferred until shakedown validates.
 
 *Receive + slide-fit validation*
 
