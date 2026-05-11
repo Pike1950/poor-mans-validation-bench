@@ -147,24 +147,35 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 
 **Pi 5 software stack**
 
-- [ ] Raspberry Pi OS 64-bit install + headless config (hostname, network, SSH)
-- [ ] Migrate boot to NVMe SSD
-- [ ] Python 3.11+ + PyVISA / pyvisa-py + USB-TMC udev permissions
-- [ ] InfluxDB 1.8 (install + service + PMVB tag schema)
-- [ ] Grafana (install + InfluxDB datasource + placeholder bench dashboard)
-- [ ] Jinja2 + Matplotlib + report template skeleton
-- [ ] MCP gateway scaffolding (Anthropic Python SDK)
+- [x] Raspberry Pi OS Full 64-bit install + headless config (Wi-Fi, SSH key-only auth, Raspberry Pi Connect enabled)
+- [x] Boot migration to NVMe SSD (NVMe-first via EEPROM `BOOT_ORDER`, SD card retained as fallback)
+- [ ] Bootstrap Python project (`pyproject.toml` + `tools/` skeleton + `.venv` on Pi)
+- [ ] InfluxDB 2.x install + service + `pmvb` org + `measurements` bucket + SDD §10.2 tag schema (translated to Flux)
+- [ ] Grafana 10 install + InfluxDB datasource + placeholder bench dashboard with template variables
+- [ ] Jinja2 + Matplotlib report template skeleton
+- [ ] MCP gateway scaffolding (`mcp` server framework + `anthropic` SDK)
+
+**Pico firmware bring-up (hot-plug verification)**
+
+Pulled forward from Phase 1: a throwaway probe firmware on every Pico so the Phase 0 verification can exercise the real USB-TMC path, not just the simulator. The stub is not the eventual per-module SCPI firmware; it just enumerates and answers `*IDN?` so we can prove the hot-plug-by-serial architecture works.
+
+- [ ] Pico SDK + TinyUSB cross-compile environment on the Pi 5 (`arm-none-eabi-gcc`, `pico-sdk` at `/opt/pico-sdk`, `PICO_SDK_PATH` set)
+- [ ] Minimal USB-TMC stub firmware at `firmware/pmvb_usbtmc_stub/`: responds to `*IDN?` with chip-ID-derived serial number
+- [ ] Flash all 5 Picos with the stub `.uf2`
+- [ ] udev rules: plugdev access to USB-TMC class devices + stable `/dev/usbtmc-by-serial/{chip_id}` symlinks + suppress BOOTSEL automount
+- [ ] Hot-plug verification: same Pico across different Sabrent hub ports preserves serial-based identity in pyvisa-py enumeration
 
 **Phase 0 verification milestone (per SDD §13.1)**
 
-- [ ] Pi 5 boots from NVMe, reaches bench network, hub enumerates as USB 3.0
-- [ ] PyVISA-sim end-to-end: pytest queries `*IDN?` against simulator → InfluxDB write → Grafana panel renders → Jinja2 report references the record
+- [x] Pi 5 boots from NVMe, reaches bench network, Sabrent hub enumerates as USB 3.0
+- [ ] End-to-end pytest: real Pico over pyvisa-py USB-TMC + pyvisa-sim placeholder, both write to InfluxDB tagged appropriately, Grafana panel renders both, Jinja2 report queries InfluxDB and outputs HTML+PDF referencing both records
+- [ ] Hot-plug-by-serial verified across at least 3 port-swap permutations
 
 **Phase 0 documentation**
 
 - [x] Chassis Architecture and Power Distribution doc
 - [x] SDD §11.5 Power Architecture
-- [ ] Phase 0 bring-up record (date, observed rail voltages, blockers)
+- [ ] Rewrite `docs/setup/Phase_0_Orchestration_Setup.md` from actual procedure (replaces the stale 2024-era version)
 
 ### Phase 1 — Tier 1 Core (1A, 1B, 1D, 1E)
 
@@ -400,7 +411,7 @@ Continuous work that spans phases.
 - [ ] PyVISA-sim YAML schemas (one per module, generated mechanically from `modules/<id>/commands.yaml`)
 - [ ] InfluxDB tag schema spec (instrument, channel, dut, run_id, measurement_type)
 - [ ] Jinja2 + Matplotlib report templates (PDF + HTML output)
-- [ ] MCP gateway scaffolding (Anthropic Python SDK, exposes per-module tool surface)
+- [ ] MCP gateway scaffolding (`mcp` server framework + Anthropic Python SDK, exposes per-module tool surface)
 
 **Workflow**
 
