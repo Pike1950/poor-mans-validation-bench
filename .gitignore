@@ -50,6 +50,12 @@ docs/_build/
 *.elf
 *.uf2
 *.hex
+firmware/**/build/
+
+# Local-only reference copies of third-party firmware examples used as templates
+# (e.g. TinyUSB's stock USB-TMC example we adapted into pmvb_usbtmc_stub).
+# Not redistributing third-party source through this repo.
+firmware/_reference_*
 
 # LaTeX build intermediates (TikZ figure compilation)
 *.aux
