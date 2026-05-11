@@ -14,8 +14,8 @@ devices:
   placeholder:
     eom:
       USB INSTR:
-        q: "\n"
-        r: "\n"
+        q: "\r\n"
+        r: "\r\n"
     dialogues:
       - q: "*IDN?"
         r: "PMVB,placeholder,phase0-sim,1.0.0"
