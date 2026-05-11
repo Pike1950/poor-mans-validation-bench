@@ -21,9 +21,56 @@ import sys
 from pathlib import Path
 
 import pyvisa
+import usb.core
 import yaml
 
 NICKNAMES_FILE = Path(__file__).parent / "pico_nicknames.yaml"
+
+# Sabrent HB-BU10 internal hub topology -> Sabrent front-panel slot number.
+# The hub is a cascade of three 4-port internal hubs (A, B, C). The cascade
+# always lives on port 4 of each hub. Edit this map if the Sabrent's physical
+# slot labels turn out to map differently.
+SABRENT_SLOT_MAP: dict[tuple[int, ...], int] = {
+    (1,): 1, (2,): 2, (3,): 3,
+    (4, 1): 4, (4, 2): 5, (4, 3): 6,
+    (4, 4, 1): 7, (4, 4, 2): 8, (4, 4, 3): 9, (4, 4, 4): 10,
+}
+
+
+def port_chain_to_slot(port_numbers: tuple[int, ...] | None) -> int | None:
+    """Map a pyusb port_numbers tuple to a Sabrent slot, or None if the device
+    is not behind the Sabrent (or the topology assumption does not match).
+
+    The first element of port_numbers is the host root-hub port that the
+    Sabrent's uplink is plugged into. Strip that to get the path inside the
+    Sabrent's internal hub cascade."""
+    if not port_numbers or len(port_numbers) < 2:
+        return None
+    return SABRENT_SLOT_MAP.get(tuple(port_numbers[1:]))
+
+
+def discover_pmvb_via_pyusb() -> dict[str, dict]:
+    """Enumerate PMVB USB-TMC devices via pyusb (read-only; does not claim the
+    interface). Returns {serial: {"bus", "address", "port_chain", "slot"}}."""
+    result: dict[str, dict] = {}
+    for dev in usb.core.find(find_all=True, idVendor=PMVB_VID, idProduct=PMVB_PID):
+        try:
+            serial = dev.serial_number
+        except Exception:
+            continue
+        if not serial:
+            continue
+        try:
+            port_chain = tuple(dev.port_numbers) if dev.port_numbers else None
+        except (NotImplementedError, AttributeError):
+            port_chain = None
+        result[serial] = {
+            "bus": dev.bus,
+            "address": dev.address,
+            "port_chain": port_chain,
+            "slot": port_chain_to_slot(port_chain),
+        }
+    return result
 
 
 PMVB_VID = 0xCAFE
@@ -113,14 +160,15 @@ def main() -> int:
 
     symlinks = read_serial_symlinks()
     nicknames = read_nicknames()
+    usb_topology = discover_pmvb_via_pyusb()
 
     print(f"\nFound {len(pmvb_resources)} PMVB USB-TMC instrument(s).\n")
 
-    fmt = "{:<10}  {:<18}  {:<46}  {:<16}  {}"
-    print(fmt.format("NICKNAME", "SERIAL (chip ID)", "PYVISA RESOURCE STRING", "DEV NODE", "*IDN? RESPONSE"))
-    print("-" * 130)
+    fmt = "{:<10}  {:<6}  {:<18}  {:<46}  {:<10}  {}"
+    print(fmt.format("NICKNAME", "SLOT", "SERIAL (chip ID)", "PYVISA RESOURCE STRING", "DEV NODE", "*IDN? RESPONSE"))
+    print("-" * 140)
 
-    # Sort by nickname (which is more stable for human review than sorting by serial)
+    # Sort by nickname (more stable for human review than sorting by serial)
     def sort_key(entry: tuple[str, str]) -> tuple[str, str]:
         _, serial = entry
         nick = nicknames.get(serial, f"zzz-{serial}")  # unknowns sort last
@@ -129,6 +177,13 @@ def main() -> int:
     for resource, serial in sorted(pmvb_resources, key=sort_key):
         dev_node = symlinks.get(serial, "(no symlink)")
         nick = nicknames.get(serial, "(unnamed)")
+        topo = usb_topology.get(serial, {})
+        slot_num = topo.get("slot")
+        if slot_num is not None:
+            slot_str = str(slot_num)
+        else:
+            port_chain = topo.get("port_chain")
+            slot_str = f"?{port_chain}" if port_chain else "?"
         try:
             inst = rm.open_resource(resource)
             inst.timeout = 2000
@@ -136,7 +191,7 @@ def main() -> int:
             inst.close()
         except Exception as exc:
             idn = f"ERROR: {exc}"
-        print(fmt.format(nick, serial, resource, Path(dev_node).name, idn))
+        print(fmt.format(nick, slot_str, serial, resource, Path(dev_node).name, idn))
 
     print()
     print("To verify the hot-plug-by-serial architecture, run this script,")
