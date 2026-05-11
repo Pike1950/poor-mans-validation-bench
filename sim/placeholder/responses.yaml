@@ -20,19 +20,12 @@ devices:
       - q: "*IDN?"
         r: "PMVB,placeholder,phase0-sim,1.0.0"
       - q: "*RST"
+        r: ""
+      - q: "*CLS"
+        r: ""
       - q: "*OPC?"
         r: "1"
-    properties:
-      voltage:
-        default: 0.0
-        getter:
-          q: "MEAS:VOLT?"
-          r: "{:.6f}"
-        setter:
-          q: "SOUR:VOLT {:.6f}"
-        specs:
-          type: float
 
 resources:
-  USB::0x1234::0x5678::PLACEHOLDER::INSTR:
+  USB0::0x1234::0x5678::INSTR:
     device: placeholder
