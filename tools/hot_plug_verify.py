@@ -21,6 +21,9 @@ import sys
 from pathlib import Path
 
 import pyvisa
+import yaml
+
+NICKNAMES_FILE = Path(__file__).parent / "pico_nicknames.yaml"
 
 
 PMVB_VID = 0xCAFE
@@ -70,6 +73,20 @@ def read_serial_symlinks() -> dict[str, str]:
     return result
 
 
+def read_nicknames() -> dict[str, str]:
+    """Load the {serial: nickname} registry from tools/pico_nicknames.yaml."""
+    if not NICKNAMES_FILE.exists():
+        return {}
+    try:
+        with NICKNAMES_FILE.open() as f:
+            data = yaml.safe_load(f)
+        if not isinstance(data, dict):
+            return {}
+        return {str(k): str(v) for k, v in data.items()}
+    except (yaml.YAMLError, OSError):
+        return {}
+
+
 def main() -> int:
     print("=" * 78)
     print("PMVB hot-plug-by-serial verification")
@@ -95,15 +112,23 @@ def main() -> int:
         return 1
 
     symlinks = read_serial_symlinks()
+    nicknames = read_nicknames()
 
     print(f"\nFound {len(pmvb_resources)} PMVB USB-TMC instrument(s).\n")
 
-    fmt = "{:<18}  {:<46}  {:<16}  {}"
-    print(fmt.format("SERIAL (chip ID)", "PYVISA RESOURCE STRING", "DEV NODE", "*IDN? RESPONSE"))
-    print("-" * 120)
+    fmt = "{:<10}  {:<18}  {:<46}  {:<16}  {}"
+    print(fmt.format("NICKNAME", "SERIAL (chip ID)", "PYVISA RESOURCE STRING", "DEV NODE", "*IDN? RESPONSE"))
+    print("-" * 130)
 
-    for resource, serial in sorted(pmvb_resources, key=lambda x: x[1]):
+    # Sort by nickname (which is more stable for human review than sorting by serial)
+    def sort_key(entry: tuple[str, str]) -> tuple[str, str]:
+        _, serial = entry
+        nick = nicknames.get(serial, f"zzz-{serial}")  # unknowns sort last
+        return (nick, serial)
+
+    for resource, serial in sorted(pmvb_resources, key=sort_key):
         dev_node = symlinks.get(serial, "(no symlink)")
+        nick = nicknames.get(serial, "(unnamed)")
         try:
             inst = rm.open_resource(resource)
             inst.timeout = 2000
@@ -111,7 +136,7 @@ def main() -> int:
             inst.close()
         except Exception as exc:
             idn = f"ERROR: {exc}"
-        print(fmt.format(serial, resource, Path(dev_node).name, idn))
+        print(fmt.format(nick, serial, resource, Path(dev_node).name, idn))
 
     print()
     print("To verify the hot-plug-by-serial architecture, run this script,")

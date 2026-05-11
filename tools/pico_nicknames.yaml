@@ -1,0 +1,17 @@
+# Pico-to-nickname registry.
+#
+# Maps the USB iSerialNumber (RP2350 unique chip ID, 16 hex chars) to a
+# human-readable nickname so tools like hot_plug_verify.py can show friendly
+# labels instead of hex chip IDs.
+#
+# Edit this file when you swap in new Picos or rename existing ones. The
+# nickname can be any short string; convention is "Pico #N" during Phase 0
+# probe firmware, "Module 1A", "Module 1B", etc. once the per-module firmware
+# replaces the stub.
+
+# Phase 0 stub firmware Picos, baseline arrangement (odd Sabrent slots 1-9).
+3D507668FA419495: "Pico #1"
+5ADC0CA0485648A5: "Pico #2"
+D0F40CB822C98D42: "Pico #3"
+10990698806F6B8D: "Pico #4"
+B555F0C13FACE2CA: "Pico #5"
