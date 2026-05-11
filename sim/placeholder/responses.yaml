@@ -1,0 +1,38 @@
+# PyVISA-sim schema for the Phase 0 placeholder instrument.
+#
+# Used by Phase 0 verification and any development that needs a simulator to
+# stand in for a real module. The Phase 0 end-to-end test opens this simulator
+# alongside a real Pico 2 W to prove both paths land records in InfluxDB.
+#
+# Real per-module simulators ship at sim/<module_id>/responses.yaml (e.g.,
+# sim/1B/responses.yaml for Module 1B's VMU) and are generated mechanically
+# from each module's modules/<id>/commands.yaml per SDD §10.1.
+
+spec: "1.1"
+
+devices:
+  placeholder:
+    eom:
+      USB INSTR:
+        q: "\n"
+        r: "\n"
+    dialogues:
+      - q: "*IDN?"
+        r: "PMVB,placeholder,phase0-sim,1.0.0"
+      - q: "*RST"
+      - q: "*OPC?"
+        r: "1"
+    properties:
+      voltage:
+        default: 0.0
+        getter:
+          q: "MEAS:VOLT?"
+          r: "{:.6f}"
+        setter:
+          q: "SOUR:VOLT {:.6f}"
+        specs:
+          type: float
+
+resources:
+  USB::0x1234::0x5678::PLACEHOLDER::INSTR:
+    device: placeholder

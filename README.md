@@ -149,11 +149,14 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 
 - [x] Raspberry Pi OS Full 64-bit install + headless config (Wi-Fi, SSH key-only auth, Raspberry Pi Connect enabled)
 - [x] Boot migration to NVMe SSD (NVMe-first via EEPROM `BOOT_ORDER`, SD card retained as fallback)
-- [ ] Bootstrap Python project (`pyproject.toml` + `tools/` skeleton + `.venv` on Pi)
-- [ ] InfluxDB 2.x install + service + `pmvb` org + `measurements` bucket + SDD §10.2 tag schema (translated to Flux)
-- [ ] Grafana 10 install + InfluxDB datasource + placeholder bench dashboard with template variables
-- [ ] Jinja2 + Matplotlib report template skeleton
-- [ ] MCP gateway scaffolding (`mcp` server framework + `anthropic` SDK)
+- [x] Bootstrap Python project (`pyproject.toml` + `pmvb/` package + `.venv` on Pi)
+- [x] InfluxDB 2.x install + service + `pmvb` org + `measurements` bucket + SDD §10.2 tag schema (Flux)
+- [x] Grafana 10+ install + InfluxDB datasource (Pi 5 reference build runs Grafana 13)
+- [x] Jinja2 + Matplotlib report template skeleton (`pmvb/reports/`)
+- [x] MCP gateway scaffolding (`pmvb/mcp_gateway/server.py`, FastMCP + `anthropic` SDK)
+- [x] PyVISA-sim placeholder schema (`sim/placeholder/responses.yaml`) for Phase 0 sim path
+- [x] pytest fixtures (`pmvb/fixtures.py`, `run_id` / `dut` / `record`) per SDD §10.3
+- [x] InfluxDB I/O helpers (`pmvb/influx.py`) enforcing the SDD §10.2 tag taxonomy
 
 **Pico firmware bring-up (hot-plug verification)**
 
@@ -407,11 +410,11 @@ Continuous work that spans phases.
 
 **Test infrastructure**
 
-- [ ] pytest harness with parametric fixtures keyed off module catalog
-- [ ] PyVISA-sim YAML schemas (one per module, generated mechanically from `modules/<id>/commands.yaml`)
-- [ ] InfluxDB tag schema spec (instrument, channel, dut, run_id, measurement_type)
-- [ ] Jinja2 + Matplotlib report templates (PDF + HTML output)
-- [ ] MCP gateway scaffolding (`mcp` server framework + Anthropic Python SDK, exposes per-module tool surface)
+- [x] pytest harness with parametric fixtures keyed off module catalog (Phase 0 scaffolding in `pmvb/fixtures.py`; per-module parametrization added as modules come online)
+- [ ] PyVISA-sim YAML schemas (one per module, generated mechanically from `modules/<id>/commands.yaml`; Phase 0 placeholder at `sim/placeholder/responses.yaml`)
+- [x] InfluxDB tag schema spec (instrument, channel, dut, run_id, measurement_type) enforced in `pmvb/influx.py`
+- [x] Jinja2 + Matplotlib report templates (`pmvb/reports/templates/basic_report.html.j2`; specialized templates added per-recipe)
+- [x] MCP gateway scaffolding (`pmvb/mcp_gateway/server.py`, FastMCP + Anthropic Python SDK; per-module tool surface added as modules come online)
 
 **Workflow**
 
