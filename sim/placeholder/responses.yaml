@@ -27,5 +27,5 @@ devices:
         r: "1"
 
 resources:
-  USB0::0x1234::0x5678::INSTR:
+  USB0::0x1234::0x5678::PMVB-PHASE0-SIM::INSTR:
     device: placeholder
