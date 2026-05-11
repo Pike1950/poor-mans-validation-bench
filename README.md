@@ -8,6 +8,10 @@ A modular SCPI instrument platform that mirrors NI PXIe rack-and-module test arc
 
 - **[System Design Document](https://pike1950.github.io/poor-mans-validation-bench/docs/system-design/System_Design_Document.html)** — full v1.0 SDD covering architecture, module catalog, specifications, software stack, build phases, and verification strategy. Rendered via GitHub Pages.
 
+### Orchestration layer
+
+- **[Phase 0 Orchestration Layer Setup](https://pike1950.github.io/poor-mans-validation-bench/docs/setup/Phase_0_Orchestration_Setup.html)** — architecture overview of the two-plane VISA/SCPI + MCP software stack (PyVISA, pytest, InfluxDB 2.x, Grafana, Jinja2 reports, MCP gateway), the `pmvb` Python package layout, and the step-by-step bring-up cookbook from a blank SD card through the Phase 0 verification milestone. Covers Pi 5 OS install, NVMe boot migration, Python project bootstrap, InfluxDB + Grafana install with token management, Pico SDK + USB-TMC stub firmware (in progress), udev rules, and hot-plug verification.
+
 ### Chassis design
 
 - **[Chassis Architecture and Power Distribution](https://pike1950.github.io/poor-mans-validation-bench/docs/chassis/Chassis_Architecture_and_Power_Distribution.html)** — open-frame acrylic blade-style chassis (laser-cut from SendCutSend, 435 × 238 × 92 mm) housing the Silverstone TX300 PSU as an analog-rail backbone, the GeeekPi D-1188 ATX breakout, the Sabrent HB-BU10 USB 3.0 hub, and 14 module slots at 22.5 mm pitch. Covers mechanical architecture, electrical architecture (4-rail back-wall harness with Phoenix MC 1,5/4 module interconnect, per-rail fuse panel, banana-jack diagnostic test points), USB-TMC backplane, BOM with Digi-Key and Amazon cross-references, bring-up procedure, and safety protocols.
