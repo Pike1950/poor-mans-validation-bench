@@ -23,20 +23,35 @@ from pathlib import Path
 import pyvisa
 
 
-PMVB_VID = "0xCAFE"
-PMVB_PID = "0x4001"
+PMVB_VID = 0xCAFE
+PMVB_PID = 0x4001
+# pyvisa-py emits either hex-with-prefix (USB::0xCAFE::0x4001::SERIAL::INSTR)
+# or decimal-no-prefix with interface number (USB0::51966::16385::SERIAL::0::INSTR).
+# Match both; convert to int with base=0 for unified comparison.
 RESOURCE_PATTERN = re.compile(
-    r"USB(?:\d*)::0x([0-9A-Fa-f]+)::0x([0-9A-Fa-f]+)::([^:]+)::(?:\d+::)?INSTR"
+    r"^USB\d*::"
+    r"(0x[0-9A-Fa-f]+|\d+)::"
+    r"(0x[0-9A-Fa-f]+|\d+)::"
+    r"([^:]+)"
+    r"(?:::\d+)?"
+    r"::INSTR$"
 )
 
 
-def parse_resource(resource: str) -> tuple[str, str, str] | None:
-    """Extract (vid, pid, serial) from a PyVISA USB resource string."""
+def parse_resource(resource: str) -> tuple[int, int, str] | None:
+    """Extract (vid, pid, serial) from a PyVISA USB resource string.
+    Returns ints for VID/PID so the caller compares against 0xCAFE / 0x4001
+    regardless of whether pyvisa-py formatted the resource string as hex or
+    decimal."""
     m = RESOURCE_PATTERN.match(resource)
     if not m:
         return None
-    vid, pid, serial = m.group(1), m.group(2), m.group(3)
-    return vid.upper(), pid.upper(), serial
+    try:
+        vid = int(m.group(1), 0)
+        pid = int(m.group(2), 0)
+    except ValueError:
+        return None
+    return vid, pid, m.group(3)
 
 
 def read_serial_symlinks() -> dict[str, str]:
@@ -69,7 +84,7 @@ def main() -> int:
         if parsed is None:
             continue
         vid, pid, serial = parsed
-        if vid.lstrip("0") == "CAFE" and pid.lstrip("0") == "4001":
+        if vid == PMVB_VID and pid == PMVB_PID:
             pmvb_resources.append((r, serial))
 
     if not pmvb_resources:
