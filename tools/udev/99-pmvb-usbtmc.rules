@@ -25,9 +25,16 @@
 #
 # After install, replug any USB-TMC device for the new symlinks to appear.
 
-# (1) + (2): USB-TMC devices matching PMVB's VID/PID. Grant plugdev access and
-# create the /dev/usbtmc-by-serial/<chip_id> symlink. The usb_id builtin
-# extracts ID_SERIAL_SHORT from the USB descriptor for the SYMLINK substitution.
+# (1a) Grant libusb access to the underlying USB device. pyvisa-py's @py backend
+# uses libusb (via pyusb) for USB-TMC enumeration and transfers; without this
+# permission grant on the `usb` subsystem the bench user cannot open the device
+# even though the kernel's usbtmc driver may have already bound to it.
+SUBSYSTEM=="usb", ATTRS{idVendor}=="cafe", ATTRS{idProduct}=="4001", GROUP="plugdev", MODE="0660"
+
+# (1b) + (2): USB-TMC devices matching PMVB's VID/PID. Grant plugdev access to
+# the /dev/usbtmcN node and create the /dev/usbtmc-by-serial/<chip_id> symlink.
+# The usb_id builtin extracts ID_SERIAL_SHORT from the USB descriptor for the
+# SYMLINK substitution.
 KERNEL=="usbtmc[0-9]*", SUBSYSTEMS=="usb", ATTRS{idVendor}=="cafe", ATTRS{idProduct}=="4001", GROUP="plugdev", MODE="0660", IMPORT{builtin}="usb_id", SYMLINK+="usbtmc-by-serial/$env{ID_SERIAL_SHORT}"
 
 # Fallback: any USB-TMC class device (not just PMVB stubs) gets plugdev access.
