@@ -178,7 +178,7 @@ Pulled forward from Phase 1: a throwaway probe firmware on every Pico so the Pha
 
 - [x] Chassis Architecture and Power Distribution doc
 - [x] SDD §11.5 Power Architecture
-- [ ] Rewrite `docs/setup/Phase_0_Orchestration_Setup.md` from actual procedure (replaces the stale 2024-era version)
+- [x] Phase 0 Orchestration Layer Setup doc (rewritten with architecture + bring-up sections, replaces the stale 2024-era version) at `docs/setup/Phase_0_Orchestration_Setup.{md,html}`
 
 ### Phase 1 — Tier 1 Core (1A, 1B, 1D, 1E)
 

@@ -72,8 +72,11 @@ MCP_and_AI_Tooling_Notes.md
 *.docx
 ~$*.docx
 
-# Local-only setup and bring-up notes (contain hostnames, usernames, tokens, paths)
-docs/setup/
+# Local-only setup and bring-up notes (contain hostnames, usernames, tokens, paths).
+# Public setup guides like Phase_0_Orchestration_Setup are explicitly tracked.
+docs/setup/*
+!docs/setup/Phase_0_Orchestration_Setup.md
+!docs/setup/Phase_0_Orchestration_Setup.html
 
 # Session handoff docs (per-session continuity scratchpad, not part of the deliverable repo)
 docs/handoff/
