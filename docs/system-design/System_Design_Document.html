@@ -3459,7 +3459,7 @@ scpigen --target pyvisa-sim modules/1B/commands.yaml &gt; sim/1B/responses.yaml<
 <li><strong>PyVISA + PyVISA-py</strong> for instrument resource discovery, connection, and SCPI dispatch. Resource strings follow the standard form <code>USB::0xVID::0xPID::SERIAL::INSTR</code> for USB-TMC instruments. Tier 2 modules access the Pico bridge through the chassis USB hub like any other USB-TMC instrument.</li>
 <li><strong>PyVISA-sim</strong> for simulation backends. Each module’s simulation backend lives at <code>sim/&lt;module_id&gt;/responses.yaml</code> and is consumed by PyVISA-sim’s stub session. Test code targeting <code>@pmvb.fixture(module='1B', sim=True)</code> gets a simulated module; targeting <code>sim=False</code> gets the live module.</li>
 <li><strong>pytest</strong> with parametric fixtures keyed off the module catalog. Fixtures provide module sessions, sweep parameter sets, calibration constants, and run identifiers. A test marked <code>@pytest.mark.module('1B')</code> is parameterized across all 1B-class modules attached to the chassis.</li>
-<li><strong>InfluxDB</strong> as the time-series database. The 2 GB Pi runs InfluxDB 1.8 with InfluxQL queries; the 16 GB Pi runs InfluxDB 2.7+ with Flux. The schema described in section 10.2 is identical across both backends.</li>
+<li><strong>InfluxDB</strong> as the time-series database. The v1.0 reference build (16 GB Pi 5) runs InfluxDB 2.x with Flux. The schema described in section 10.2 is portable to InfluxDB 1.x with InfluxQL for resource-constrained hosts, but the tag taxonomy is identical across both backends.</li>
 <li><strong>Grafana</strong> for live dashboards. Template variables select the active modules and DUTs from the InfluxDB tag taxonomy.</li>
 <li><strong>Jinja2 + Matplotlib</strong> for automated report generation. Reports are produced from InfluxDB queries by run identifier.</li>
 <li><strong>MCP gateway</strong> as a Python process (FastMCP-based or similar) exposing module tools as described in section 9.</li>
@@ -4072,4 +4072,6 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <p>Start with SCPI 1999 and IEEE 488.2 to internalize the command surface; then read the PyVISA documentation for the host-side dispatch model; then individual module datasheets as each module enters its design phase; the MCP specification last, as it builds on top of the SCPI layer that the rest of the document establishes.</p>
 <h2 id="acknowledgments">Acknowledgments</h2>
 <p>This System Design Document serves a dual purpose. Primarily it is the technical reference for the Poor Man’s Validation Bench, intended for the engineer building, calibrating, or extending the platform. Secondarily it functions as an engineering portfolio artifact, demonstrating competency in modular instrumentation design, distributed test orchestration, software-defined instrument architecture, and the integration of agentic control surfaces into validation workflows.</p>
-<p>The document’s structure mirrors the FMCW Radar Baseband System Design Document hoste
+<p>The document’s structure mirrors the FMCW Radar Baseband System Design Document, both serving as engineering portfolio artifacts demonstrating systems-level design and documentation craft.</p>
+</body>
+</html>

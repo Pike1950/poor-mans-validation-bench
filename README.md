@@ -166,7 +166,7 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 
 Pulled forward from Phase 1: a throwaway probe firmware on every Pico so the Phase 0 verification can exercise the real USB-TMC path, not just the simulator. The stub is not the eventual per-module SCPI firmware; it just enumerates and answers `*IDN?` so we can prove the hot-plug-by-serial architecture works.
 
-- [ ] Pico SDK + TinyUSB cross-compile environment on the Pi 5 (`arm-none-eabi-gcc`, `pico-sdk` at `/opt/pico-sdk`, `PICO_SDK_PATH` set)
+- [x] Pico SDK + TinyUSB cross-compile environment on the Pi 5 (`arm-none-eabi-gcc`, `pico-sdk` at `/opt/pico-sdk`, `PICO_SDK_PATH` set; `hello_usb` cross-compile verified)
 - [ ] Minimal USB-TMC stub firmware at `firmware/pmvb_usbtmc_stub/`: responds to `*IDN?` with chip-ID-derived serial number
 - [ ] Flash all 5 Picos with the stub `.uf2`
 - [ ] udev rules: plugdev access to USB-TMC class devices + stable `/dev/usbtmc-by-serial/{chip_id}` symlinks + suppress BOOTSEL automount
@@ -409,7 +409,7 @@ Continuous work that spans phases.
 - [x] Pandoc-rendered HTML for SDD and chassis arch doc, served via GitHub Pages
 - [x] Parametric DXF + STL generator for chassis fabrication (`tools/fabrication/`)
 - [ ] KiCad project template + symbol/footprint library for per-module PCBs
-- [ ] Pico SDK build environment (CMake + arm-none-eabi-gcc) for firmware development
+- [x] Pico SDK build environment (CMake + arm-none-eabi-gcc) for firmware development (SDK 2.2.0 at `/opt/pico-sdk`; `PICO_BOARD=pico2_w` reference)
 - [ ] Tang Primer 25K HDL toolchain (Gowin EDA + open-source flow as backup)
 
 **Test infrastructure**
