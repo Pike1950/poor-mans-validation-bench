@@ -5,23 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Poor Man's Validation Bench - Phase 0 Orchestration Layer Setup</title>
 <style>
-:root {
-  --bg: #1a1a2e;
-  --card: #16213e;
-  --accent: #0f3460;
-  --highlight: #e94560;
-  --text: #d4d4d4;
-  --heading: #f0f0f0;
-  --dim: #888;
-  --green: #4ade80;
-  --amber: #fbbf24;
-  --blue: #60a5fa;
-  --red: #f87171;
-  --teal: #2dd4bf;
-  --code-bg: #0d1117;
-  --border: #333;
-  --doc-width: 1400px;
-}
+:root { --bg: #1a1a2e; --card: #16213e; --accent: #0f3460; --highlight: #e94560; --text: #d4d4d4; --heading: #f0f0f0; --dim: #888; --green: #4ade80; --amber: #fbbf24; --blue: #60a5fa; --red: #f87171; --teal: #2dd4bf; --code-bg: #0d1117; --border: #333; --doc-width: 1400px; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; max-width: var(--doc-width); margin: 0 auto; padding: 2rem; }
 h1 { color: var(--heading); font-size: 2rem; margin: 2rem 0 0.5rem; border-bottom: 2px solid var(--highlight); padding-bottom: 0.5rem; }
@@ -63,15 +47,7 @@ figcaption { color: var(--dim); font-size: 0.85rem; text-align: center; margin-t
       mermaid.initialize({
         startOnLoad: true,
         theme: 'dark',
-        themeVariables: {
-          background: '#16213e',
-          primaryColor: '#0f3460',
-          primaryTextColor: '#f0f0f0',
-          primaryBorderColor: '#60a5fa',
-          lineColor: '#d4d4d4',
-          secondaryColor: '#16213e',
-          tertiaryColor: '#1a1a2e'
-        }
+        themeVariables: { background: '#16213e', primaryColor: '#0f3460', primaryTextColor: '#f0f0f0', primaryBorderColor: '#60a5fa', lineColor: '#d4d4d4', secondaryColor: '#16213e', tertiaryColor: '#1a1a2e' }
       });
     }
   });
@@ -205,26 +181,28 @@ tests/                             # pytest tests
 <p>Per-module SCPI command tables, simulator schemas, and module-specific design docs live outside the <code>pmvb</code> package: at <code>modules/&lt;id&gt;/commands.yaml</code>, <code>sim/&lt;id&gt;/responses.yaml</code>, and <code>docs/modules/Module_&lt;id&gt;_Design_Document.md</code> respectively (per SDD §10.1).</p>
 <hr />
 <h2 id="hardware-prerequisites">Hardware Prerequisites</h2>
-<p>The pieces below are the v1.0 Phase 0 BOM. Pricing and sources are in <a href="../system-design/System_Design_Document.html#phase-0-orchestration-bring-up">SDD §13.1 Table 13-1</a>.</p>
+<p>The orchestration layer is hardware-agnostic by design. The PMVB software stack runs on any 64-bit Linux-capable host with sufficient resources: a Raspberry Pi 5 is the v1.0 reference build, but equivalent ARM SBCs, x86 thin clients, mini-PCs, repurposed laptops, or PowerPC hosts running a recent Linux distribution all work. The orchestration role is pure software (test framework, time-series database, dashboard, MCP gateway, report generator) and has no hardware-specific bindings beyond a USB host port for the module hub.</p>
+<p><strong>Orchestration host</strong> (capabilities, not specific parts):</p>
 <ul>
-<li>Raspberry Pi 5, 16 GB variant</li>
-<li>Raspberry Pi 27 W USB-C charger (the Pi's own external supply; not from the chassis PSU)</li>
-<li>Active cooler / heatsink for the Pi 5</li>
-<li>Raspberry Pi M.2 HAT+</li>
-<li>512 GB NVMe SSD (M.2 2230 or 2242 form factor; M.2 2280 also fits with the longer-board HAT+ variant)</li>
-<li>32 GB microSD card (boot device, becomes fallback after NVMe migration)</li>
-<li>Sabrent HB-BU10 USB 3.0 hub, 10-port (or any powered USB 3.0 hub with at least 5 downstream ports)</li>
-<li>5x Pico 2 W boards with micro-USB cables for hub connection</li>
-<li>Cat 6 patch cable from the Pi 5 to your bench LAN (or a working Wi-Fi setup at first boot)</li>
+<li>64-bit Linux-capable host with at least 8 GB RAM (16 GB recommended to absorb concurrent Grafana, InfluxDB, MCP, and report-generation workloads without contention)</li>
+<li>A root filesystem on SSD or NVMe (avoid SD-only root for write endurance; if booting from removable media is unavoidable, migrate root to SSD before production use)</li>
+<li>Gigabit Ethernet or 802.11ac+ Wi-Fi for the bench network</li>
+<li>Boot media appropriate to the host (microSD for Raspberry Pi-class boards; USB stick or SSD for x86 systems)</li>
+</ul>
+<p><strong>Bench periphery:</strong></p>
+<ul>
+<li>Powered USB 3.0 hub with at least 5 downstream ports (the Sabrent HB-BU10 10-port hub is the v1.0 reference)</li>
+<li>Pico 2 W boards (one per instrument module slot you intend to populate)</li>
+<li>Storage for migrating the root filesystem off boot media (NVMe SSD via M.2 HAT+ is the v1.0 reference on the Raspberry Pi 5)</li>
 </ul>
 <hr />
 <h2 id="workstation-prerequisites">Workstation Prerequisites</h2>
-<p>A Windows, macOS, or Linux workstation with:</p>
+<p>A separate workstation (Windows, macOS, or Linux) for SSH access to the orchestration host, browser access to the Grafana UI, and any local development work on the orchestration code.</p>
 <ul>
-<li><a href="https://www.raspberrypi.com/software/">Raspberry Pi Imager</a> installed</li>
-<li>An SSH client (PowerShell or any terminal with OpenSSH; built into Windows 10/11)</li>
+<li>An SSH client (built into Windows 10/11, macOS, and most Linux distributions)</li>
 <li>A modern browser for the Grafana UI</li>
 <li><code>git</code> installed if you plan to edit the orchestration code locally and push to GitHub</li>
+<li>An imaging tool appropriate to your chosen orchestration host (for example, <a href="https://www.raspberrypi.com/software/">Raspberry Pi Imager</a> if you are using a Raspberry Pi)</li>
 </ul>
 <hr />
 <h2 id="section-a-raspberry-pi-5-os-install">Section A. Raspberry Pi 5 OS install</h2>

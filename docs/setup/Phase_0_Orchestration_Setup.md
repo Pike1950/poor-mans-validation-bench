@@ -100,28 +100,31 @@ Per-module SCPI command tables, simulator schemas, and module-specific design do
 
 ## Hardware Prerequisites
 
-The pieces below are the v1.0 Phase 0 BOM. Pricing and sources are in [SDD §13.1 Table 13-1](../system-design/System_Design_Document.html#phase-0-orchestration-bring-up).
+The orchestration layer is hardware-agnostic by design. The PMVB software stack runs on any 64-bit Linux-capable host with sufficient resources: a Raspberry Pi 5 is the v1.0 reference build, but equivalent ARM SBCs, x86 thin clients, mini-PCs, repurposed laptops, or PowerPC hosts running a recent Linux distribution all work. The orchestration role is pure software (test framework, time-series database, dashboard, MCP gateway, report generator) and has no hardware-specific bindings beyond a USB host port for the module hub.
 
-- Raspberry Pi 5, 16 GB variant
-- Raspberry Pi 27 W USB-C charger (the Pi's own external supply; not from the chassis PSU)
-- Active cooler / heatsink for the Pi 5
-- Raspberry Pi M.2 HAT+
-- 512 GB NVMe SSD (M.2 2230 or 2242 form factor; M.2 2280 also fits with the longer-board HAT+ variant)
-- 32 GB microSD card (boot device, becomes fallback after NVMe migration)
-- Sabrent HB-BU10 USB 3.0 hub, 10-port (or any powered USB 3.0 hub with at least 5 downstream ports)
-- 5x Pico 2 W boards with micro-USB cables for hub connection
-- Cat 6 patch cable from the Pi 5 to your bench LAN (or a working Wi-Fi setup at first boot)
+**Orchestration host** (capabilities, not specific parts):
+
+- 64-bit Linux-capable host with at least 8 GB RAM (16 GB recommended to absorb concurrent Grafana, InfluxDB, MCP, and report-generation workloads without contention)
+- A root filesystem on SSD or NVMe (avoid SD-only root for write endurance; if booting from removable media is unavoidable, migrate root to SSD before production use)
+- Gigabit Ethernet or 802.11ac+ Wi-Fi for the bench network
+- Boot media appropriate to the host (microSD for Raspberry Pi-class boards; USB stick or SSD for x86 systems)
+
+**Bench periphery:**
+
+- Powered USB 3.0 hub with at least 5 downstream ports (the Sabrent HB-BU10 10-port hub is the v1.0 reference)
+- Pico 2 W boards (one per instrument module slot you intend to populate)
+- Storage for migrating the root filesystem off boot media (NVMe SSD via M.2 HAT+ is the v1.0 reference on the Raspberry Pi 5)
 
 ---
 
 ## Workstation Prerequisites
 
-A Windows, macOS, or Linux workstation with:
+A separate workstation (Windows, macOS, or Linux) for SSH access to the orchestration host, browser access to the Grafana UI, and any local development work on the orchestration code.
 
-- [Raspberry Pi Imager](https://www.raspberrypi.com/software/) installed
-- An SSH client (PowerShell or any terminal with OpenSSH; built into Windows 10/11)
+- An SSH client (built into Windows 10/11, macOS, and most Linux distributions)
 - A modern browser for the Grafana UI
 - `git` installed if you plan to edit the orchestration code locally and push to GitHub
+- An imaging tool appropriate to your chosen orchestration host (for example, [Raspberry Pi Imager](https://www.raspberrypi.com/software/) if you are using a Raspberry Pi)
 
 ---
 
