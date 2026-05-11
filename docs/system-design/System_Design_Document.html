@@ -3464,6 +3464,7 @@ scpigen --target pyvisa-sim modules/1B/commands.yaml &gt; sim/1B/responses.yaml<
 <li><strong>Jinja2 + Matplotlib</strong> for automated report generation. Reports are produced from InfluxDB queries by run identifier.</li>
 <li><strong>MCP gateway</strong> as a Python process (FastMCP-based or similar) exposing module tools as described in section 9.</li>
 </ul>
+<p>Instruments are identified by USB serial number, derived from the Pico 2 W's unique 64-bit chip ID exposed in the USB descriptor's <code>iSerialNumber</code> field. PyVISA resource discovery keys off the <code>SERIAL</code> field of the <code>USB::0xVID::0xPID::SERIAL::INSTR</code> resource string; USB topology (which port on the chassis hub a module is connected through) is incidental. udev rules on the Pi 5 create stable <code>/dev/usbtmc-by-serial/{chip_id}</code> symlinks so that a hot-plug across hub ports preserves both the Linux device path and the PyVISA resource identity. This is what allows a bench operator to rearrange modules between hub ports without re-running discovery or rewriting test scripts.</p>
 <h3 id="influxdb-schema-and-tag-taxonomy">10.2 InfluxDB Schema and Tag Taxonomy</h3>
 <p>All measurements land in a single InfluxDB database named <code>pmvb</code>. Each measurement uses a consistent tag taxonomy:</p>
 <ul>
@@ -3701,11 +3702,12 @@ def test_amp_thd_at_frequency(awg, scope, run_id, dut, test_freq_hz):
 <p>Phase 0 establishes the orchestration layer with no instrument modules attached. Scope:</p>
 <ul>
 <li>Pi 5 16 GB with Raspberry Pi OS Bookworm, Python 3.11+, PyVISA, PyVISA-py, PyVISA-sim, pytest installed</li>
-<li>InfluxDB 1.8 with the schema from section 10.2</li>
+<li>InfluxDB 2.x with the schema from section 10.2 (16 GB Pi reference build per §10.1)</li>
 <li>Grafana 10 OSS with template-variable dashboards (no live data yet)</li>
 <li>MCP gateway scaffolding (no module servers yet)</li>
 <li>Powered USB hub installed; Pi 5 wired Ethernet connected directly to the bench network (no chassis LAN switch in v1.0)</li>
-<li>A representative simulator-backed test passes end-to-end (writes to InfluxDB, renders a Grafana panel, generates a Jinja2 report)</li>
+<li>Five Pico 2 W boards flashed with a minimal USB-TMC stub firmware (responds to <code>*IDN?</code> with a chip-ID-derived serial number) so the verification milestone can exercise the real USB-TMC path, not just the simulator. This is throwaway probe firmware; per-module SCPI firmware ships with each module's own Phase.</li>
+<li>End-to-end pytest passes against both a <code>pyvisa-sim</code> simulator instrument and the real Pico 2 W stubs over USB-TMC. Both record paths write to InfluxDB with appropriate tags, both records appear in a Grafana panel, and a Jinja2 report queries InfluxDB and renders HTML+PDF referencing both. Hot-plug-by-serial reidentification (per §10.1) is verified across at least three port-swap permutations on the chassis hub.</li>
 </ul>
 <p><strong>Table 13-1: Phase 0 BOM</strong></p>
 <p><em>Pricing audit status: as of 2026-05-10, all Phase 0 BOM lines are verified against actual purchases or current supplier quotes. The chassis enclosure (4-panel laser-cut acrylic from SendCutSend) is ordered at $142.57 invoice. The internal chassis DC distribution sub-BOM (Phoenix MC 1,5/4 ×2 pairs for prototype scope, fuse panel hardware, Pomona banana jacks, Wago lever-nuts ×10, 12/14 AWG wire kits, M3 + M2.5 standoff kits, ESKONKE 243 threadlocker) is fully scoped in the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> doc.</em></p>
