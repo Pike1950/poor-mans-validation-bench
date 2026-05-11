@@ -1,0 +1,41 @@
+# PMVB udev rules.
+#
+# Three concerns handled here:
+#
+#  1. USB-TMC access permissions. By default the kernel's usbtmc driver creates
+#     /dev/usbtmcN owned root:root mode 0660, which means pyvisa-py running as
+#     the bench user cannot open the device without sudo. Grant plugdev access.
+#
+#  2. Stable serial-based symlinks. The bench identifies instruments by their
+#     USB iSerialNumber (derived from each Pico's unique chip ID), not by the
+#     order of kernel-assigned /dev/usbtmcN nodes which renumber on every replug.
+#     Create /dev/usbtmc-by-serial/<chip_id> symlinks via the usb_id builtin so
+#     hot-plugging across hub ports preserves logical identity (per SDD §10.1).
+#
+#  3. Suppress udisks2 automount of Pico BOOTSEL mass-storage volumes. When a
+#     Pico is in BOOTSEL mode (factory-fresh or after :SYST:BOOTSEL), it exposes
+#     itself as Raspberry Pi VID 0x2e8a PID 0x000f mass-storage. Without this
+#     suppression, every BOOTSEL-mode Pico auto-mounts to /media/<user>/RP2350*,
+#     which clutters the workflow when re-flashing or recovering modules.
+#
+# Install with:
+#   sudo cp tools/udev/99-pmvb-usbtmc.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules
+#   sudo udevadm trigger --action=change --subsystem-match=usbmisc
+#
+# After install, replug any USB-TMC device for the new symlinks to appear.
+
+# (1) + (2): USB-TMC devices matching PMVB's VID/PID. Grant plugdev access and
+# create the /dev/usbtmc-by-serial/<chip_id> symlink. The usb_id builtin
+# extracts ID_SERIAL_SHORT from the USB descriptor for the SYMLINK substitution.
+KERNEL=="usbtmc[0-9]*", SUBSYSTEMS=="usb", ATTRS{idVendor}=="cafe", ATTRS{idProduct}=="4001", GROUP="plugdev", MODE="0660", IMPORT{builtin}="usb_id", SYMLINK+="usbtmc-by-serial/$env{ID_SERIAL_SHORT}"
+
+# Fallback: any USB-TMC class device (not just PMVB stubs) gets plugdev access.
+# Useful when other USB-TMC instruments are attached in future phases.
+KERNEL=="usbtmc[0-9]*", GROUP="plugdev", MODE="0660"
+
+# (3) Suppress udisks2 automount of Pico-class boards in BOOTSEL mode.
+# Raspberry Pi VID 0x2e8a + PID 0x000f is the RP2350 BOOTSEL bootloader.
+# Adding 0x0003 covers RP2040 BOOTSEL too for any older Picos.
+SUBSYSTEM=="block", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000f", ENV{UDISKS_IGNORE}="1"
+SUBSYSTEM=="block", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="0003", ENV{UDISKS_IGNORE}="1"
