@@ -544,27 +544,143 @@ Healthy: cmake configures cleanly (reports `Target board (PICO_BOARD) is 'pico2_
 
 ## Section H. USB-TMC stub firmware
 
-> Section in progress. The full procedure will land once the stub firmware source is committed to the repo at `firmware/pmvb_usbtmc_stub/`. Summary of intent: a minimal TinyUSB USB-TMC class application that enumerates as a USB-TMC instrument, derives its USB `iSerialNumber` from the RP2350's unique 64-bit chip ID, and responds to `*IDN?` and `*RST`. The firmware is throwaway probe code, not the per-module SCPI parser; real per-module firmware ships with each module's own phase.
+The probe firmware lives at `firmware/pmvb_usbtmc_stub/` in the repo. It is a minimal TinyUSB USB-TMC class (USB488 subclass) application that enumerates with a chip-ID-derived `iSerialNumber` and responds to a small SCPI dialect: `*IDN?`, `*RST`, `*CLS`, `*OPC?`, plus a PMVB extension `:SYST:BOOTSEL` that reboots the Pico back into BOOTSEL mode without the physical button. This is throwaway probe firmware; real per-module SCPI parsers ship with each module's own Phase.
+
+Files under `firmware/pmvb_usbtmc_stub/`:
+
+- `CMakeLists.txt` -- Pico SDK build configuration
+- `tusb_config.h` -- TinyUSB configuration (USB-TMC + USB488 subclass enabled, interrupt endpoint on)
+- `usb_descriptors.c` -- VID `0xCafe` / PID `0x4001`, manufacturer "PMVB", iSerialNumber from `board_usb_get_serial()`
+- `usbtmc_handlers.c` -- USB-TMC class callbacks plus SCPI command dispatch
+- `main.c` -- entry point, TinyUSB init, main loop
+- `README.md` -- per-firmware documentation
+
+Build the firmware:
+
+```bash
+cd ~/pmvb/firmware/pmvb_usbtmc_stub
+mkdir -p build && cd build
+cmake .. -G Ninja -DPICO_BOARD=pico2_w
+ninja
+ls -la pmvb_usbtmc_stub.uf2
+```
+
+Healthy: ninja produces a ~57 KB `pmvb_usbtmc_stub.uf2` file in `build/`. First build pulls in TinyUSB and picotool from the Pico SDK and takes 1-2 minutes; subsequent builds are seconds.
+
+Flash all five Picos at once. They must each be in BOOTSEL mode (factory state, or after `:SYST:BOOTSEL`). Each appears as a mass-storage volume mounted at `/media/<user>/RP2350*`:
+
+```bash
+UF2=~/pmvb/firmware/pmvb_usbtmc_stub/build/pmvb_usbtmc_stub.uf2
+for mnt in /media/<YOUR_PI_USERNAME>/RP2350*/ ; do
+  cp "$UF2" "$mnt"
+  sync
+done
+sleep 5
+```
+
+After the `sync` and a few seconds for Picos to auto-reboot, verify the flash:
+
+```bash
+lsusb -d cafe:4001
+```
+
+Healthy: five entries showing `ID cafe:4001 PMVB PMVB Pico 2 W USB-TMC Stub`. Each has a distinct 16-character hex iSerialNumber derived from its unique RP2350 chip ID.
 
 ---
 
 ## Section I. udev rules
 
-> Section in progress. Two rules will be installed once the stub firmware lands: (1) `plugdev` group access to USB-TMC class devices so the bench user can talk to them without root, plus stable `/dev/usbtmc-by-serial/{chip_id}` symlinks keyed off the Pico chip ID, and (2) suppression of udisks2 automount of RP2350 mass-storage volumes so BOOTSEL-mode Picos do not get mounted to `/media/`.
+The udev rules file lives at `tools/udev/99-pmvb-usbtmc.rules` in the repo. Three concerns are handled:
+
+1. **libusb access on the USB subsystem.** PyVISA-py's `@py` backend uses libusb (via pyusb) for USB-TMC transfers and needs `plugdev` access on the raw `/dev/bus/usb/<bus>/<dev>` device, separate from the kernel's `/dev/usbtmcN` interface. Without this rule, PyVISA-py cannot open the device even though the kernel may have already bound to it.
+2. **USB-TMC kernel device permissions + serial symlinks.** The kernel's `usbtmc` driver creates `/dev/usbtmcN` nodes owned root:root by default. Grant `plugdev` access and add stable `/dev/usbtmc-by-serial/<chip_id>` symlinks via the `usb_id` builtin so tools that prefer the kernel path can find devices by serial rather than the unstable `usbtmcN` enumeration order.
+3. **Suppress automount of BOOTSEL volumes.** When a Pico is in BOOTSEL mode (factory-fresh, or after `:SYST:BOOTSEL`), it exposes itself as Raspberry Pi VID `0x2e8a` PID `0x000f` mass-storage. Without suppression, every BOOTSEL Pico would auto-mount to `/media/<user>/RP2350*`, which clutters the workflow. The rule also covers PID `0x0003` (RP2040 BOOTSEL) for compatibility with older Pico boards.
+
+Install:
+
+```bash
+sudo cp ~/pmvb/tools/udev/99-pmvb-usbtmc.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules
+sudo udevadm trigger --action=change --subsystem-match=usb
+sudo udevadm trigger --action=change --subsystem-match=usbmisc
+sudo udevadm verify /etc/udev/rules.d/99-pmvb-usbtmc.rules
+```
+
+Verify:
+
+```bash
+ls -la /dev/usbtmc*
+ls -la /dev/usbtmc-by-serial/
+groups | tr ' ' '\n' | grep plugdev
+```
+
+Healthy: `/dev/usbtmc[0-4]` show `crw-rw---- 1 root plugdev`, five symlinks exist under `/dev/usbtmc-by-serial/` named with the chip IDs, and your user is in the `plugdev` group.
 
 ---
 
 ## Section J. Hot-plug verification
 
-> Section in progress. Procedure: with all 5 Picos flashed, enumerate via pyvisa-py and record the serial-to-resource-name mapping. Unplug a Pico from one hub port and plug it into another. Re-enumerate. Confirm the serial number is unchanged and pyvisa resolves the resource to the same logical instrument, regardless of which port it is on. Repeat for at least three swap permutations.
+Tooling: `tools/hot_plug_verify.py` (uses pyvisa-py + pyusb to enumerate USB-TMC instruments and print a nickname / slot / serial / IDN table) and `tools/pico_nicknames.yaml` (maps each chip-ID serial to a human-readable label).
+
+Procedure:
+
+1. Establish a baseline. With all five Picos in known physical slots, run the script:
+   ```bash
+   cd ~/pmvb
+   python tools/hot_plug_verify.py
+   ```
+   Note the NICKNAME, SERIAL, and `*IDN?` RESPONSE columns. The DEV NODE column may show "(no symlink)" for instruments that pyvisa-py has already detached from the kernel driver -- that is expected and not a fault.
+2. Physically move one or more Picos to different slots on the chassis hub. Wait 3-5 seconds for the kernel to re-enumerate.
+3. Re-run the script and compare. The SERIAL and `*IDN?` columns must be identical to the baseline for every Pico, regardless of the new slot. The SLOT column should report the new physical positions correctly (calibrated by `SABRENT_SLOT_MAP` in the script).
+4. Repeat for at least three port-swap permutations per the SDD §13.1 milestone.
+
+What the test proves: PyVISA-py resource discovery keys off the USB `iSerialNumber` (derived from the RP2350 chip ID), not the USB topology. Hot-plugging a Pico across hub ports preserves its logical identity in `pmvb.influx` writes, in the PyVISA resource string, and in any per-module test code that opens by serial.
+
+Edge cases:
+
+- If a Pico that was previously seen does not show up after replug, the kernel may have a stuck binding. `sudo udevadm trigger --action=change --subsystem-match=usb` usually clears it.
+- If the SLOT column reports `?(<port_chain>)` for a slot you have not tested before, the `SABRENT_SLOT_MAP` in the script is missing that mapping. The script's source comment includes the calibration recipe.
 
 ---
 
 ## Section K. Phase 0 verification milestone
 
-> Section in progress. The closing test (at `tests/test_phase0_e2e.py`) will open both a `pyvisa-sim` placeholder instrument backed by `sim/placeholder/responses.yaml` and a real Pico 2 W over USB-TMC. Both will be queried with `*IDN?`, both responses tagged with the SDD §10.2 taxonomy and written to InfluxDB. A Grafana panel will render both records. A Jinja2 report (`pmvb/reports/render.py`) will query InfluxDB and emit HTML+PDF. Hot-plug-by-serial reidentification will be verified across at least three port-swap permutations.
+The closing test lives at `tests/test_phase0_e2e.py` and exercises every architectural claim of the Phase 0 platform in one pass.
 
-When this test passes, Phase 0 is complete and Phase 1 begins (Module 1A, 1B, 1D, and 1E come online with real instrument front-ends).
+Run:
+
+```bash
+cd ~/pmvb
+source .venv/bin/activate
+pytest tests/test_phase0_e2e.py -v -s
+```
+
+What the test does (in order):
+
+1. Opens `sim/placeholder/responses.yaml` via pyvisa-sim, sends `*IDN?`, captures the placeholder's response.
+2. Writes the sim record to InfluxDB via `pmvb.influx.write_measurement` with the SDD §10.2 tag taxonomy (`instrument=sim-placeholder`, `channel=0`, `dut=phase0-bringup-dut`, `run_id=<uuid>`, `measurement_type=idn_response`).
+3. Enumerates real Pico 2 W instruments via pyvisa-py, opens the first one, sends `*IDN?`, captures the chip-ID-derived response.
+4. Writes the Pico record to InfluxDB tagged with the actual chip ID as `instrument=pico-<chip_id>`.
+5. Queries InfluxDB back via `pmvb.influx.query_run` and asserts both records (and at least one Pico record) are present.
+6. Renders an HTML report via `pmvb.reports.render.write_report` and asserts the report contains the `run_id`, the sim record, and at least one Pico record.
+
+Healthy output:
+
+```
+tests/test_phase0_e2e.py::test_phase0_milestone PASSED
+
+  Phase 0 verification milestone PASS
+  run_id:                phase0-e2e-<8 hex>
+  sim IDN:               PMVB,placeholder,phase0-sim,1.0.0
+  pico IDN:              PMVB,Pico 2 W,<chip_id>,1.0.0
+  pico resource:         USB0::51966::16385::<chip_id>::0::INSTR
+  InfluxDB records:      6
+  Report written:        /tmp/.../phase0_e2e_<run_id>.html (<size> bytes)
+```
+
+The "6 InfluxDB records" line reflects 2 writes × 3 fields each (`value`, `idn_string`, `source`); Flux returns one row per field.
+
+When this test passes, Phase 0 is officially complete and Phase 1 begins (Modules 1A, 1B, 1D, 1E per [SDD §13.2](../system-design/System_Design_Document.html#phase-1-modules)). Each Phase 1 module re-uses the orchestration infrastructure built here: same pmvb.influx tag taxonomy, same Jinja2 report renderer, same MCP gateway, same Pico SDK toolchain, with each module's firmware replacing the Phase 0 USB-TMC stub for that physical Pico.
 
 ---
 

@@ -10,7 +10,7 @@ A modular SCPI instrument platform that mirrors NI PXIe rack-and-module test arc
 
 ### Orchestration layer
 
-- **[Phase 0 Orchestration Layer Setup](https://pike1950.github.io/poor-mans-validation-bench/docs/setup/Phase_0_Orchestration_Setup.html)** — architecture overview of the two-plane VISA/SCPI + MCP software stack (PyVISA, pytest, InfluxDB 2.x, Grafana, Jinja2 reports, MCP gateway), the `pmvb` Python package layout, and the step-by-step bring-up cookbook from a blank SD card through the Phase 0 verification milestone. Covers Pi 5 OS install, NVMe boot migration, Python project bootstrap, InfluxDB + Grafana install with token management, Pico SDK + USB-TMC stub firmware (in progress), udev rules, and hot-plug verification.
+- **[Phase 0 Orchestration Layer Setup](https://pike1950.github.io/poor-mans-validation-bench/docs/setup/Phase_0_Orchestration_Setup.html)** — architecture overview of the two-plane VISA/SCPI + MCP software stack (PyVISA, pytest, InfluxDB 2.x, Grafana, Jinja2 reports, MCP gateway), the `pmvb` Python package layout, and the step-by-step bring-up cookbook from a blank SD card through the Phase 0 verification milestone. Covers Pi 5 OS install, NVMe boot migration, Python project bootstrap, InfluxDB + Grafana install with token management, Pico SDK + USB-TMC stub firmware, udev rules, hot-plug verification, and the closing end-to-end pytest.
 
 ### Chassis design
 
@@ -167,16 +167,16 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 Pulled forward from Phase 1: a throwaway probe firmware on every Pico so the Phase 0 verification can exercise the real USB-TMC path, not just the simulator. The stub is not the eventual per-module SCPI firmware; it just enumerates and answers `*IDN?` so we can prove the hot-plug-by-serial architecture works.
 
 - [x] Pico SDK + TinyUSB cross-compile environment on the Pi 5 (`arm-none-eabi-gcc`, `pico-sdk` at `/opt/pico-sdk`, `PICO_SDK_PATH` set; `hello_usb` cross-compile verified)
-- [ ] Minimal USB-TMC stub firmware at `firmware/pmvb_usbtmc_stub/`: responds to `*IDN?` with chip-ID-derived serial number
-- [ ] Flash all 5 Picos with the stub `.uf2`
-- [ ] udev rules: plugdev access to USB-TMC class devices + stable `/dev/usbtmc-by-serial/{chip_id}` symlinks + suppress BOOTSEL automount
-- [ ] Hot-plug verification: same Pico across different Sabrent hub ports preserves serial-based identity in pyvisa-py enumeration
+- [x] Minimal USB-TMC stub firmware at `firmware/pmvb_usbtmc_stub/`: responds to `*IDN?` with chip-ID-derived serial number
+- [x] Flash all 5 Picos with the stub `.uf2`
+- [x] udev rules: plugdev access to USB-TMC class devices + stable `/dev/usbtmc-by-serial/{chip_id}` symlinks + suppress BOOTSEL automount (`tools/udev/99-pmvb-usbtmc.rules`)
+- [x] Hot-plug verification: same Pico across different Sabrent hub ports preserves serial-based identity in pyvisa-py enumeration
 
 **Phase 0 verification milestone (per SDD §13.1)**
 
 - [x] Pi 5 boots from NVMe, reaches bench network, Sabrent hub enumerates as USB 3.0
-- [ ] End-to-end pytest: real Pico over pyvisa-py USB-TMC + pyvisa-sim placeholder, both write to InfluxDB tagged appropriately, Grafana panel renders both, Jinja2 report queries InfluxDB and outputs HTML+PDF referencing both records
-- [ ] Hot-plug-by-serial verified across at least 3 port-swap permutations
+- [x] End-to-end pytest: real Pico over pyvisa-py USB-TMC + pyvisa-sim placeholder, both write to InfluxDB tagged appropriately, Grafana panel renders both, Jinja2 report queries InfluxDB and outputs HTML+PDF referencing both records (verified 2026-05-12 by `tests/test_phase0_e2e.py::test_phase0_milestone`)
+- [x] Hot-plug-by-serial verified across at least 3 port-swap permutations (verified 2026-05-12 by `tools/hot_plug_verify.py` across 4 distinct hub arrangements)
 
 **Phase 0 documentation**
 
