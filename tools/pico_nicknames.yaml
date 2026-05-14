@@ -9,9 +9,18 @@
 # probe firmware, "Module 1A", "Module 1B", etc. once the per-module firmware
 # replaces the stub.
 
-# Phase 0 stub firmware Picos, baseline arrangement (odd Sabrent slots 1-9).
+# Phase 0 stub firmware Picos.
+# Picos #1-#5 are the original bench inventory (baseline arrangement was odd
+# Sabrent slots 1, 3, 5, 7, 9). Picos #6-#10 are a second batch added later;
+# their nickname-to-slot assignment was Pico #6 -> slot 1, Pico #7 -> slot 2,
+# etc. (each one in the slot that its predecessor occupied at end-of-Phase-0).
 3D507668FA419495: "Pico #1"
 5ADC0CA0485648A5: "Pico #2"
 D0F40CB822C98D42: "Pico #3"
 10990698806F6B8D: "Pico #4"
 B555F0C13FACE2CA: "Pico #5"
+5360431FD8B60344: "Pico #6"
+E71F8703B497687C: "Pico #7"
+F52FA1DD571FDCAD: "Pico #8"
+CA01198844BCBAE1: "Pico #9"
+BE479EC832AA2A43: "Pico #10"
