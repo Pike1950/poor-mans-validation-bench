@@ -29,26 +29,26 @@ NICKNAMES_FILE = Path(__file__).parent / "pico_nicknames.yaml"
 # Sabrent HB-BU10 USB topology -> front-panel slot number.
 #
 # The HB-BU10 is a cascade of three 4-port internal hubs (A, B, C) with the
-# cascade on port 4 of each. The Sabrent's front-panel slot labels do NOT
-# follow the USB topology in a clean monotonic way — they interleave hubs
-# across the visible 1-10 slot range, presumably for PCB-layout reasons.
+# cascade always on port 4 of each. Empirically, the Sabrent's front-panel
+# slot labels DO follow the USB topology in monotonic depth-first order on
+# the unit on this bench: ports (1,) (2,) (3,) on Hub A are slots 1-3, ports
+# (4,1) (4,2) (4,3) on Hub B are slots 4-6, ports (4,4,1) (4,4,2) (4,4,3)
+# (4,4,4) on Hub C are slots 7-10.
 #
-# This map is calibrated empirically from a baseline (Picos in slots 1, 3, 5,
-# 7, 9) plus a "one-slot-up" permutation (slots 2, 4, 6, 8, 10) on the bench's
-# specific Sabrent unit. Different Sabrent units may need recalibration. To
-# recalibrate, plug a single known Pico into each slot in turn and read its
-# port chain from `usb.core.find(...).port_numbers[1:]`.
+# Other Sabrent units may label slots differently. To recalibrate, plug a
+# single known Pico into each slot in turn and read its port chain from
+# `usb.core.find(...).port_numbers[1:]`.
 SABRENT_SLOT_MAP: dict[tuple[int, ...], int] = {
-    (4, 4, 3): 1,
-    (4, 4, 4): 2,
-    (4, 4, 1): 3,
-    (4, 4, 2): 4,
+    (1,):      1,
+    (2,):      2,
+    (3,):      3,
+    (4, 1):    4,
     (4, 2):    5,
     (4, 3):    6,
-    (3,):      7,
-    (4, 1):    8,
-    (1,):      9,
-    (2,):      10,
+    (4, 4, 1): 7,
+    (4, 4, 2): 8,
+    (4, 4, 3): 9,
+    (4, 4, 4): 10,
 }
 
 
