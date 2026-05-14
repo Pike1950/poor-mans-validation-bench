@@ -26,14 +26,29 @@ import yaml
 
 NICKNAMES_FILE = Path(__file__).parent / "pico_nicknames.yaml"
 
-# Sabrent HB-BU10 internal hub topology -> Sabrent front-panel slot number.
-# The hub is a cascade of three 4-port internal hubs (A, B, C). The cascade
-# always lives on port 4 of each hub. Edit this map if the Sabrent's physical
-# slot labels turn out to map differently.
+# Sabrent HB-BU10 USB topology -> front-panel slot number.
+#
+# The HB-BU10 is a cascade of three 4-port internal hubs (A, B, C) with the
+# cascade on port 4 of each. The Sabrent's front-panel slot labels do NOT
+# follow the USB topology in a clean monotonic way — they interleave hubs
+# across the visible 1-10 slot range, presumably for PCB-layout reasons.
+#
+# This map is calibrated empirically from a baseline (Picos in slots 1, 3, 5,
+# 7, 9) plus a "one-slot-up" permutation (slots 2, 4, 6, 8, 10) on the bench's
+# specific Sabrent unit. Different Sabrent units may need recalibration. To
+# recalibrate, plug a single known Pico into each slot in turn and read its
+# port chain from `usb.core.find(...).port_numbers[1:]`.
 SABRENT_SLOT_MAP: dict[tuple[int, ...], int] = {
-    (1,): 1, (2,): 2, (3,): 3,
-    (4, 1): 4, (4, 2): 5, (4, 3): 6,
-    (4, 4, 1): 7, (4, 4, 2): 8, (4, 4, 3): 9, (4, 4, 4): 10,
+    (4, 4, 3): 1,
+    (4, 4, 4): 2,
+    (4, 4, 1): 3,
+    (4, 4, 2): 4,
+    (4, 2):    5,
+    (4, 3):    6,
+    (3,):      7,
+    (4, 1):    8,
+    (1,):      9,
+    (2,):      10,
 }
 
 
@@ -168,11 +183,15 @@ def main() -> int:
     print(fmt.format("NICKNAME", "SLOT", "SERIAL (chip ID)", "PYVISA RESOURCE STRING", "DEV NODE", "*IDN? RESPONSE"))
     print("-" * 140)
 
-    # Sort by nickname (more stable for human review than sorting by serial)
-    def sort_key(entry: tuple[str, str]) -> tuple[str, str]:
+    # Sort by nickname, but extract the integer for natural sort so "Pico #10"
+    # comes after "Pico #9" instead of after "Pico #1" (lexicographic order).
+    # Unknowns sort last by virtue of a huge fallback number.
+    def sort_key(entry: tuple[str, str]) -> tuple[int, str, str]:
         _, serial = entry
-        nick = nicknames.get(serial, f"zzz-{serial}")  # unknowns sort last
-        return (nick, serial)
+        nick = nicknames.get(serial, f"zzz-{serial}")
+        m = re.search(r"\d+", nick)
+        num = int(m.group()) if m else 10**9
+        return (num, nick, serial)
 
     for resource, serial in sorted(pmvb_resources, key=sort_key):
         dev_node = symlinks.get(serial, "(no symlink)")
