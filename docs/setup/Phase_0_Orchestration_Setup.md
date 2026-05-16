@@ -8,12 +8,12 @@ Architecture detail lives in the [System Design Document](../system-design/Syste
 
 ## Scope
 
-Phase 0 brings up the orchestration layer with no instrument modules attached. The Pi 5's hosted services plus a powered USB hub plus five bare Pico 2 W boards running a throwaway USB-TMC stub firmware are sufficient to prove every architectural claim of the platform short of actual measurement front-ends.
+Phase 0 brings up the orchestration layer with no instrument modules attached. The Pi 5's hosted services plus a powered USB hub plus ten bare Pico 2 W boards running a throwaway USB-TMC stub firmware are sufficient to prove every architectural claim of the platform short of actual measurement front-ends. The bench inventory is registry-driven via `tools/pico_nicknames.yaml`, so adding or removing Picos is a YAML edit rather than a procedure rewrite.
 
 Phase 0 verification milestone (per [SDD §13.1](../system-design/System_Design_Document.html#phase-0-orchestration-bring-up)):
 
-1. Pi 5 boots from NVMe, reaches the bench network, the chassis hub enumerates as USB 3.0 with all five Picos visible.
-2. An end-to-end pytest exercises both a `pyvisa-sim` placeholder and a real Pico 2 W over USB-TMC. Both records write to InfluxDB with the SDD §10.2 tag taxonomy. Both records appear in a Grafana panel. A Jinja2 report queries InfluxDB and emits HTML+PDF referencing both.
+1. Pi 5 boots from NVMe, reaches the bench network, the chassis hub enumerates as USB 3.0 with every Pico listed in `tools/pico_nicknames.yaml` visible.
+2. An end-to-end pytest exercises both a `pyvisa-sim` placeholder and a real Pico 2 W over USB-TMC. Both records write to InfluxDB with the SDD §10.2 tag taxonomy. Both records appear in a Grafana panel. A Jinja2 report queries InfluxDB and emits HTML+PDF referencing both. A parametric companion test then exercises every Pico in the registry and confirms each one's chip-ID round-trips through `*IDN?` and InfluxDB.
 3. Hot-plug-by-serial reidentification is verified across at least three port-swap permutations on the chassis hub.
 
 ---
@@ -567,7 +567,7 @@ ls -la pmvb_usbtmc_stub.uf2
 
 Healthy: ninja produces a ~57 KB `pmvb_usbtmc_stub.uf2` file in `build/`. First build pulls in TinyUSB and picotool from the Pico SDK and takes 1-2 minutes; subsequent builds are seconds.
 
-Flash all five Picos at once. They must each be in BOOTSEL mode (factory state, or after `:SYST:BOOTSEL`). Each appears as a mass-storage volume mounted at `/media/<user>/RP2350*`:
+Flash every Pico in the bench inventory at once (currently ten boards; the loop below is count-agnostic). They must each be in BOOTSEL mode (factory state, or after `:SYST:BOOTSEL`). Each appears as a mass-storage volume mounted at `/media/<user>/RP2350*`:
 
 ```bash
 UF2=~/pmvb/firmware/pmvb_usbtmc_stub/build/pmvb_usbtmc_stub.uf2
@@ -578,13 +578,15 @@ done
 sleep 5
 ```
 
+Note: the udev rule installed in Section I suppresses BOOTSEL automount, which means freshly factory-new Picos plugged in after Section I will not auto-appear under `/media/<user>/RP2350*`. To flash additional Picos after the udev rule is in place, mount them manually first (`sudo mount /dev/sdX1 /mnt/rp_<letter>` for each device, copy the UF2, then `sync` and unmount).
+
 After the `sync` and a few seconds for Picos to auto-reboot, verify the flash:
 
 ```bash
 lsusb -d cafe:4001
 ```
 
-Healthy: five entries showing `ID cafe:4001 PMVB PMVB Pico 2 W USB-TMC Stub`. Each has a distinct 16-character hex iSerialNumber derived from its unique RP2350 chip ID.
+Healthy: one entry per Pico in the bench inventory showing `ID cafe:4001 PMVB PMVB Pico 2 W USB-TMC Stub`. Each has a distinct 16-character hex iSerialNumber derived from its unique RP2350 chip ID. Record each chip ID in `tools/pico_nicknames.yaml` with a human-readable nickname; the parametric inventory test in Section K reads this file as its source of truth.
 
 ---
 
@@ -614,7 +616,7 @@ ls -la /dev/usbtmc-by-serial/
 groups | tr ' ' '\n' | grep plugdev
 ```
 
-Healthy: `/dev/usbtmc[0-4]` show `crw-rw---- 1 root plugdev`, five symlinks exist under `/dev/usbtmc-by-serial/` named with the chip IDs, and your user is in the `plugdev` group.
+Healthy: `/dev/usbtmcN` nodes (one per Pico, currently `usbtmc0` through `usbtmc9`) show `crw-rw---- 1 root plugdev`, a matching number of symlinks exist under `/dev/usbtmc-by-serial/` named with the chip IDs, and your user is in the `plugdev` group. The kernel-assigned `N` is hot-plug-order-dependent, not slot-dependent; the symlinks are the stable handle.
 
 ---
 
@@ -624,7 +626,7 @@ Tooling: `tools/hot_plug_verify.py` (uses pyvisa-py + pyusb to enumerate USB-TMC
 
 Procedure:
 
-1. Establish a baseline. With all five Picos in known physical slots, run the script:
+1. Establish a baseline. With every Pico from `tools/pico_nicknames.yaml` in a known physical slot, run the script:
    ```bash
    cd ~/pmvb
    python tools/hot_plug_verify.py
@@ -645,9 +647,7 @@ Edge cases:
 
 ## Section K. Phase 0 verification milestone
 
-The closing test lives at `tests/test_phase0_e2e.py` and exercises every architectural claim of the Phase 0 platform in one pass.
-
-Run:
+The closing tests live at `tests/test_phase0_e2e.py` and exercise every architectural claim of the Phase 0 platform in one pass. The file contains three tests, run together:
 
 ```bash
 cd ~/pmvb
@@ -655,16 +655,30 @@ source .venv/bin/activate
 pytest tests/test_phase0_e2e.py -v -s
 ```
 
-What the test does (in order):
+### `test_phase0_milestone` (the historical Phase 0 close artifact)
+
+Exercises the data path end-to-end against one sim instrument and one real Pico:
 
 1. Opens `sim/placeholder/responses.yaml` via pyvisa-sim, sends `*IDN?`, captures the placeholder's response.
 2. Writes the sim record to InfluxDB via `pmvb.influx.write_measurement` with the SDD §10.2 tag taxonomy (`instrument=sim-placeholder`, `channel=0`, `dut=phase0-bringup-dut`, `run_id=<uuid>`, `measurement_type=idn_response`).
 3. Enumerates real Pico 2 W instruments via pyvisa-py, opens the first one, sends `*IDN?`, captures the chip-ID-derived response.
 4. Writes the Pico record to InfluxDB tagged with the actual chip ID as `instrument=pico-<chip_id>`.
-5. Queries InfluxDB back via `pmvb.influx.query_run` and asserts both records (and at least one Pico record) are present.
+5. Queries InfluxDB back via `pmvb.influx.query_run` and asserts both records are present.
 6. Renders an HTML report via `pmvb.reports.render.write_report` and asserts the report contains the `run_id`, the sim record, and at least one Pico record.
 
-Healthy output:
+### `test_pico_inventory_ping[Pico_<N>-<chip_id_prefix>]` (parametric inventory exercise)
+
+Parametrized over every entry in `tools/pico_nicknames.yaml`. One pytest test ID per Pico, so a failure isolates to a specific board. Each invocation:
+
+1. Looks up the Pico's USB-TMC resource string by chip-ID serial in a module-scoped discovery map.
+2. Opens the resource via pyvisa-py, sends `*IDN?`, and asserts the IDN response's serial field (`PMVB,Pico 2 W,<serial>,1.0.0`) matches the registry chip ID. This catches YAML drift, mis-flashed firmware, and physical swaps that were not tracked in the registry.
+3. Writes the record to InfluxDB tagged `instrument=pico-<chip_id>` under a shared `inventory_run_id`, with nickname and resource string as fields.
+
+### `test_pico_inventory_round_trip` (cross-Pico round-trip summary)
+
+Runs last by virtue of in-file pytest collection order. Queries InfluxDB for the shared `inventory_run_id` set by the parametric tests, asserts every `pico-<chip_id>` made it back, and prints an OK / MISS table per Pico.
+
+### Healthy output
 
 ```
 tests/test_phase0_e2e.py::test_phase0_milestone PASSED
@@ -676,11 +690,42 @@ tests/test_phase0_e2e.py::test_phase0_milestone PASSED
   pico resource:         USB0::51966::16385::<chip_id>::0::INSTR
   InfluxDB records:      6
   Report written:        /tmp/.../phase0_e2e_<run_id>.html (<size> bytes)
+
+tests/test_phase0_e2e.py::test_pico_inventory_ping[Pico_1-<chip_id_prefix>] PASSED
+tests/test_phase0_e2e.py::test_pico_inventory_ping[Pico_2-<chip_id_prefix>] PASSED
+...
+tests/test_phase0_e2e.py::test_pico_inventory_ping[Pico_10-<chip_id_prefix>] PASSED
+tests/test_phase0_e2e.py::test_pico_inventory_round_trip PASSED
+
+  Phase 0 inventory round-trip PASS
+  inventory_run_id:      phase0-inventory-<8 hex>
+  Picos in registry:     10
+  Picos enumerated:      10
+  InfluxDB records:      50
+    [  OK] Pico #1    <chip_id>
+    [  OK] Pico #2    <chip_id>
+    ...
 ```
 
-The "6 InfluxDB records" line reflects 2 writes × 3 fields each (`value`, `idn_string`, `source`); Flux returns one row per field.
+The `InfluxDB records` counts reflect Flux's per-field row return. The milestone shows 6 (2 writes × 3 fields: `value`, `idn_string`, `source`). The inventory round-trip shows 50 with the full ten-Pico inventory (10 writes × 5 fields: `value`, `idn_string`, `nickname`, `resource`, `source`). Both scale with the number of fields per write, not the number of writes alone.
 
-When this test passes, Phase 0 is officially complete and Phase 1 begins (Modules 1A, 1B, 1D, 1E per [SDD §13.2](../system-design/System_Design_Document.html#phase-1-modules)). Each Phase 1 module re-uses the orchestration infrastructure built here: same pmvb.influx tag taxonomy, same Jinja2 report renderer, same MCP gateway, same Pico SDK toolchain, with each module's firmware replacing the Phase 0 USB-TMC stub for that physical Pico.
+### Running a subset
+
+To skip the milestone and run only the inventory parametric exercise as a faster smoke check:
+
+```bash
+pytest tests/test_phase0_e2e.py::test_pico_inventory_ping tests/test_phase0_e2e.py::test_pico_inventory_round_trip -v
+```
+
+To re-run a single Pico (shell-quote the brackets):
+
+```bash
+pytest 'tests/test_phase0_e2e.py::test_pico_inventory_ping[Pico_5-B555F0C1]' -v
+```
+
+### When this passes
+
+Phase 0 is officially complete and Phase 1 begins (Modules 1A, 1B, 1D, 1E per [SDD §13.2](../system-design/System_Design_Document.html#phase-1-modules)). Each Phase 1 module re-uses the orchestration infrastructure built here: same `pmvb.influx` tag taxonomy, same Jinja2 report renderer, same MCP gateway, same Pico SDK toolchain, with each module's firmware replacing the Phase 0 USB-TMC stub for that physical Pico.
 
 ---
 

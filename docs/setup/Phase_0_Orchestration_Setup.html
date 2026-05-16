@@ -52,11 +52,11 @@ blockquote { border-left: 3px solid var(--amber); background: var(--card); paddi
 <p>Architecture detail lives in the <a href="../system-design/System_Design_Document.html">System Design Document</a> and the <a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> doc; this is both the architectural reference and the install / bring-up cookbook for the orchestration layer.</p>
 <hr />
 <h2 id="scope">Scope</h2>
-<p>Phase 0 brings up the orchestration layer with no instrument modules attached. The Pi 5's hosted services plus a powered USB hub plus five bare Pico 2 W boards running a throwaway USB-TMC stub firmware are sufficient to prove every architectural claim of the platform short of actual measurement front-ends.</p>
+<p>Phase 0 brings up the orchestration layer with no instrument modules attached. The Pi 5’s hosted services plus a powered USB hub plus ten bare Pico 2 W boards running a throwaway USB-TMC stub firmware are sufficient to prove every architectural claim of the platform short of actual measurement front-ends. The bench inventory is registry-driven via <code>tools/pico_nicknames.yaml</code>, so adding or removing Picos is a YAML edit rather than a procedure rewrite.</p>
 <p>Phase 0 verification milestone (per <a href="../system-design/System_Design_Document.html#phase-0-orchestration-bring-up">SDD §13.1</a>):</p>
-<ol>
-<li>Pi 5 boots from NVMe, reaches the bench network, the chassis hub enumerates as USB 3.0 with all five Picos visible.</li>
-<li>An end-to-end pytest exercises both a <code>pyvisa-sim</code> placeholder and a real Pico 2 W over USB-TMC. Both records write to InfluxDB with the SDD §10.2 tag taxonomy. Both records appear in a Grafana panel. A Jinja2 report queries InfluxDB and emits HTML+PDF referencing both.</li>
+<ol type="1">
+<li>Pi 5 boots from NVMe, reaches the bench network, the chassis hub enumerates as USB 3.0 with every Pico listed in <code>tools/pico_nicknames.yaml</code> visible.</li>
+<li>An end-to-end pytest exercises both a <code>pyvisa-sim</code> placeholder and a real Pico 2 W over USB-TMC. Both records write to InfluxDB with the SDD §10.2 tag taxonomy. Both records appear in a Grafana panel. A Jinja2 report queries InfluxDB and emits HTML+PDF referencing both. A parametric companion test then exercises every Pico in the registry and confirms each one’s chip-ID round-trips through <code>*IDN?</code> and InfluxDB.</li>
 <li>Hot-plug-by-serial reidentification is verified across at least three port-swap permutations on the chassis hub.</li>
 </ol>
 <hr />
@@ -64,13 +64,18 @@ blockquote { border-left: 3px solid var(--amber); background: var(--card); paddi
 <p>The PMVB orchestration layer is a single Raspberry Pi 5 16 GB hosting the full Python test framework, time-series database, dashboard server, MCP gateway, and report generator. The Pi carries no instrument hardware of its own; it is a pure software orchestrator and data sink that talks to instrument modules over USB-TMC and exposes their SCPI surface as both PyVISA resources (for headless test sequencing) and MCP tools (for agent-orchestrated bench sessions).</p>
 <h3 id="two-plane-architecture">Two-plane architecture</h3>
 <p>Every module presents two control planes over the same USB-TMC transport, both consuming the same per-module YAML command schema (per SDD §7.3):</p>
-<ol>
-<li><strong>VISA/SCPI plane</strong> -- vendor-portable, deterministic, the path used by pytest sequences and any test code that wants to drive instruments programmatically. The orchestrator opens a module as a PyVISA resource (<code>USB::0xVID::0xPID::SERIAL::INSTR</code>), writes SCPI commands, and parses responses. Resource identity is keyed off the USB serial number (derived from the Pico 2 W's unique 64-bit chip ID), so hot-plugging a module across different chassis hub ports preserves its logical identity (per SDD §10.1).</li>
-<li><strong>MCP plane</strong> -- exposes the same per-module command surface as LLM-callable tools. The MCP gateway (<code>pmvb.mcp_gateway.server</code>) is a <code>FastMCP</code> server that the Anthropic API talks to. Per-module MCP tools come online with each module's Phase; Phase 0 only scaffolds the gateway with a single health-check tool.</li>
+<ol type="1">
+<li><strong>VISA/SCPI plane</strong> – vendor-portable, deterministic, the path used by pytest sequences and any test code that wants to drive instruments programmatically. The orchestrator opens a module as a PyVISA resource (<code>USB::0xVID::0xPID::SERIAL::INSTR</code>), writes SCPI commands, and parses responses. Resource identity is keyed off the USB serial number (derived from the Pico 2 W’s unique 64-bit chip ID), so hot-plugging a module across different chassis hub ports preserves its logical identity (per SDD §10.1).</li>
+<li><strong>MCP plane</strong> – exposes the same per-module command surface as LLM-callable tools. The MCP gateway (<code>pmvb.mcp_gateway.server</code>) is a <code>FastMCP</code> server that the Anthropic API talks to. Per-module MCP tools come online with each module’s Phase; Phase 0 only scaffolds the gateway with a single health-check tool.</li>
 </ol>
 <p>Both planes share the per-module YAML command schema. Firmware parsers and PyVISA-sim simulation backends are generated mechanically from the YAML, eliminating the failure mode where the simulator drifts from the real instrument.</p>
 <h3 id="software-stack-components">Software stack components</h3>
 <table>
+<colgroup>
+<col style="width: 44%" />
+<col style="width: 24%" />
+<col style="width: 32%" />
+</colgroup>
 <thead>
 <tr class="header">
 <th>Component</th>
@@ -86,7 +91,7 @@ blockquote { border-left: 3px solid var(--amber); background: var(--card); paddi
 </tr>
 <tr class="even">
 <td><strong>PyVISA-sim</strong></td>
-<td>Simulator backend. Each module's simulation lives at <code>sim/&lt;id&gt;/responses.yaml</code> and is consumed by PyVISA-sim's stub session.</td>
+<td>Simulator backend. Each module’s simulation lives at <code>sim/&lt;id&gt;/responses.yaml</code> and is consumed by PyVISA-sim’s stub session.</td>
 <td><code>pip</code>, schemas in <code>sim/</code></td>
 </tr>
 <tr class="odd">
@@ -142,8 +147,7 @@ blockquote { border-left: 3px solid var(--amber); background: var(--card); paddi
     Sim -- response --> Test
     Test -- write_measurement --> Influx
     Influx -- query --> Graf
-    Influx -- query_run --> Rep
-</div>
+    Influx -- query_run --> Rep</div>
 <h3 id="pmvb-python-package-layout"><code>pmvb</code> Python package layout</h3>
 <p>The orchestration code lives on the Pi 5 as a single Python package called <code>pmvb</code>, installed in editable mode from the cloned repo:</p>
 <pre><code>pmvb/                              # Python package root (installed editable)
@@ -165,8 +169,7 @@ sim/                               # PyVISA-sim YAML schemas (one per module)
 
 tests/                             # pytest tests
 ├── __init__.py
-└── test_smoke.py                  # dependency import smoke tests
-</code></pre>
+└── test_smoke.py                  # dependency import smoke tests</code></pre>
 <p>Per-module SCPI command tables, simulator schemas, and module-specific design docs live outside the <code>pmvb</code> package: at <code>modules/&lt;id&gt;/commands.yaml</code>, <code>sim/&lt;id&gt;/responses.yaml</code>, and <code>docs/modules/Module_&lt;id&gt;_Design_Document.md</code> respectively (per SDD §10.1).</p>
 <hr />
 <h2 id="hardware-prerequisites">Hardware Prerequisites</h2>
@@ -194,9 +197,9 @@ tests/                             # pytest tests
 <li>An imaging tool appropriate to your chosen orchestration host (for example, <a href="https://www.raspberrypi.com/software/">Raspberry Pi Imager</a> if you are using a Raspberry Pi)</li>
 </ul>
 <hr />
-<h2 id="section-a-raspberry-pi-5-os-install">Section A. Raspberry Pi 5 OS install</h2>
+<h2 id="section-a.-raspberry-pi-5-os-install">Section A. Raspberry Pi 5 OS install</h2>
 <p>The orchestration head runs Raspberry Pi OS Bookworm or newer.</p>
-<h3 id="a1-generate-an-ssh-key-for-the-bench">A.1 Generate an SSH key for the bench</h3>
+<h3 id="a.1-generate-an-ssh-key-for-the-bench">A.1 Generate an SSH key for the bench</h3>
 <p>On your workstation, generate a dedicated ed25519 keypair for the bench so the bench credential is isolated from your other systems:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>ssh-keygen -t ed25519 -f <span class="va">$HOME</span>\.<span class="fu">ssh</span>\pmvb-bench -C <span class="st">&quot;pmvb-bench&quot;</span></span></code></pre></div>
 <p>Press Enter twice when prompted for a passphrase if you want password-less login over LAN (a common choice for a stationary bench).</p>
@@ -205,11 +208,10 @@ tests/                             # pytest tests
     HostName &lt;YOUR_PI_HOSTNAME&gt;.local
     User &lt;YOUR_PI_USERNAME&gt;
     IdentityFile ~/.ssh/pmvb-bench
-    IdentitiesOnly yes
-</code></pre>
+    IdentitiesOnly yes</code></pre>
 <p>Print the public key for the next step:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="fu">Get-Content</span> <span class="va">$HOME</span>\.<span class="fu">ssh</span>\pmvb-bench.<span class="fu">pub</span></span></code></pre></div>
-<h3 id="a2-flash-the-sd-card-via-raspberry-pi-imager">A.2 Flash the SD card via Raspberry Pi Imager</h3>
+<h3 id="a.2-flash-the-sd-card-via-raspberry-pi-imager">A.2 Flash the SD card via Raspberry Pi Imager</h3>
 <p>Launch Raspberry Pi Imager. Select Device = Raspberry Pi 5, OS = Raspberry Pi OS (64-bit) (desktop variant if you want a local screen at the bench; Lite if headless), Storage = the microSD card.</p>
 <p>Edit OS customization settings:</p>
 <ul>
@@ -221,7 +223,7 @@ tests/                             # pytest tests
 <li>Optional: enable Raspberry Pi Connect for off-LAN fallback access</li>
 </ul>
 <p>Write the image, eject the card, insert into the Pi 5, apply power.</p>
-<h3 id="a3-first-boot-and-ssh-verification">A.3 First boot and SSH verification</h3>
+<h3 id="a.3-first-boot-and-ssh-verification">A.3 First boot and SSH verification</h3>
 <p>Give the Pi 60-90 seconds for first-boot init. Then from your workstation:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="fu">ssh</span> <span class="op">&lt;</span>YOUR_PI_HOSTNAME<span class="op">&gt;</span></span></code></pre></div>
 <p>Healthy: key-based auth succeeds without password prompt. Verify system state:</p>
@@ -232,21 +234,21 @@ tests/                             # pytest tests
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a><span class="ex">lsusb</span> -t                       # confirms USB hub + Pico enumeration tree</span></code></pre></div>
 <p>The chassis USB hub should appear as a 4-port hub at 480 Mbps (USB 2 plane) and a 4-port hub at 5000 Mbps (USB 3 plane). With factory-fresh Picos plugged in (no firmware), they appear under the USB 2 plane as <code>Class=Mass Storage</code> devices in BOOTSEL mode.</p>
 <hr />
-<h2 id="section-b-nvme-boot-migration">Section B. NVMe boot migration</h2>
+<h2 id="section-b.-nvme-boot-migration">Section B. NVMe boot migration</h2>
 <p>The Pi 5 boots from microSD by default. The NVMe HAT+ provides a much faster, more durable root filesystem. Migrate boot to NVMe with the SD card retained as a fallback boot device.</p>
-<h3 id="b1-eeprom-update">B.1 EEPROM update</h3>
+<h3 id="b.1-eeprom-update">B.1 EEPROM update</h3>
 <div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="fu">sudo</span> rpi-eeprom-update -a</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="fu">sudo</span> reboot</span></code></pre></div>
 <p>After reboot, SSH back in and confirm:</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="fu">sudo</span> rpi-eeprom-update</span></code></pre></div>
 <p>Should report <code>BOOTLOADER: up to date</code>.</p>
-<h3 id="b2-boot-order-set-to-nvme-first">B.2 Boot order set to NVMe-first</h3>
+<h3 id="b.2-boot-order-set-to-nvme-first">B.2 Boot order set to NVMe-first</h3>
 <div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="fu">sudo</span> raspi-config</span></code></pre></div>
 <p>Navigate: <code>6 Advanced Options</code> -&gt; <code>A4 Boot Order</code> -&gt; <code>B2 NVMe/USB Boot</code> -&gt; OK -&gt; Finish. Decline the reboot; we will reboot once after the clone.</p>
-<h3 id="b3-clone-sd-root-to-nvme">B.3 Clone SD root to NVMe</h3>
+<h3 id="b.3-clone-sd-root-to-nvme">B.3 Clone SD root to NVMe</h3>
 <p>Use the official Pi Foundation tool, SD Card Copier (<code>piclone</code>), via the desktop session. Menu -&gt; Accessories -&gt; SD Card Copier. Source: <code>/dev/mmcblk0</code> (Internal SD Card). Target: <code>/dev/nvme0n1</code>. Check <strong>New Partition UUIDs</strong>. Click Start. Takes 10-15 minutes for ~10 GB.</p>
 <p>Alternative for headless Lite installs: use the <a href="https://github.com/framps/rpi-clone">framps/rpi-clone</a> fork (which handles NVMe partition naming correctly, unlike the original <code>billw2/rpi-clone</code>) and run <code>sudo rpi-clone nvme0n1</code>.</p>
-<h3 id="b4-reboot-and-verify-nvme-boot">B.4 Reboot and verify NVMe boot</h3>
+<h3 id="b.4-reboot-and-verify-nvme-boot">B.4 Reboot and verify NVMe boot</h3>
 <div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="fu">sudo</span> reboot</span></code></pre></div>
 <p>Wait 60-90 seconds, SSH back in:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="fu">df</span> -h /</span>
@@ -254,45 +256,45 @@ tests/                             # pytest tests
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a><span class="ex">lsblk</span></span></code></pre></div>
 <p>Healthy: <code>df -h /</code> shows <code>/dev/nvme0n1p2</code> as the root mount. <code>lsblk</code> shows both <code>mmcblk0</code> and <code>nvme0n1</code> present, with the NVMe carrying the mountpoints and the SD sitting idle. The SD card stays inserted as fallback boot media.</p>
 <hr />
-<h2 id="section-c-remote-access-optional">Section C. Remote access (optional)</h2>
-<p>For portable benches, install Raspberry Pi Connect to get off-LAN shell + screen-sharing access via the Pi Foundation's relay service:</p>
+<h2 id="section-c.-remote-access-optional">Section C. Remote access (optional)</h2>
+<p>For portable benches, install Raspberry Pi Connect to get off-LAN shell + screen-sharing access via the Pi Foundation’s relay service:</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="fu">sudo</span> apt update</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a><span class="fu">sudo</span> apt install -y rpi-connect      # or rpi-connect-lite for Lite OS (terminal-only)</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a><span class="ex">rpi-connect</span> signin                   # prompts you to link a Raspberry Pi ID via browser</span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a><span class="ex">rpi-connect</span> on</span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a><span class="ex">rpi-connect</span> status</span></code></pre></div>
 <p>Healthy: <code>rpi-connect status</code> shows <code>Signed in: yes</code>, <code>Subscribed to events: yes</code>, <code>Screen sharing: allowed</code>, <code>Remote shell: allowed</code>.</p>
-<p>Access the bench from any browser at <a href="https://connect.raspberrypi.com">https://connect.raspberrypi.com</a>. If you only run on a fixed bench LAN and never need off-network access, skip this section.</p>
+<p>Access the bench from any browser at <a href="https://connect.raspberrypi.com" class="uri">https://connect.raspberrypi.com</a>. If you only run on a fixed bench LAN and never need off-network access, skip this section.</p>
 <hr />
-<h2 id="section-d-python-orchestration-project">Section D. Python orchestration project</h2>
-<p>The PMVB Python code lives at <a href="https://github.com/Pike1950/poor-mans-validation-bench">https://github.com/Pike1950/poor-mans-validation-bench</a>. Clone the repo to the Pi, create a virtual environment, and install the project in editable mode.</p>
-<h3 id="d1-clone-the-repo">D.1 Clone the repo</h3>
+<h2 id="section-d.-python-orchestration-project">Section D. Python orchestration project</h2>
+<p>The PMVB Python code lives at <a href="https://github.com/Pike1950/poor-mans-validation-bench" class="uri">https://github.com/Pike1950/poor-mans-validation-bench</a>. Clone the repo to the Pi, create a virtual environment, and install the project in editable mode.</p>
+<h3 id="d.1-clone-the-repo">D.1 Clone the repo</h3>
 <div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="bu">cd</span> ~</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a><span class="fu">git</span> clone https://github.com/Pike1950/poor-mans-validation-bench.git pmvb</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a><span class="bu">cd</span> pmvb</span></code></pre></div>
-<h3 id="d2-create-the-virtual-environment">D.2 Create the virtual environment</h3>
+<h3 id="d.2-create-the-virtual-environment">D.2 Create the virtual environment</h3>
 <div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a><span class="ex">python3</span> -m venv .venv</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true"></a><span class="bu">source</span> .venv/bin/activate</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true"></a><span class="ex">python</span> -m pip install --upgrade pip</span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true"></a><span class="ex">pip</span> install -e <span class="st">&quot;.[dev]&quot;</span></span></code></pre></div>
 <p>The <code>[dev]</code> extra adds <code>pytest-cov</code>, <code>ruff</code>, and <code>mypy</code> on top of the runtime dependencies. First-time install takes 2-5 minutes on the Pi 5; the piwheels mirror provides pre-built aarch64 wheels for the heavy compiled extensions (Matplotlib, NumPy, Pillow).</p>
-<h3 id="d3-verify-with-smoke-tests">D.3 Verify with smoke tests</h3>
+<h3 id="d.3-verify-with-smoke-tests">D.3 Verify with smoke tests</h3>
 <div class="sourceCode" id="cb16"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="ex">pytest</span> tests/test_smoke.py -v</span></code></pre></div>
 <p>Should pass 8 tests: <code>pmvb</code> package imports, PyVISA stack imports, USB stack imports, pytest itself imports, <code>influxdb-client</code> imports, Jinja2 + Matplotlib import, the <code>mcp</code> framework imports, and the <code>anthropic</code> SDK imports.</p>
-<h3 id="d4-persist-the-venv-activation">D.4 Persist the venv activation</h3>
+<h3 id="d.4-persist-the-venv-activation">D.4 Persist the venv activation</h3>
 <div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="bu">echo</span> <span class="st">&#39;source ~/pmvb/.venv/bin/activate&#39;</span> <span class="op">&gt;&gt;</span> ~/.bashrc</span></code></pre></div>
 <p>So that every new SSH session lands inside the venv.</p>
 <hr />
-<h2 id="section-e-influxdb-2x">Section E. InfluxDB 2.x</h2>
+<h2 id="section-e.-influxdb-2.x">Section E. InfluxDB 2.x</h2>
 <p>InfluxDB 2.x is the time-series database for every measurement the bench produces. The schema and tag taxonomy are defined in <a href="../system-design/System_Design_Document.html#influxdb-schema-and-tag-taxonomy">SDD §10.2</a>.</p>
-<h3 id="e1-add-the-influxdata-apt-repo">E.1 Add the InfluxData apt repo</h3>
+<h3 id="e.1-add-the-influxdata-apt-repo">E.1 Add the InfluxData apt repo</h3>
 <div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="bu">cd</span> ~</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a><span class="ex">curl</span> --silent --location -O https://repos.influxdata.com/influxdata-archive.key</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a><span class="fu">cat</span> influxdata-archive.key <span class="kw">|</span> <span class="ex">gpg</span> --dearmor <span class="kw">|</span> <span class="fu">sudo</span> tee /etc/apt/trusted.gpg.d/influxdata-archive.gpg <span class="op">&gt;</span> /dev/null</span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a><span class="bu">echo</span> <span class="st">&#39;deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.gpg] https://repos.influxdata.com/debian stable main&#39;</span> <span class="kw">|</span> <span class="fu">sudo</span> tee /etc/apt/sources.list.d/influxdata.list</span>
 <span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a><span class="fu">rm</span> influxdata-archive.key</span>
 <span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a><span class="fu">sudo</span> apt update</span></code></pre></div>
-<h3 id="e2-install-and-enable-influxdb">E.2 Install and enable InfluxDB</h3>
+<h3 id="e.2-install-and-enable-influxdb">E.2 Install and enable InfluxDB</h3>
 <div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="fu">sudo</span> apt install -y influxdb2 influxdb2-cli</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a><span class="fu">sudo</span> systemctl enable --now influxdb</span></code></pre></div>
 <p>Verify:</p>
@@ -300,7 +302,7 @@ tests/                             # pytest tests
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a><span class="ex">ss</span> -tlnp <span class="op">2&gt;</span>/dev/null <span class="kw">|</span> <span class="fu">grep</span> 8086</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true"></a><span class="ex">curl</span> -sI http://localhost:8086/ping</span></code></pre></div>
 <p>Healthy: service is <code>active (running)</code>, listening on <code>:::8086</code>, <code>curl -sI</code> returns <code>HTTP/1.1 204 No Content</code> with an <code>X-Influxdb-Version</code> header.</p>
-<h3 id="e3-initial-provisioning">E.3 Initial provisioning</h3>
+<h3 id="e.3-initial-provisioning">E.3 Initial provisioning</h3>
 <div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="ex">influx</span> setup <span class="kw">\</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a>  <span class="ex">--username</span> <span class="op">&lt;</span>YOUR_INFLUXDB_USERNAME<span class="op">&gt;</span> <span class="kw">\</span></span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true"></a>  <span class="ex">--password</span> <span class="st">&#39;&lt;STRONG_PASSWORD&gt;&#39;</span> <span class="kw">\</span></span>
@@ -310,7 +312,7 @@ tests/                             # pytest tests
 <span id="cb21-7"><a href="#cb21-7" aria-hidden="true"></a>  <span class="ex">--force</span></span></code></pre></div>
 <p><code>--retention 0</code> is infinite retention. Bench measurement data is small (kilobytes per run), so infinite is appropriate.</p>
 <p>The setup command writes the active config to <code>~/.influxdbv2/configs</code>, including the operator token.</p>
-<h3 id="e4-token-rotation-and-storage">E.4 Token rotation and storage</h3>
+<h3 id="e.4-token-rotation-and-storage">E.4 Token rotation and storage</h3>
 <p>The operator token created by <code>influx setup</code> has admin privileges across all orgs. For day-to-day bench use, create a more constrained all-access token scoped to just the <code>pmvb</code> org:</p>
 <div class="sourceCode" id="cb22"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="ex">influx</span> auth create <span class="kw">\</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a>  <span class="ex">--org</span> pmvb <span class="kw">\</span></span>
@@ -330,7 +332,7 @@ tests/                             # pytest tests
 <div class="sourceCode" id="cb23"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="ex">influx</span> auth list                          # find the operator token ID</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a><span class="ex">influx</span> auth delete --id <span class="st">&quot;&lt;OPERATOR_ID&gt;&quot;</span>   # delete it</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a><span class="ex">influx</span> auth list                          # confirm only the org-scoped token remains</span></code></pre></div>
-<h3 id="e5-round-trip-verification">E.5 Round-trip verification</h3>
+<h3 id="e.5-round-trip-verification">E.5 Round-trip verification</h3>
 <div class="sourceCode" id="cb24"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="va">TOKEN=$(</span><span class="fu">cat</span> /etc/pmvb/influx.token<span class="va">)</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a></span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a><span class="ex">influx</span> write <span class="kw">\</span></span>
@@ -345,16 +347,16 @@ tests/                             # pytest tests
 <span id="cb24-12"><a href="#cb24-12" aria-hidden="true"></a>  <span class="st">&#39;from(bucket: &quot;measurements&quot;) |&gt; range(start: -5m) |&gt; filter(fn: (r) =&gt; r._measurement == &quot;phase0_test&quot;)&#39;</span></span></code></pre></div>
 <p>Healthy: the write completes silently with exit 0, and the query returns a table containing one record with the expected tags and value.</p>
 <hr />
-<h2 id="section-f-grafana">Section F. Grafana</h2>
+<h2 id="section-f.-grafana">Section F. Grafana</h2>
 <p>Grafana is the dashboard layer. It reads from InfluxDB on every panel refresh and renders charts, tables, alerts, and recipe-specific dashboards.</p>
-<h3 id="f1-add-the-grafana-apt-repo">F.1 Add the Grafana apt repo</h3>
+<h3 id="f.1-add-the-grafana-apt-repo">F.1 Add the Grafana apt repo</h3>
 <div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a><span class="fu">sudo</span> apt install -y apt-transport-https wget</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a><span class="fu">sudo</span> mkdir -p /etc/apt/keyrings</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a><span class="fu">wget</span> -q -O - https://apt.grafana.com/gpg.key <span class="kw">|</span> <span class="ex">gpg</span> --dearmor <span class="kw">|</span> <span class="fu">sudo</span> tee /etc/apt/keyrings/grafana.gpg <span class="op">&gt;</span> /dev/null</span>
 <span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a><span class="bu">echo</span> <span class="st">&quot;deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main&quot;</span> <span class="kw">|</span> <span class="fu">sudo</span> tee /etc/apt/sources.list.d/grafana.list</span>
 <span id="cb25-5"><a href="#cb25-5" aria-hidden="true"></a><span class="fu">sudo</span> apt update</span></code></pre></div>
 <p>On Trixie and newer, the legacy <code>software-properties-common</code> package is no longer required; apt has built-in HTTPS support.</p>
-<h3 id="f2-install-and-enable-grafana">F.2 Install and enable Grafana</h3>
+<h3 id="f.2-install-and-enable-grafana">F.2 Install and enable Grafana</h3>
 <div class="sourceCode" id="cb26"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a><span class="fu">sudo</span> apt install -y grafana</span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true"></a><span class="fu">sudo</span> systemctl daemon-reload</span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true"></a><span class="fu">sudo</span> systemctl enable --now grafana-server</span></code></pre></div>
@@ -365,9 +367,9 @@ tests/                             # pytest tests
 <span id="cb27-4"><a href="#cb27-4" aria-hidden="true"></a><span class="ex">curl</span> -sI http://localhost:3000/login</span></code></pre></div>
 <p>Healthy: service is <code>active (running)</code>, listening on <code>:::3000</code>, <code>/login</code> returns <code>HTTP/1.1 200 OK</code>.</p>
 <p>The PMVB reference build runs Grafana 13 (the stable apt channel installs whatever the current major is). Grafana 10 and newer all work; the install pattern and datasource configuration are identical.</p>
-<h3 id="f3-first-login">F.3 First login</h3>
+<h3 id="f.3-first-login">F.3 First login</h3>
 <p>Open <code>http://&lt;YOUR_PI_HOSTNAME&gt;:3000</code> in your workstation browser. Default credentials are <code>admin</code> / <code>admin</code>; Grafana forces a password change on first login.</p>
-<h3 id="f4-add-influxdb-datasource">F.4 Add InfluxDB datasource</h3>
+<h3 id="f.4-add-influxdb-datasource">F.4 Add InfluxDB datasource</h3>
 <p>UI left sidebar -&gt; Connections -&gt; Data sources -&gt; Add new data source -&gt; InfluxDB. Fill in:</p>
 <ul>
 <li>Name: <code>pmvb-influx</code></li>
@@ -382,17 +384,16 @@ tests/                             # pytest tests
 </ul></li>
 </ul>
 <p>Click <strong>Save &amp; test</strong>. Healthy: green banner reading <code>datasource is working. 3 buckets found</code> (the three are <code>_monitoring</code>, <code>_tasks</code>, and <code>measurements</code>).</p>
-<h3 id="f5-data-path-verification">F.5 Data-path verification</h3>
+<h3 id="f.5-data-path-verification">F.5 Data-path verification</h3>
 <p>UI left sidebar -&gt; Explore. Pick the <code>pmvb-influx</code> datasource. Paste the following Flux query:</p>
 <pre><code>from(bucket: &quot;measurements&quot;)
   |&gt; range(start: -1h)
-  |&gt; filter(fn: (r) =&gt; r._measurement == &quot;phase0_test&quot;)
-</code></pre>
+  |&gt; filter(fn: (r) =&gt; r._measurement == &quot;phase0_test&quot;)</code></pre>
 <p>Run query. The <code>phase0_test</code> records written in E.5 should appear as a small time-series plot plus a table. This proves the full pipeline: InfluxDB stores -&gt; Grafana queries -&gt; Grafana renders.</p>
 <hr />
-<h2 id="section-g-pico-sdk-and-cross-compile-toolchain">Section G. Pico SDK and cross-compile toolchain</h2>
+<h2 id="section-g.-pico-sdk-and-cross-compile-toolchain">Section G. Pico SDK and cross-compile toolchain</h2>
 <p>Every PMVB instrument module is built around a Pico 2 W (RP2350 SoC). For Phase 0 we flash a throwaway USB-TMC stub firmware on the bare Picos to prove the hot-plug-by-serial architecture. The Pico SDK toolchain installed here is reused across every per-module firmware build later.</p>
-<h3 id="g1-install-the-cross-compile-toolchain">G.1 Install the cross-compile toolchain</h3>
+<h3 id="g.1-install-the-cross-compile-toolchain">G.1 Install the cross-compile toolchain</h3>
 <div class="sourceCode" id="cb29"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="fu">sudo</span> apt install -y <span class="kw">\</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true"></a>  <span class="ex">gcc-arm-none-eabi</span> <span class="kw">\</span></span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true"></a>  <span class="ex">libnewlib-arm-none-eabi</span> <span class="kw">\</span></span>
@@ -405,7 +406,7 @@ tests/                             # pytest tests
 <span id="cb29-10"><a href="#cb29-10" aria-hidden="true"></a>  <span class="ex">libusb-1.0-0-dev</span> <span class="kw">\</span></span>
 <span id="cb29-11"><a href="#cb29-11" aria-hidden="true"></a>  <span class="ex">pkg-config</span></span></code></pre></div>
 <p>Roughly 500 MB after dependencies.</p>
-<h3 id="g2-clone-pico-sdk">G.2 Clone pico-sdk</h3>
+<h3 id="g.2-clone-pico-sdk">G.2 Clone pico-sdk</h3>
 <div class="sourceCode" id="cb30"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true"></a><span class="fu">sudo</span> mkdir -p /opt</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true"></a><span class="fu">sudo</span> git clone --branch master --recurse-submodules --shallow-submodules <span class="kw">\</span></span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true"></a>  <span class="ex">https</span>://github.com/raspberrypi/pico-sdk.git /opt/pico-sdk</span>
@@ -416,12 +417,12 @@ tests/                             # pytest tests
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a><span class="fu">git</span> describe --tags        # should show 2.0 or later (RP2350 support requires 2.0+)</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true"></a><span class="fu">git</span> submodule status</span></code></pre></div>
 <p>All submodules should be listed without a leading <code>-</code> (means initialized). Required: <code>lib/tinyusb</code>.</p>
-<h3 id="g3-set-environment-variables-persistently">G.3 Set environment variables persistently</h3>
+<h3 id="g.3-set-environment-variables-persistently">G.3 Set environment variables persistently</h3>
 <div class="sourceCode" id="cb32"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true"></a><span class="bu">echo</span> <span class="st">&#39;export PICO_SDK_PATH=/opt/pico-sdk&#39;</span> <span class="op">&gt;&gt;</span> ~/.bashrc</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true"></a><span class="bu">echo</span> <span class="st">&#39;export PICO_BOARD=pico2_w&#39;</span> <span class="op">&gt;&gt;</span> ~/.bashrc</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true"></a><span class="bu">source</span> ~/.bashrc</span></code></pre></div>
-<p><code>PICO_BOARD=pico2_w</code> selects the Pico 2 W board definition (RP2350 + Wi-Fi/Bluetooth chip + correct flash and pinout). <code>PICO_SDK_PATH</code> points the SDK's CMake support files at the cloned SDK tree.</p>
-<h3 id="g4-verify-cross-compile-with-hello_usb">G.4 Verify cross-compile with <code>hello_usb</code></h3>
+<p><code>PICO_BOARD=pico2_w</code> selects the Pico 2 W board definition (RP2350 + Wi-Fi/Bluetooth chip + correct flash and pinout). <code>PICO_SDK_PATH</code> points the SDK’s CMake support files at the cloned SDK tree.</p>
+<h3 id="g.4-verify-cross-compile-with-hello_usb">G.4 Verify cross-compile with <code>hello_usb</code></h3>
 <div class="sourceCode" id="cb33"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a><span class="bu">cd</span> ~</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true"></a><span class="fu">git</span> clone --depth 1 --recurse-submodules https://github.com/raspberrypi/pico-examples.git</span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true"></a><span class="bu">cd</span> pico-examples</span>
@@ -431,16 +432,16 @@ tests/                             # pytest tests
 <span id="cb33-7"><a href="#cb33-7" aria-hidden="true"></a><span class="fu">ls</span> -la hello_world/usb/hello_usb.uf2</span></code></pre></div>
 <p>Healthy: cmake configures cleanly (reports <code>Target board (PICO_BOARD) is 'pico2_w'</code>, auto-converts the platform to <code>rp2350-arm-s</code>, finds the gcc-arm-none-eabi toolchain). Ninja builds with no errors and produces <code>hello_world/usb/hello_usb.uf2</code> of ~50-80 KB. That <code>.uf2</code> is a valid RP2350 firmware image (do not flash it; we have a real stub firmware coming up in section H).</p>
 <hr />
-<h2 id="section-h-usb-tmc-stub-firmware">Section H. USB-TMC stub firmware</h2>
-<p>The probe firmware lives at <code>firmware/pmvb_usbtmc_stub/</code> in the repo. It is a minimal TinyUSB USB-TMC class (USB488 subclass) application that enumerates with a chip-ID-derived <code>iSerialNumber</code> and responds to a small SCPI dialect: <code>*IDN?</code>, <code>*RST</code>, <code>*CLS</code>, <code>*OPC?</code>, plus a PMVB extension <code>:SYST:BOOTSEL</code> that reboots the Pico back into BOOTSEL mode without the physical button. This is throwaway probe firmware; real per-module SCPI parsers ship with each module's own Phase.</p>
+<h2 id="section-h.-usb-tmc-stub-firmware">Section H. USB-TMC stub firmware</h2>
+<p>The probe firmware lives at <code>firmware/pmvb_usbtmc_stub/</code> in the repo. It is a minimal TinyUSB USB-TMC class (USB488 subclass) application that enumerates with a chip-ID-derived <code>iSerialNumber</code> and responds to a small SCPI dialect: <code>*IDN?</code>, <code>*RST</code>, <code>*CLS</code>, <code>*OPC?</code>, plus a PMVB extension <code>:SYST:BOOTSEL</code> that reboots the Pico back into BOOTSEL mode without the physical button. This is throwaway probe firmware; real per-module SCPI parsers ship with each module’s own Phase.</p>
 <p>Files under <code>firmware/pmvb_usbtmc_stub/</code>:</p>
 <ul>
-<li><code>CMakeLists.txt</code> -- Pico SDK build configuration</li>
-<li><code>tusb_config.h</code> -- TinyUSB configuration (USB-TMC + USB488 subclass enabled, interrupt endpoint on)</li>
-<li><code>usb_descriptors.c</code> -- VID <code>0xCafe</code> / PID <code>0x4001</code>, manufacturer "PMVB", iSerialNumber from <code>board_usb_get_serial()</code></li>
-<li><code>usbtmc_handlers.c</code> -- USB-TMC class callbacks plus SCPI command dispatch</li>
-<li><code>main.c</code> -- entry point, TinyUSB init, main loop</li>
-<li><code>README.md</code> -- per-firmware documentation</li>
+<li><code>CMakeLists.txt</code> – Pico SDK build configuration</li>
+<li><code>tusb_config.h</code> – TinyUSB configuration (USB-TMC + USB488 subclass enabled, interrupt endpoint on)</li>
+<li><code>usb_descriptors.c</code> – VID <code>0xCafe</code> / PID <code>0x4001</code>, manufacturer “PMVB”, iSerialNumber from <code>board_usb_get_serial()</code></li>
+<li><code>usbtmc_handlers.c</code> – USB-TMC class callbacks plus SCPI command dispatch</li>
+<li><code>main.c</code> – entry point, TinyUSB init, main loop</li>
+<li><code>README.md</code> – per-firmware documentation</li>
 </ul>
 <p>Build the firmware:</p>
 <div class="sourceCode" id="cb34"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="bu">cd</span> ~/pmvb/firmware/pmvb_usbtmc_stub</span>
@@ -449,22 +450,23 @@ tests/                             # pytest tests
 <span id="cb34-4"><a href="#cb34-4" aria-hidden="true"></a><span class="ex">ninja</span></span>
 <span id="cb34-5"><a href="#cb34-5" aria-hidden="true"></a><span class="fu">ls</span> -la pmvb_usbtmc_stub.uf2</span></code></pre></div>
 <p>Healthy: ninja produces a ~57 KB <code>pmvb_usbtmc_stub.uf2</code> file in <code>build/</code>. First build pulls in TinyUSB and picotool from the Pico SDK and takes 1-2 minutes; subsequent builds are seconds.</p>
-<p>Flash all five Picos at once. They must each be in BOOTSEL mode (factory state, or after <code>:SYST:BOOTSEL</code>). Each appears as a mass-storage volume mounted at <code>/media/&lt;user&gt;/RP2350*</code>:</p>
+<p>Flash every Pico in the bench inventory at once (currently ten boards; the loop below is count-agnostic). They must each be in BOOTSEL mode (factory state, or after <code>:SYST:BOOTSEL</code>). Each appears as a mass-storage volume mounted at <code>/media/&lt;user&gt;/RP2350*</code>:</p>
 <div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true"></a><span class="va">UF2=</span>~/pmvb/firmware/pmvb_usbtmc_stub/build/pmvb_usbtmc_stub.uf2</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true"></a><span class="kw">for</span> <span class="ex">mnt</span> in /media/<span class="op">&lt;</span>YOUR_PI_USERNAME<span class="op">&gt;</span>/RP2350*/ <span class="kw">;</span> <span class="kw">do</span></span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true"></a>  <span class="fu">cp</span> <span class="st">&quot;</span><span class="va">$UF2</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$mnt</span><span class="st">&quot;</span></span>
 <span id="cb35-4"><a href="#cb35-4" aria-hidden="true"></a>  <span class="fu">sync</span></span>
 <span id="cb35-5"><a href="#cb35-5" aria-hidden="true"></a><span class="kw">done</span></span>
 <span id="cb35-6"><a href="#cb35-6" aria-hidden="true"></a><span class="fu">sleep</span> 5</span></code></pre></div>
+<p>Note: the udev rule installed in Section I suppresses BOOTSEL automount, which means freshly factory-new Picos plugged in after Section I will not auto-appear under <code>/media/&lt;user&gt;/RP2350*</code>. To flash additional Picos after the udev rule is in place, mount them manually first (<code>sudo mount /dev/sdX1 /mnt/rp_&lt;letter&gt;</code> for each device, copy the UF2, then <code>sync</code> and unmount).</p>
 <p>After the <code>sync</code> and a few seconds for Picos to auto-reboot, verify the flash:</p>
 <div class="sourceCode" id="cb36"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true"></a><span class="ex">lsusb</span> -d cafe:4001</span></code></pre></div>
-<p>Healthy: five entries showing <code>ID cafe:4001 PMVB PMVB Pico 2 W USB-TMC Stub</code>. Each has a distinct 16-character hex iSerialNumber derived from its unique RP2350 chip ID.</p>
+<p>Healthy: one entry per Pico in the bench inventory showing <code>ID cafe:4001 PMVB PMVB Pico 2 W USB-TMC Stub</code>. Each has a distinct 16-character hex iSerialNumber derived from its unique RP2350 chip ID. Record each chip ID in <code>tools/pico_nicknames.yaml</code> with a human-readable nickname; the parametric inventory test in Section K reads this file as its source of truth.</p>
 <hr />
-<h2 id="section-i-udev-rules">Section I. udev rules</h2>
+<h2 id="section-i.-udev-rules">Section I. udev rules</h2>
 <p>The udev rules file lives at <code>tools/udev/99-pmvb-usbtmc.rules</code> in the repo. Three concerns are handled:</p>
-<ol>
-<li><strong>libusb access on the USB subsystem.</strong> PyVISA-py's <code>@py</code> backend uses libusb (via pyusb) for USB-TMC transfers and needs <code>plugdev</code> access on the raw <code>/dev/bus/usb/&lt;bus&gt;/&lt;dev&gt;</code> device, separate from the kernel's <code>/dev/usbtmcN</code> interface. Without this rule, PyVISA-py cannot open the device even though the kernel may have already bound to it.</li>
-<li><strong>USB-TMC kernel device permissions + serial symlinks.</strong> The kernel's <code>usbtmc</code> driver creates <code>/dev/usbtmcN</code> nodes owned root:root by default. Grant <code>plugdev</code> access and add stable <code>/dev/usbtmc-by-serial/&lt;chip_id&gt;</code> symlinks via the <code>usb_id</code> builtin so tools that prefer the kernel path can find devices by serial rather than the unstable <code>usbtmcN</code> enumeration order.</li>
+<ol type="1">
+<li><strong>libusb access on the USB subsystem.</strong> PyVISA-py’s <code>@py</code> backend uses libusb (via pyusb) for USB-TMC transfers and needs <code>plugdev</code> access on the raw <code>/dev/bus/usb/&lt;bus&gt;/&lt;dev&gt;</code> device, separate from the kernel’s <code>/dev/usbtmcN</code> interface. Without this rule, PyVISA-py cannot open the device even though the kernel may have already bound to it.</li>
+<li><strong>USB-TMC kernel device permissions + serial symlinks.</strong> The kernel’s <code>usbtmc</code> driver creates <code>/dev/usbtmcN</code> nodes owned root:root by default. Grant <code>plugdev</code> access and add stable <code>/dev/usbtmc-by-serial/&lt;chip_id&gt;</code> symlinks via the <code>usb_id</code> builtin so tools that prefer the kernel path can find devices by serial rather than the unstable <code>usbtmcN</code> enumeration order.</li>
 <li><strong>Suppress automount of BOOTSEL volumes.</strong> When a Pico is in BOOTSEL mode (factory-fresh, or after <code>:SYST:BOOTSEL</code>), it exposes itself as Raspberry Pi VID <code>0x2e8a</code> PID <code>0x000f</code> mass-storage. Without suppression, every BOOTSEL Pico would auto-mount to <code>/media/&lt;user&gt;/RP2350*</code>, which clutters the workflow. The rule also covers PID <code>0x0003</code> (RP2040 BOOTSEL) for compatibility with older Pico boards.</li>
 </ol>
 <p>Install:</p>
@@ -477,43 +479,52 @@ tests/                             # pytest tests
 <div class="sourceCode" id="cb38"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true"></a><span class="fu">ls</span> -la /dev/usbtmc*</span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true"></a><span class="fu">ls</span> -la /dev/usbtmc-by-serial/</span>
 <span id="cb38-3"><a href="#cb38-3" aria-hidden="true"></a><span class="fu">groups</span> <span class="kw">|</span> <span class="fu">tr</span> <span class="st">&#39; &#39;</span> <span class="st">&#39;\n&#39;</span> <span class="kw">|</span> <span class="fu">grep</span> plugdev</span></code></pre></div>
-<p>Healthy: <code>/dev/usbtmc[0-4]</code> show <code>crw-rw---- 1 root plugdev</code>, five symlinks exist under <code>/dev/usbtmc-by-serial/</code> named with the chip IDs, and your user is in the <code>plugdev</code> group.</p>
+<p>Healthy: <code>/dev/usbtmcN</code> nodes (one per Pico, currently <code>usbtmc0</code> through <code>usbtmc9</code>) show <code>crw-rw---- 1 root plugdev</code>, a matching number of symlinks exist under <code>/dev/usbtmc-by-serial/</code> named with the chip IDs, and your user is in the <code>plugdev</code> group. The kernel-assigned <code>N</code> is hot-plug-order-dependent, not slot-dependent; the symlinks are the stable handle.</p>
 <hr />
-<h2 id="section-j-hot-plug-verification">Section J. Hot-plug verification</h2>
+<h2 id="section-j.-hot-plug-verification">Section J. Hot-plug verification</h2>
 <p>Tooling: <code>tools/hot_plug_verify.py</code> (uses pyvisa-py + pyusb to enumerate USB-TMC instruments and print a nickname / slot / serial / IDN table) and <code>tools/pico_nicknames.yaml</code> (maps each chip-ID serial to a human-readable label).</p>
 <p>Procedure:</p>
-<ol>
-<li>Establish a baseline. With all five Picos in known physical slots, run the script:
+<ol type="1">
+<li><p>Establish a baseline. With every Pico from <code>tools/pico_nicknames.yaml</code> in a known physical slot, run the script:</p>
 <div class="sourceCode" id="cb39"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true"></a><span class="bu">cd</span> ~/pmvb</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true"></a><span class="ex">python</span> tools/hot_plug_verify.py</span></code></pre></div>
-Note the NICKNAME, SERIAL, and <code>*IDN?</code> RESPONSE columns. The DEV NODE column may show "(no symlink)" for instruments that pyvisa-py has already detached from the kernel driver -- that is expected and not a fault.</li>
-<li>Physically move one or more Picos to different slots on the chassis hub. Wait 3-5 seconds for the kernel to re-enumerate.</li>
-<li>Re-run the script and compare. The SERIAL and <code>*IDN?</code> columns must be identical to the baseline for every Pico, regardless of the new slot. The SLOT column should report the new physical positions correctly (calibrated by <code>SABRENT_SLOT_MAP</code> in the script).</li>
-<li>Repeat for at least three port-swap permutations per the SDD §13.1 milestone.</li>
+<p>Note the NICKNAME, SERIAL, and <code>*IDN?</code> RESPONSE columns. The DEV NODE column may show “(no symlink)” for instruments that pyvisa-py has already detached from the kernel driver – that is expected and not a fault.</p></li>
+<li><p>Physically move one or more Picos to different slots on the chassis hub. Wait 3-5 seconds for the kernel to re-enumerate.</p></li>
+<li><p>Re-run the script and compare. The SERIAL and <code>*IDN?</code> columns must be identical to the baseline for every Pico, regardless of the new slot. The SLOT column should report the new physical positions correctly (calibrated by <code>SABRENT_SLOT_MAP</code> in the script).</p></li>
+<li><p>Repeat for at least three port-swap permutations per the SDD §13.1 milestone.</p></li>
 </ol>
 <p>What the test proves: PyVISA-py resource discovery keys off the USB <code>iSerialNumber</code> (derived from the RP2350 chip ID), not the USB topology. Hot-plugging a Pico across hub ports preserves its logical identity in <code>pmvb.influx</code> writes, in the PyVISA resource string, and in any per-module test code that opens by serial.</p>
 <p>Edge cases:</p>
 <ul>
 <li>If a Pico that was previously seen does not show up after replug, the kernel may have a stuck binding. <code>sudo udevadm trigger --action=change --subsystem-match=usb</code> usually clears it.</li>
-<li>If the SLOT column reports <code>?(&lt;port_chain&gt;)</code> for a slot you have not tested before, the <code>SABRENT_SLOT_MAP</code> in the script is missing that mapping. The script's source comment includes the calibration recipe.</li>
+<li>If the SLOT column reports <code>?(&lt;port_chain&gt;)</code> for a slot you have not tested before, the <code>SABRENT_SLOT_MAP</code> in the script is missing that mapping. The script’s source comment includes the calibration recipe.</li>
 </ul>
 <hr />
-<h2 id="section-k-phase-0-verification-milestone">Section K. Phase 0 verification milestone</h2>
-<p>The closing test lives at <code>tests/test_phase0_e2e.py</code> and exercises every architectural claim of the Phase 0 platform in one pass.</p>
-<p>Run:</p>
+<h2 id="section-k.-phase-0-verification-milestone">Section K. Phase 0 verification milestone</h2>
+<p>The closing tests live at <code>tests/test_phase0_e2e.py</code> and exercise every architectural claim of the Phase 0 platform in one pass. The file contains three tests, run together:</p>
 <div class="sourceCode" id="cb40"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true"></a><span class="bu">cd</span> ~/pmvb</span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true"></a><span class="bu">source</span> .venv/bin/activate</span>
 <span id="cb40-3"><a href="#cb40-3" aria-hidden="true"></a><span class="ex">pytest</span> tests/test_phase0_e2e.py -v -s</span></code></pre></div>
-<p>What the test does (in order):</p>
-<ol>
-<li>Opens <code>sim/placeholder/responses.yaml</code> via pyvisa-sim, sends <code>*IDN?</code>, captures the placeholder's response.</li>
+<h3 id="test_phase0_milestone-the-historical-phase-0-close-artifact"><code>test_phase0_milestone</code> (the historical Phase 0 close artifact)</h3>
+<p>Exercises the data path end-to-end against one sim instrument and one real Pico:</p>
+<ol type="1">
+<li>Opens <code>sim/placeholder/responses.yaml</code> via pyvisa-sim, sends <code>*IDN?</code>, captures the placeholder’s response.</li>
 <li>Writes the sim record to InfluxDB via <code>pmvb.influx.write_measurement</code> with the SDD §10.2 tag taxonomy (<code>instrument=sim-placeholder</code>, <code>channel=0</code>, <code>dut=phase0-bringup-dut</code>, <code>run_id=&lt;uuid&gt;</code>, <code>measurement_type=idn_response</code>).</li>
 <li>Enumerates real Pico 2 W instruments via pyvisa-py, opens the first one, sends <code>*IDN?</code>, captures the chip-ID-derived response.</li>
 <li>Writes the Pico record to InfluxDB tagged with the actual chip ID as <code>instrument=pico-&lt;chip_id&gt;</code>.</li>
-<li>Queries InfluxDB back via <code>pmvb.influx.query_run</code> and asserts both records (and at least one Pico record) are present.</li>
+<li>Queries InfluxDB back via <code>pmvb.influx.query_run</code> and asserts both records are present.</li>
 <li>Renders an HTML report via <code>pmvb.reports.render.write_report</code> and asserts the report contains the <code>run_id</code>, the sim record, and at least one Pico record.</li>
 </ol>
-<p>Healthy output:</p>
+<h3 id="test_pico_inventory_pingpico_n-chip_id_prefix-parametric-inventory-exercise"><code>test_pico_inventory_ping[Pico_&lt;N&gt;-&lt;chip_id_prefix&gt;]</code> (parametric inventory exercise)</h3>
+<p>Parametrized over every entry in <code>tools/pico_nicknames.yaml</code>. One pytest test ID per Pico, so a failure isolates to a specific board. Each invocation:</p>
+<ol type="1">
+<li>Looks up the Pico’s USB-TMC resource string by chip-ID serial in a module-scoped discovery map.</li>
+<li>Opens the resource via pyvisa-py, sends <code>*IDN?</code>, and asserts the IDN response’s serial field (<code>PMVB,Pico 2 W,&lt;serial&gt;,1.0.0</code>) matches the registry chip ID. This catches YAML drift, mis-flashed firmware, and physical swaps that were not tracked in the registry.</li>
+<li>Writes the record to InfluxDB tagged <code>instrument=pico-&lt;chip_id&gt;</code> under a shared <code>inventory_run_id</code>, with nickname and resource string as fields.</li>
+</ol>
+<h3 id="test_pico_inventory_round_trip-cross-pico-round-trip-summary"><code>test_pico_inventory_round_trip</code> (cross-Pico round-trip summary)</h3>
+<p>Runs last by virtue of in-file pytest collection order. Queries InfluxDB for the shared <code>inventory_run_id</code> set by the parametric tests, asserts every <code>pico-&lt;chip_id&gt;</code> made it back, and prints an OK / MISS table per Pico.</p>
+<h3 id="healthy-output">Healthy output</h3>
 <pre><code>tests/test_phase0_e2e.py::test_phase0_milestone PASSED
 
   Phase 0 verification milestone PASS
@@ -523,32 +534,52 @@ Note the NICKNAME, SERIAL, and <code>*IDN?</code> RESPONSE columns. The DEV NODE
   pico resource:         USB0::51966::16385::&lt;chip_id&gt;::0::INSTR
   InfluxDB records:      6
   Report written:        /tmp/.../phase0_e2e_&lt;run_id&gt;.html (&lt;size&gt; bytes)
-</code></pre>
-<p>The "6 InfluxDB records" line reflects 2 writes × 3 fields each (<code>value</code>, <code>idn_string</code>, <code>source</code>); Flux returns one row per field.</p>
-<p>When this test passes, Phase 0 is officially complete and Phase 1 begins (Modules 1A, 1B, 1D, 1E per <a href="../system-design/System_Design_Document.html#phase-1-modules">SDD §13.2</a>). Each Phase 1 module re-uses the orchestration infrastructure built here: same pmvb.influx tag taxonomy, same Jinja2 report renderer, same MCP gateway, same Pico SDK toolchain, with each module's firmware replacing the Phase 0 USB-TMC stub for that physical Pico.</p>
+
+tests/test_phase0_e2e.py::test_pico_inventory_ping[Pico_1-&lt;chip_id_prefix&gt;] PASSED
+tests/test_phase0_e2e.py::test_pico_inventory_ping[Pico_2-&lt;chip_id_prefix&gt;] PASSED
+...
+tests/test_phase0_e2e.py::test_pico_inventory_ping[Pico_10-&lt;chip_id_prefix&gt;] PASSED
+tests/test_phase0_e2e.py::test_pico_inventory_round_trip PASSED
+
+  Phase 0 inventory round-trip PASS
+  inventory_run_id:      phase0-inventory-&lt;8 hex&gt;
+  Picos in registry:     10
+  Picos enumerated:      10
+  InfluxDB records:      50
+    [  OK] Pico #1    &lt;chip_id&gt;
+    [  OK] Pico #2    &lt;chip_id&gt;
+    ...</code></pre>
+<p>The <code>InfluxDB records</code> counts reflect Flux’s per-field row return. The milestone shows 6 (2 writes × 3 fields: <code>value</code>, <code>idn_string</code>, <code>source</code>). The inventory round-trip shows 50 with the full ten-Pico inventory (10 writes × 5 fields: <code>value</code>, <code>idn_string</code>, <code>nickname</code>, <code>resource</code>, <code>source</code>). Both scale with the number of fields per write, not the number of writes alone.</p>
+<h3 id="running-a-subset">Running a subset</h3>
+<p>To skip the milestone and run only the inventory parametric exercise as a faster smoke check:</p>
+<div class="sourceCode" id="cb42"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true"></a><span class="ex">pytest</span> tests/test_phase0_e2e.py::test_pico_inventory_ping tests/test_phase0_e2e.py::test_pico_inventory_round_trip -v</span></code></pre></div>
+<p>To re-run a single Pico (shell-quote the brackets):</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true"></a><span class="ex">pytest</span> <span class="st">&#39;tests/test_phase0_e2e.py::test_pico_inventory_ping[Pico_5-B555F0C1]&#39;</span> -v</span></code></pre></div>
+<h3 id="when-this-passes">When this passes</h3>
+<p>Phase 0 is officially complete and Phase 1 begins (Modules 1A, 1B, 1D, 1E per <a href="../system-design/System_Design_Document.html#phase-1-modules">SDD §13.2</a>). Each Phase 1 module re-uses the orchestration infrastructure built here: same <code>pmvb.influx</code> tag taxonomy, same Jinja2 report renderer, same MCP gateway, same Pico SDK toolchain, with each module’s firmware replacing the Phase 0 USB-TMC stub for that physical Pico.</p>
 <hr />
 <h2 id="troubleshooting">Troubleshooting</h2>
-<p><strong><code>pip install</code> fails on a compiled package</strong> -- check the piwheels mirror is reachable (<code>pip config list</code> should list <code>https://www.piwheels.org/simple</code> as an extra-index-url; it is configured by default on Raspberry Pi OS). If piwheels is unreachable, pip falls back to source builds which take 10-20 minutes per heavy package.</p>
-<p><strong>InfluxDB web UI returns 404 right after install</strong> -- wait 30 seconds after <code>systemctl enable --now influxdb</code> for first-time setup, then reload.</p>
-<p><strong>Grafana cannot reach InfluxDB</strong> -- verify the URL is <code>http://localhost:8086</code> (not <code>https</code>), the token is pasted without trailing whitespace, the organization matches <code>pmvb</code> exactly (case-sensitive), and the query language is set to <code>Flux</code> rather than the default <code>InfluxQL</code>.</p>
-<p><strong>Pi 5 fails to boot from NVMe after migration</strong> -- confirm <code>BOOT_ORDER</code> is set via <code>sudo raspi-config</code> to NVMe-first. Confirm the EEPROM is recent (<code>sudo rpi-eeprom-update</code> should report up-to-date). With the SD card still inserted, the Pi falls back to SD boot, so a NVMe-boot failure is recoverable.</p>
-<p><strong><code>ninja hello_world_usb</code> reports "unknown target"</strong> -- the modern pico-examples target name is <code>hello_usb</code>, not <code>hello_world_usb</code>. Run <code>ninja -t targets | grep -i hello</code> to enumerate available targets.</p>
-<p><strong>Picos enumerate as <code>Class=Mass Storage</code> rather than as USB-TMC instruments</strong> -- the Picos are in BOOTSEL mode (factory state, no firmware flashed). After flashing the stub firmware in section H, they will enumerate as USB-TMC class.</p>
+<p><strong><code>pip install</code> fails on a compiled package</strong> – check the piwheels mirror is reachable (<code>pip config list</code> should list <code>https://www.piwheels.org/simple</code> as an extra-index-url; it is configured by default on Raspberry Pi OS). If piwheels is unreachable, pip falls back to source builds which take 10-20 minutes per heavy package.</p>
+<p><strong>InfluxDB web UI returns 404 right after install</strong> – wait 30 seconds after <code>systemctl enable --now influxdb</code> for first-time setup, then reload.</p>
+<p><strong>Grafana cannot reach InfluxDB</strong> – verify the URL is <code>http://localhost:8086</code> (not <code>https</code>), the token is pasted without trailing whitespace, the organization matches <code>pmvb</code> exactly (case-sensitive), and the query language is set to <code>Flux</code> rather than the default <code>InfluxQL</code>.</p>
+<p><strong>Pi 5 fails to boot from NVMe after migration</strong> – confirm <code>BOOT_ORDER</code> is set via <code>sudo raspi-config</code> to NVMe-first. Confirm the EEPROM is recent (<code>sudo rpi-eeprom-update</code> should report up-to-date). With the SD card still inserted, the Pi falls back to SD boot, so a NVMe-boot failure is recoverable.</p>
+<p><strong><code>ninja hello_world_usb</code> reports “unknown target”</strong> – the modern pico-examples target name is <code>hello_usb</code>, not <code>hello_world_usb</code>. Run <code>ninja -t targets | grep -i hello</code> to enumerate available targets.</p>
+<p><strong>Picos enumerate as <code>Class=Mass Storage</code> rather than as USB-TMC instruments</strong> – the Picos are in BOOTSEL mode (factory state, no firmware flashed). After flashing the stub firmware in section H, they will enumerate as USB-TMC class.</p>
 <hr />
 <h2 id="future-enhancements">Future Enhancements</h2>
-<p>The orchestration layer's roadmap beyond Phase 0:</p>
+<p>The orchestration layer’s roadmap beyond Phase 0:</p>
 <ul>
-<li><strong>Phase 1 onward -- per-module MCP tools.</strong> Each module's design phase adds its SCPI surface to <code>pmvb.mcp_gateway.server</code> as MCP-callable tools. The Phase 0 scaffold's <code>health_check</code> is joined later by <code>module_1b_measure_voltage</code>, <code>module_1e_set_sine</code>, etc.</li>
+<li><strong>Phase 1 onward – per-module MCP tools.</strong> Each module’s design phase adds its SCPI surface to <code>pmvb.mcp_gateway.server</code> as MCP-callable tools. The Phase 0 scaffold’s <code>health_check</code> is joined later by <code>module_1b_measure_voltage</code>, <code>module_1e_set_sine</code>, etc.</li>
 <li><strong>Bench programming manual.</strong> A dedicated programming reference covering the orchestrator API surface (<code>pmvb.influx</code>, <code>pmvb.fixtures</code>, <code>pmvb.mcp_gateway</code>, <code>pmvb.reports</code>), the standard SCPI dialect across modules, the YAML command schema convention, and pytest fixture patterns. Authoring deferred until at least two real modules are online so the manual reflects actual usage rather than architectural intent.</li>
 <li><strong>Grafana provisioning files.</strong> Today the InfluxDB datasource and dashboards are configured through the Grafana UI. A <code>/etc/grafana/provisioning/datasources/*.yaml</code> declarative config would make the dashboard layer reproducible across re-installs and bench clones.</li>
 <li><strong>CI for SCPI YAML schema validation.</strong> A pre-commit / CI step that validates each <code>modules/&lt;id&gt;/commands.yaml</code> against the SDD §10.2 schema, then re-renders the corresponding <code>sim/&lt;id&gt;/responses.yaml</code> to keep simulator and command surface in lockstep.</li>
-<li><strong>Phase 4 -- chassis LAN switch.</strong> Today the Pi 5's onboard Ethernet connects directly to the bench network. Phase 4 introduces a chassis-internal gigabit switch to give Tier 3 streaming modules (Pi Zero 2 W sidecars) their own subnet for sustained-capture data paths beyond USB-TMC's 12 Mbps.</li>
+<li><strong>Phase 4 – chassis LAN switch.</strong> Today the Pi 5’s onboard Ethernet connects directly to the bench network. Phase 4 introduces a chassis-internal gigabit switch to give Tier 3 streaming modules (Pi Zero 2 W sidecars) their own subnet for sustained-capture data paths beyond USB-TMC’s 12 Mbps.</li>
 </ul>
 <hr />
 <h2 id="references">References</h2>
 <ul>
-<li><a href="../system-design/System_Design_Document.html">System Design Document</a> -- canonical architecture, module catalog, build phases</li>
-<li><a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> -- chassis mechanical and electrical detail</li>
+<li><a href="../system-design/System_Design_Document.html">System Design Document</a> – canonical architecture, module catalog, build phases</li>
+<li><a href="../chassis/Chassis_Architecture_and_Power_Distribution.html">Chassis Architecture and Power Distribution</a> – chassis mechanical and electrical detail</li>
 <li><a href="https://github.com/Pike1950/poor-mans-validation-bench">PMVB GitHub repository</a></li>
 <li><a href="https://www.raspberrypi.com/documentation/computers/os.html">Raspberry Pi OS documentation</a></li>
 <li><a href="https://www.raspberrypi.com/documentation/accessories/m2-hat-plus.html">Raspberry Pi M.2 HAT+ install guide</a></li>
@@ -556,7 +587,7 @@ Note the NICKNAME, SERIAL, and <code>*IDN?</code> RESPONSE columns. The DEV NODE
 <li><a href="https://grafana.com/docs/grafana/latest/">Grafana documentation</a></li>
 <li><a href="https://github.com/raspberrypi/pico-sdk">Pico SDK</a></li>
 <li><a href="https://github.com/raspberrypi/pico-examples">Pico examples</a></li>
-<li><a href="https://github.com/hathach/tinyusb">TinyUSB</a> -- USB-TMC class implementation used by the stub firmware</li>
+<li><a href="https://github.com/hathach/tinyusb">TinyUSB</a> – USB-TMC class implementation used by the stub firmware</li>
 </ul>
 
 </body>
