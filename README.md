@@ -91,7 +91,7 @@ Detailed rationale (gauge sizing, standoff stacking, fastener stack-up, Wago vs 
 - [x] M2.5 standoff/screw/nut kit, 160 pc — HVAZI, Amazon B01L06CUJG ($11.99)
 - [x] Blue 243 threadlocker, 50 mL — ESKONKE, Amazon B0CHM5QS3N ($9.99)
 - [x] Wago 221-413 lever-nuts ×10 — Digi-Key 2946-221-413-ND ($6.45)
-- [ ] USB-C-to-USB-A cables ×14, ~150 mm — Amazon (~$30)
+- [~] USB-A to Micro-USB cables (module Pico to hub) — 11 of 14 on hand (5 prior + 6 from Amazon, $10.81). 11 covers Phase 0 + early Phase 1; 3 more needed for full 14-slot population
 - [x] 22 AWG signal wire on hand
 - [x] LEDs for diagnostic strip on hand
 - [x] Heat-shrink tubing on hand (ElectroBits)
@@ -114,15 +114,16 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 
 *Receive + slide-fit validation*
 
-- [ ] Receive prototype module + chassis panels; verify dimensions match v10 spec
-- [ ] Slide-fit test: insert one module into one slot, verify 0.5 mm sliding clearance on the lip-and-groove engagement
-- [ ] If fail: edit generator-script constants, regenerate, re-order. If pass: order JLCPCB batch of 14 module bodies in PETG (~$84)
+- [x] Receive prototype module + chassis panels (all parts arrived 2026-05-12 onward)
+- [x] Slide-fit test: module blade engages the lip-and-groove cleanly at every slot, 0.5 mm clearance good (verified 2026-05-12; droop is a separate panel-stiffness issue, see build notes)
+- [ ] Order JLCPCB batch of 14 module bodies in PETG (~$84) — unblocked by slide-fit pass
 
 *Frame + component install*
 
-- [ ] Build 4× M3 corner standoff stacks (per chassis doc §7.1)
-- [ ] Acrylic frame stack assembly (per chassis doc §7.1)
-- [ ] Install TX300, GeeekPi (ceiling-mounted), Sabrent (per chassis doc §3.3-3.5)
+- [x] Build 4× M3 corner standoff stacks
+- [x] Acrylic frame stack assembly (standoffs + bonded panels)
+- [x] Install TX300 PSU
+- [~] Install GeeekPi (ceiling mount) + Sabrent hub — deferred a while; GeeekPi mount pending hole-pattern fix (see build notes)
 - [ ] Run 24-pin ATX cable TX300 → GeeekPi
 - [ ] Build per-rail fuse panel + wire to GeeekPi outputs
 
@@ -134,6 +135,12 @@ Prototype-first iterative build: order chassis acrylic + one PLA module, slide-t
 - [ ] Install front-panel diagnostic strip (×4 banana jacks + ×3 LED indicators) on a small acrylic strip on the chassis floor
 
 *Deferred to v1.1:* chassis side walls, rear wall, front panel, ventilation geometry, module-specific faceplate cutouts, custom 4-rail distribution PCB. Walls + vents must be co-designed because closing the chassis re-introduces TX300 cooling constraints.
+
+*v1.0 prototype build notes (iteration 1, 2026-05-12)*
+
+- **GeeekPi mounting holes mis-sized.** Acrylic was cut for a ~52.8 × 63.8 mm M2.5 pattern; the real GeeekPi is 87.4 × 68.4 mm with a 58.6 × 78.1 mm hole pattern (PCB was modeled ~17 mm too short, ~10 mm too narrow). *Resolution:* hand-drill correct holes on the prototype panel, or VHB-tape the GeeekPi (mount is non-structural). *Deferred:* the on-disk `generate_prototype_v10.py` is a stale 6-panel version with no M3/M2.5 hole logic — the generator that produced the real `panel_solid_plate.dxf` / `panel_groove_plate.dxf` was never committed. Fixing the GeeekPi pattern needs a full generator reconstruction (with a placement re-derivation, since the larger GeeekPi would otherwise crowd the chassis back edge), to be done before any v1.1 panel re-order.
+- **Long acrylic panels droop at mid-span.** 435 mm of unsupported 3 mm cast acrylic sags under self-weight. *Resolution (applied):* bonded ceiling + top groove plate into a 6 mm laminate with acrylic cement — large improvement, slight residual droop accepted for the prototype. v1.1 side walls will provide long-edge support and largely eliminate it.
+- **Harness routing tighter than CAD suggested.** Physical wire bend radii make the Wago back-wall harness cramped. *Direction:* custom 4-rail distribution PCB (v1.1 §9.3) is now the leading power-backplane approach, gated on the Module 1E PCB design locking the module-to-backplane connector interface spec.
 
 **Chassis bring-up**
 

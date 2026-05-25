@@ -334,7 +334,7 @@ blockquote {
 <p><em>Figure 5: View of the chassis interior with the TX300 (left, gray), Sabrent USB hub (rear-center), GeeekPi D-1188 (rear-center, hanging from ceiling above the Sabrent hub), and 14 module blades slotted into the bay. The GeeekPi is rotated 90° so its screw-terminal blocks face the chassis front (where the back-wall harness lives) and its status LEDs face the chassis rear.</em></p>
 <h3 id="35-sabrent-hb-bu10-usb-hub-mounting">3.5 Sabrent HB-BU10 USB Hub Mounting</h3>
 <p>The Sabrent HB-BU10 (144.8 × 48.3 × 23.9 mm) sits at the <strong>rear-center of the chassis floor</strong>, X = 102.6..247.4 (145 mm), Y = 175.4..223.7 (48 mm), Z = 6..29.9 (24 mm tall). The hub mounts to the floor plate via two M3 × 6 mm screws threaded into adhesive-backed standoffs (the hub doesn't have factory mounting holes; we attach standoffs with VHB tape to the hub bottom, then bolt those down). For the v1.0 prototype phase, the hub can be retained by a strip of 3M VHB tape directly to the chassis floor without standoffs.</p>
-<p>The hub's 10 USB-A downstream ports face <strong>forward</strong> (toward Y = 0, the open front of the chassis) so each downstream port can run a short USB-C-to-USB-A cable rearward to the corresponding module's rear-edge Pico USB-C connector. The modules occupy Y = 0..125, the hub at Y = 175.4 sits 50 mm behind the rearmost module edge — easily handled by 100-150 mm pre-built USB-C-to-USB-A cables. The hub's uplink (USB 3.0 Type-A) and DC barrel input cables pass freely from the rear of the open-frame chassis since v1.0 has no rear wall.</p>
+<p>The hub's 10 USB-A downstream ports face <strong>forward</strong> (toward Y = 0, the open front of the chassis) so each downstream port can run a short USB-A-to-micro-USB cable rearward to the corresponding module's rear-edge Pico micro-USB connector. The modules occupy Y = 0..125, the hub at Y = 175.4 sits 50 mm behind the rearmost module edge — easily handled by 100-150 mm pre-built USB-A-to-micro-USB cables. The hub's uplink (USB 3.0 Type-A) and DC barrel input cables pass freely from the rear of the open-frame chassis since v1.0 has no rear wall.</p>
 <h3 id="36-module-slot-geometry-and-form-factor">3.6 Module Slot Geometry and Form Factor</h3>
 <p>The module bay occupies the right ~3/4 of the chassis floor: <strong>14 slots at 22.5 mm pitch</strong>, X centers at −132, −110, −87, −64, −42, −20, +3, +26, +48, +70, +93, +116, +138, +160.</p>
 <img src="../figures/chassis/photos/PMVBModule3.png" alt="" style="max-width: 350px; width: 100%; display: block; margin: 1.5rem auto;">
@@ -354,7 +354,7 @@ blockquote {
 <p><strong>Module mount convention (mandatory across all modules):</strong> each module's host PCB is mounted vertically against the cavity right wall (PCB plane parallel to the chassis YZ plane, PCB normal pointing leftward into the cavity). All components are placed on the cavity-facing (left-pointing) face of the PCB. No components on the back face of the PCB (which is pressed against the right wall). This convention is what makes the 21.5 mm stack budget achievable — without it, adjacent modules could collide in the inter-module gap.</p>
 <p><strong>Connector positions on the host PCB:</strong></p>
 <ul>
-<li><strong>Pico USB-C:</strong> rear edge of the PCB, pointing rearward (+Y direction). The Pico 2 W is mounted near the rear half of the PCB with its long axis running along Y so its USB-C connector lands on the rear PCB edge. A short USB-C-to-USB-A cable runs straight rearward to one of the Sabrent HB-BU10's downstream ports.</li>
+<li><strong>Pico micro-USB:</strong> rear edge of the PCB, pointing rearward (+Y direction). The Pico 2 W is mounted near the rear half of the PCB with its long axis running along Y so its micro-USB connector lands on the rear PCB edge. A short USB-A-to-micro-USB cable runs straight rearward to one of the Sabrent HB-BU10's downstream ports.</li>
 <li><strong>Phoenix MC 1,5/4-G (1803293):</strong> top edge near the rear corner, pointing upward (+Z direction). When the module is fully seated, the chassis's per-slot Phoenix MC 1,5/4-ST plug from the back-wall harness drops down onto this header from above (the harness wires run at Z ≈ 76, just 5 mm above the top edge of the module body's top shell at Z = 86 minus 5 mm shell = effectively at the top of the cavity).</li>
 <li><strong>Faceplate connectors:</strong> front edge, fitting within ~17 mm wide × 80 mm tall front-face real estate per slot.</li>
 </ul>
@@ -546,7 +546,7 @@ blockquote {
 <hr />
 <h2 id="5-usb-tmc-backplane">5. USB-TMC Backplane</h2>
 <p>The Sabrent HB-BU10 USB 3.0 hub serves as the chassis-internal USB-TMC backplane. It is <strong>not on the chassis BOM as a power consumer</strong> of the TX300 — the hub runs from its own 60 W external wall brick, reaching the back panel through a barrel-jack cutout — but it is bolted into the chassis for mechanical integration.</p>
-<p>Each populated module's Pico 2 W presents a USB-C peripheral interface on the module's right edge. A short USB-C-to-USB-A cable (~150 mm typical) runs from the module's right-edge connector to one of the Sabrent's 10 downstream ports. From the hub's uplink port, a single USB 3.0 cable runs out the back panel to the Pi 5 host on the bench.</p>
+<p>Each populated module's Pico 2 W presents a micro-USB peripheral interface on the module's rear edge. A short USB-A-to-micro-USB cable (~150 mm typical) runs from the module's rear-edge connector to one of the Sabrent's 10 downstream ports. From the hub's uplink port, a single USB 3.0 cable runs out the back panel to the Pi 5 host on the bench.</p>
 <p>Per-port switches and per-port LEDs on the HB-BU10 are operationally useful: a misbehaving Pico can be power-cycled by toggling its hub port without affecting any other module, and the per-port LED quickly identifies which port a SCPI device-discovery query enumerated. The hub's 0.9 A per-port current (USB 3.0 spec minimum) is well above the Pico 2 W's ~80 mA peak draw.</p>
 <p>The hub's 10 ports support the v1.0 + v1.1 module count (13 modules) with one port to spare for development gear (a bench USB-TMC scope or a debug Pico). If port count becomes a constraint in a future revision, the hub can be replaced with a higher-port variant (Sabrent HB-B7C3 or similar) without changing any other chassis component.</p>
 <hr />
@@ -746,13 +746,13 @@ blockquote {
 <td>Verified 2026-05-07; uses own 60 W brick, not chassis PSU</td>
 </tr>
 <tr class="odd">
-<td>USB-C to USB-A cable, 150 mm</td>
+<td>USB-A to micro-USB cable, ~150 mm</td>
 <td>Generic</td>
 <td>Amazon</td>
 <td>(any)</td>
 <td style="text-align: right;">14</td>
 <td style="text-align: right;">$2</td>
-<td>Per-module cable from Pico 2 W USB-C to hub USB-A</td>
+<td>Per-module cable from Pico 2 W micro-USB to hub USB-A (11 on hand)</td>
 </tr>
 <tr class="even">
 <td><strong>Mechanical (acrylic frame, hardware)</strong></td>
@@ -873,7 +873,7 @@ blockquote {
 </ol>
 <h3 id="75-first-module-bring-up">7.5 First-module bring-up</h3>
 <ol start="17">
-<li><strong>Install one module</strong> into the leftmost slot (slot 1). Connect its USB-C cable to hub port 1. Connect the slot-1 Phoenix plug to the module's top-rear header.</li>
+<li><strong>Install one module</strong> into the leftmost slot (slot 1). Connect its USB-A-to-micro-USB cable to hub port 1. Connect the slot-1 Phoenix plug to the module's top-rear header.</li>
 <li><strong>Switch PS_ON# ON</strong> and verify the module's Pico boots (heartbeat LED on the Pico).</li>
 <li><strong>Run <code>lsusb</code></strong> on the Pi 5 and confirm the module appears as a USB-TMC device.</li>
 <li><strong>Run a smoke-test SCPI sequence</strong> against the module (<code>*IDN?</code> query) and confirm a valid response.</li>

@@ -136,7 +136,7 @@ This positioning gives the breakout's screw terminals a clean run forward and do
 
 The Sabrent HB-BU10 (144.8 × 48.3 × 23.9 mm) sits at the **rear-center of the chassis floor**, X = 102.6..247.4 (145 mm), Y = 175.4..223.7 (48 mm), Z = 6..29.9 (24 mm tall). The hub mounts to the floor plate via two M3 × 6 mm screws threaded into adhesive-backed standoffs (the hub doesn't have factory mounting holes; we attach standoffs with VHB tape to the hub bottom, then bolt those down). For the v1.0 prototype phase, the hub can be retained by a strip of 3M VHB tape directly to the chassis floor without standoffs.
 
-The hub's 10 USB-A downstream ports face **forward** (toward Y = 0, the open front of the chassis) so each downstream port can run a short USB-C-to-USB-A cable rearward to the corresponding module's rear-edge Pico USB-C connector. The modules occupy Y = 0..125, the hub at Y = 175.4 sits 50 mm behind the rearmost module edge — easily handled by 100-150 mm pre-built USB-C-to-USB-A cables. The hub's uplink (USB 3.0 Type-A) and DC barrel input cables pass freely from the rear of the open-frame chassis since v1.0 has no rear wall.
+The hub's 10 USB-A downstream ports face **forward** (toward Y = 0, the open front of the chassis) so each downstream port can run a short USB-A-to-micro-USB cable rearward to the corresponding module's rear-edge Pico micro-USB connector. The modules occupy Y = 0..125, the hub at Y = 175.4 sits 50 mm behind the rearmost module edge — easily handled by 100-150 mm pre-built USB-A-to-micro-USB cables. The hub's uplink (USB 3.0 Type-A) and DC barrel input cables pass freely from the rear of the open-frame chassis since v1.0 has no rear wall.
 
 ### 3.6 Module Slot Geometry and Form Factor
 
@@ -165,7 +165,7 @@ Each module's body sits at Y = 3 (front edge) to Y = 128 (rear edge), Z = 3 (bot
 
 **Connector positions on the host PCB:**
 
-- **Pico USB-C:** rear edge of the PCB, pointing rearward (+Y direction). The Pico 2 W is mounted near the rear half of the PCB with its long axis running along Y so its USB-C connector lands on the rear PCB edge. A short USB-C-to-USB-A cable runs straight rearward to one of the Sabrent HB-BU10's downstream ports.
+- **Pico micro-USB:** rear edge of the PCB, pointing rearward (+Y direction). The Pico 2 W is mounted near the rear half of the PCB with its long axis running along Y so its micro-USB connector lands on the rear PCB edge. A short USB-A-to-micro-USB cable runs straight rearward to one of the Sabrent HB-BU10's downstream ports.
 - **Phoenix MC 1,5/4-G (1803293):** top edge near the rear corner, pointing upward (+Z direction). When the module is fully seated, the chassis's per-slot Phoenix MC 1,5/4-ST plug from the back-wall harness drops down onto this header from above (the harness wires run at Z ≈ 76, just 5 mm above the top edge of the module body's top shell at Z = 86 minus 5 mm shell = effectively at the top of the cavity).
 - **Faceplate connectors:** front edge, fitting within ~17 mm wide × 80 mm tall front-face real estate per slot.
 
@@ -288,7 +288,7 @@ A blown rail fuse causes the corresponding LED to extinguish, giving a visible a
 
 The Sabrent HB-BU10 USB 3.0 hub serves as the chassis-internal USB-TMC backplane. It is **not on the chassis BOM as a power consumer** of the TX300 — the hub runs from its own 60 W external wall brick, reaching the back panel through a barrel-jack cutout — but it is bolted into the chassis for mechanical integration.
 
-Each populated module's Pico 2 W presents a USB-C peripheral interface on the module's right edge. A short USB-C-to-USB-A cable (~150 mm typical) runs from the module's right-edge connector to one of the Sabrent's 10 downstream ports. From the hub's uplink port, a single USB 3.0 cable runs out the back panel to the Pi 5 host on the bench.
+Each populated module's Pico 2 W presents a micro-USB peripheral interface on the module's rear edge. A short USB-A-to-micro-USB cable (~150 mm typical) runs from the module's rear-edge connector to one of the Sabrent's 10 downstream ports. From the hub's uplink port, a single USB 3.0 cable runs out the back panel to the Pi 5 host on the bench.
 
 Per-port switches and per-port LEDs on the HB-BU10 are operationally useful: a misbehaving Pico can be power-cycled by toggling its hub port without affecting any other module, and the per-port LED quickly identifies which port a SCPI device-discovery query enumerated. The hub's 0.9 A per-port current (USB 3.0 spec minimum) is well above the Pico 2 W's ~80 mA peak draw.
 
@@ -322,7 +322,7 @@ Verified against current sourcing as of 2026-05-07. Sourcing priority: Mouser �
 | LED panel indicators ×3 (deferred to v1.1) | VCC 5102H series | Digi-Key | L10021-ND / 5102H1-12V-ND / 5102H5-12V-ND | 0 | $0 | v1.1 diagnostic strip only; fuse cartridge caps are visible from above in the open v1.0 chassis |
 | **USB-TMC backplane** | | | | | | |
 | Sabrent HB-BU10 USB 3.0 hub, 10-port, self-powered | Sabrent HB-BU10 | Amazon | B0797NZFYP | 1 | $47 | Verified 2026-05-07; uses own 60 W brick, not chassis PSU |
-| USB-C to USB-A cable, 150 mm | Generic | Amazon | (any) | 14 | $2 | Per-module cable from Pico 2 W USB-C to hub USB-A |
+| USB-A to micro-USB cable, ~150 mm | Generic | Amazon | (any) | 14 | $2 | Per-module cable from Pico 2 W micro-USB to hub USB-A (11 on hand) |
 | **Mechanical (acrylic frame, hardware)** | | | | | | |
 | Custom laser-cut acrylic frame, 3 mm cast acrylic blue | n/a | SendCutSend | (DXFs: panel_solid_plate.dxf qty 2 + panel_groove_plate.dxf qty 2) | 1 set | ~$135 | 4 panels for v1.0 open-frame, fabricated as 2 unique designs at qty 2 each. Both solid plates carry the GeeekPi mounting holes (only the ceiling uses them); both groove plates carry the GeeekPi clearance holes (only the top divider uses them). This avoids ~$70 in SendCutSend per-unique-part setup fees. Side walls + rear wall + front panel deferred to v1.1. |
 | Csdtylh M3 320-piece standoff/screw/nut assortment kit (M-F + F-F + screws + nuts) | Csdtylh | Amazon | B06Y5TJXY1 | 1 kit | $14.98 | Source for all M3 hardware. Per chassis: 12× M-F 20 mm + 4× F-F 20 mm stacked into 4 corner stacks of 80 mm each + 8× M3 × 8 mm screws. Kit holds 20 of each length, leaving plenty for spares and component mounting. |
@@ -373,7 +373,7 @@ In order on first power-up, before any module is installed:
 
 ### 7.5 First-module bring-up
 
-17. **Install one module** into the leftmost slot (slot 1). Connect its USB-C cable to hub port 1. Connect the slot-1 Phoenix plug to the module's top-rear header.
+17. **Install one module** into the leftmost slot (slot 1). Connect its USB-A-to-micro-USB cable to hub port 1. Connect the slot-1 Phoenix plug to the module's top-rear header.
 18. **Switch PS_ON# ON** and verify the module's Pico boots (heartbeat LED on the Pico).
 19. **Run `lsusb`** on the Pi 5 and confirm the module appears as a USB-TMC device.
 20. **Run a smoke-test SCPI sequence** against the module (`*IDN?` query) and confirm a valid response.
