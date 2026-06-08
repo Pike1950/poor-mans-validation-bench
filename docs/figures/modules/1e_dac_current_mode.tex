@@ -1,0 +1,130 @@
+% =============================================================================
+% Figure 1E-2: AD9742 current-mode DAC operation (simplified)
+% =============================================================================
+% Conceptual view of the current-source architecture inside the AD9742:
+% segmented PMOS current sources sum to a total I_FS set by the FSADJ
+% resistor, the 12-bit input code routes each segment to either IOUTA or
+% IOUTB, the two output pins drive 25 ohm termination resistors to AGND,
+% and the differential voltage (V_A - V_B) carries the signal.
+%
+% Compile:  pdflatex 1e_dac_current_mode.tex
+% Convert:  pdftocairo -svg 1e_dac_current_mode.pdf
+% =============================================================================
+\documentclass[border=8pt]{standalone}
+%
+\input{../style/pmvb-figures.sty}
+%
+\ctikzset{bipoles/length=8mm}
+%
+\begin{document}
+\begin{circuitikz}[pmvb figure]
+
+  % ---------------------------------------------------------------------
+  % AVDD rail at top
+  % ---------------------------------------------------------------------
+  \node[font=\sffamily\scriptsize, text=pmvbRed]
+    (avdd) at (4, 6) {AVDD = 3.3\,V};
+
+  % ---------------------------------------------------------------------
+  % Segmented current source array
+  % ---------------------------------------------------------------------
+  \node[pmvb ic, minimum width=70mm, minimum height=18mm]
+    (csa) at (4, 4.5) {};
+  \node[font=\sffamily\bfseries\small, text=pmvbFg]
+    at ([yshift=4mm]csa.center) {Segmented PMOS current source array};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-1mm]csa.center) {top 9 bits: unary-decoded (one source per code)};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-4mm]csa.center) {bottom 3 bits: binary-weighted ${\cdot}$ total = $I_{FS} \approx 20$\,mA};
+
+  \draw[pmvb digital] (avdd.south) -- (csa.north);
+
+  % ---------------------------------------------------------------------
+  % 12-bit code switching fabric
+  % ---------------------------------------------------------------------
+  \node[pmvb ic, minimum width=70mm, minimum height=14mm]
+    (sw) at (4, 2.0) {};
+  \node[font=\sffamily\bfseries\small, text=pmvbFg]
+    at ([yshift=3mm]sw.center) {12-bit code switching fabric};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-2mm]sw.center) {each current segment routed to IOUTA or IOUTB by input code};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-5mm]sw.center) {(\,$I_A + I_B = I_{FS}$ always)};
+
+  \draw[pmvb digital] (csa.south) -- (sw.north);
+
+  % DB0..DB11 entering from the left
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east, align=right]
+    (dbin) at (-2.0, 2.4) {DB0--DB11\\(parallel data from Pico)};
+  \draw[pmvb bus] (dbin.east) -- node[pmvb bus width]{$\times 12$} (sw.west |- dbin);
+
+  % CLOCK pin entering from the left, below the bus
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east, align=right]
+    (clkin) at (-2.0, 1.5) {CLOCK\\(Pico GP12)};
+  \draw[pmvb digital] (clkin.east) -- (sw.west |- clkin);
+
+  % ---------------------------------------------------------------------
+  % IOUTA / IOUTB outputs - well separated columns
+  % ---------------------------------------------------------------------
+  \coordinate (ioutA_pin) at ($(sw.south) + (-2.5, 0)$);
+  \coordinate (ioutB_pin) at ($(sw.south) + ( 2.5, 0)$);
+
+  % Drop wires from switch box bottom edges
+  \draw[pmvb analog] (ioutA_pin) -- ++(0, -1);
+  \draw[pmvb analog] (ioutB_pin) -- ++(0, -1);
+
+  \coordinate (ioutA) at ($(ioutA_pin) + (0, -1)$);
+  \coordinate (ioutB) at ($(ioutB_pin) + (0, -1)$);
+
+  % Pin labels (IOUTA / IOUTB)
+  \node[font=\sffamily\scriptsize\bfseries, text=pmvbFg, anchor=south, align=center]
+    at ($(ioutA_pin) + (0, -0.5)$) {IOUTA};
+  \node[font=\sffamily\scriptsize\bfseries, text=pmvbFg, anchor=south, align=center]
+    at ($(ioutB_pin) + (0, -0.5)$) {IOUTB};
+
+  % Current direction arrows / labels (to the side)
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbAmber, anchor=east]
+    at ($(ioutA) + (-2mm, 0)$) {$I_A$};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbAmber, anchor=west]
+    at ($(ioutB) + (2mm, 0)$) {$I_B$};
+
+  % Load resistors to ground (well clear of each other)
+  \draw (ioutA) to[R=\pmvblabel{25\,$\Omega$}, *-] ($(ioutA) + (0, -2)$) node[ground]{};
+  \draw (ioutB) to[R=\pmvblabel{25\,$\Omega$}, *-] ($(ioutB) + (0, -2)$) node[ground]{};
+
+  % V_A / V_B labels on the wire above the resistors (offset to the side)
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
+    at ($(ioutA) + (-12mm, -1)$) {$V_A = I_A \cdot 25\,\Omega$};
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
+    at ($(ioutB) + (12mm, -1)$) {$V_B = I_B \cdot 25\,\Omega$};
+
+  % ---------------------------------------------------------------------
+  % FSADJ branch on the right side (separate column, no overlap)
+  % ---------------------------------------------------------------------
+  \coordinate (fsadj_pin)   at ($(csa.east) + (0, 0)$);
+  \coordinate (fsadj_corner) at (10.5, 4.5);
+  \coordinate (fsadj_R_bot) at (10.5, 2.5);
+
+  \draw[pmvb digital] (fsadj_pin) -- (fsadj_corner);
+  \node[font=\sffamily\scriptsize\bfseries, text=pmvbFg, anchor=south]
+    at ($(fsadj_pin)!0.6!(fsadj_corner) + (0, 1mm)$) {FSADJ pin};
+
+  \draw (fsadj_corner) to[R=\pmvblabel{$R_{FSADJ}$ = 1.91\,k$\Omega$}, *-]
+    (fsadj_R_bot) node[ground]{};
+
+  % ---------------------------------------------------------------------
+  % Differential signal + compliance annotation (well below the load Rs)
+  % ---------------------------------------------------------------------
+  \node[pmvb annotation, align=center, text width=15cm]
+    at (4, -2.8)
+    {\textbf{Differential signal}\,: $V_A - V_B$ swings $\pm I_{FS} \cdot R_{load} = \pm 0.5$\,V
+     ($1\,V_{pp}$) across the input codes.\\[1mm]
+     \textbf{Full-scale current}\,: $I_{FS} = 32 \cdot 1.2\,\text{V} / R_{FSADJ}$. With
+     $R_{FSADJ}$ = 1.91\,k$\Omega$, $I_{FS} \approx 20$\,mA.\\[1mm]
+     \textbf{Compliance window}\,: each output pin must stay within $\pm 1\,$V of ACOM for
+     spec'd accuracy. With 20\,mA $\times$ 25\,$\Omega$ = 0.5\,V per leg, we have $\sim$2$\times$ margin.
+     Larger $R_{load}$ or $I_{FS}$ would push the PMOS sources out of saturation and
+     degrade INL / DNL / THD.};
+
+\end{circuitikz}
+\end{document}

@@ -114,3 +114,7 @@ hardware/**/__pycache__/
 # Vendor datasheets kept locally next to the module docs as reference;
 # third-party material, not redistributed through the public repo.
 docs/modules/**/*.pdf
+
+# Matplotlib-generated PNG previews (the .svg is the committed deliverable;
+# .png regenerates from the .py script for local preview).
+docs/figures/modules/*_spectrum.png
