@@ -170,7 +170,7 @@ blockquote {
 </div>
 <h1 id="module-1e-function-generator-arbitrary-waveform-generator">Module 1E: Function Generator / Arbitrary Waveform Generator</h1>
 <h2 id="module-design-document">Module Design Document</h2>
-<p><strong>Version:</strong> 1.2 (May 2026, Option A + D5/D7 corrections) <strong>Module ID:</strong> 1E <strong>Tier:</strong> 1 <strong>Status:</strong> In Design <strong>Parent SDD section:</strong> 7.5.5 of the <a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document</a></p>
+<p><strong>Version:</strong> 1.3 (May 2026, +AWG functional architecture figure) <strong>Module ID:</strong> 1E <strong>Tier:</strong> 1 <strong>Status:</strong> In Design <strong>Parent SDD section:</strong> 7.5.5 of the <a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document</a></p>
 <hr />
 <h2 id="table-of-contents">Table of Contents</h2>
 <ul>
@@ -247,10 +247,10 @@ blockquote {
 <h3 id="synchronization-and-trigger">Synchronization and trigger</h3>
 <p>The module exposes one auxiliary digital output that can be configured as a sync pulse (rising edge at the start of each waveform period) or a continuous gate. This output ties to the chassis-wide trigger bus (see SDD section 11.4) so captures on Module 2E (Mixed-Signal Digitizer) can be synchronized to AWG output without software-arming jitter. The module also accepts a trigger input from the same bus, allowing the AWG to start its waveform on an external event.</p>
 <h2 id="functional-block-diagram">2. Functional Block Diagram</h2>
-<p>Module 1E is documented across three figures: a system-level view showing where the module sits in the PMVB chassis, the AD9742 internal block diagram (from the datasheet), and a typical-application schematic showing the parallel data path, current-to-voltage conversion, reconstruction filter, op-amp output stage, and impedance switching.</p>
-<p><strong>Figure 1E-1: Module 1E system context (system block diagram)</strong></p>
+<p>Module 1E is documented across three figures: an AWG functional-architecture view mapping the standard arbitrary-waveform-generator block diagram (sample clock generator, address generator, waveform memory, DAC, reconstruction filter, signal conditioning) to the Pico + AD9742 + AD8056 realization; the AD9742 internal block diagram (from the datasheet); and a typical-application schematic showing the parallel data path, current-to-voltage conversion, reconstruction filter, op-amp output stage, and impedance switching.</p>
+<p><strong>Figure 1E-1: Module 1E AWG functional architecture</strong></p>
 <img src="../figures/modules/1e_system_context.svg"
-     alt="Module 1E in the v1.0 PMVB chassis"
+     alt="Module 1E AWG functional architecture: textbook AWG blocks mapped to the Pico + AD9742 + AD8056 realization"
      style="width: 100%; height: auto; display: block; margin: 0 auto;">
 <p><strong>Figure 1E-2: AD9742 internal functional block diagram</strong></p>
 <img src="../figures/modules/1e_ad9742_internal.svg"

@@ -1,11 +1,15 @@
 % =============================================================================
-% Figure 1E-1: Module 1E system context
+% Figure 1E-1: Module 1E AWG functional architecture
 % =============================================================================
-% Shows where Module 1E sits in the v1.0 PMVB chassis.
-% This is a SYSTEM block diagram (subsystems, physical interconnects).
+% Maps the standard arbitrary-waveform-generator architecture (sample clock
+% generator, address generator, waveform memory, DAC, reconstruction filter,
+% signal conditioning) to the PMVB Module 1E realization. Each block carries
+% its textbook function as the headline and the PMVB implementation
+% (Pico firmware role, IC P/N, key parameters) in italic muted text below.
 %
-% Module 1E box exposes its three internal stages:
-%   Pico 2 W  ->  MCP4922  ->  TL072 op-amp  ->  BNC (outside module box)
+% Style follows the canonical Tektronix / Keysight AWG block diagram so a
+% reader who knows AWGs can recognize the topology, then read the italic
+% sub-labels to see how this implementation fills each role.
 %
 % Compile:  pdflatex 1e_system_context.tex
 % Convert:  pdftocairo -svg 1e_system_context.pdf
@@ -16,100 +20,177 @@
 %
 \begin{document}
 \begin{tikzpicture}[pmvb figure]
-  %
-  % --- Subsystems --------------------------------------------------------
-  \node[pmvb subsystem]
-    (pi5) at (0, 0)
-    {\textbf{Raspberry Pi 5}\\\scriptsize Orchestration Head\\\scriptsize PyVISA \textbullet{} pytest\\\scriptsize InfluxDB \textbullet{} Grafana};
-  %
-  \node[pmvb subsystem, right=32mm of pi5]
-    (hub)
-    {\textbf{Powered USB Hub}\\\scriptsize 4--8 ports\\\scriptsize 5\,V at 2.4\,A/port};
-  %
-  % Module 1E box -- taller to fit three internal stages (Pico, DAC, op-amp)
-  \node[pmvb subsystem, minimum width=52mm, minimum height=68mm,
-        right=32mm of hub]
-    (m1e) {};
-  %
-  % --- Module 1E title labels at the top of the box ----
-  \node[font=\sffamily\bfseries\small, text=pmvbFg]
-    at ([yshift=-3.5mm]m1e.north) {Module 1E};
-  \node[font=\sffamily\scriptsize, text=pmvbFg]
-    at ([yshift=-7.5mm]m1e.north) {Function Generator / AWG};
-  %
-  % --- Module 1E internal stages (vertical chain) ------------------------
-  % Pico moved further from AD9742 (yshift=18mm vs 12mm earlier) so the bus
-  % wire between them is long enough for the x12 annotation pill to sit on
-  % without covering the whole line.
-  \node[pmvb ic, minimum width=36mm, minimum height=8mm]
-    at ([yshift=18mm]m1e.center) (m1e_pico) {Pico 2 W};
-  %
-  \node[pmvb ic, minimum width=36mm, minimum height=8mm]
-    at ([yshift=0mm]m1e.center) (m1e_dac) {AD9742};
-  %
-  % AD8056 op-amp triangle, apex pointing right (toward BNC).
-  % Placed below AD9742 with apex 6mm right of module center for clearance.
-  \opamptri{tl072}{($(m1e.center) + (6mm, -16mm)$)}{1}
-  \node[font=\sffamily\scriptsize, text=pmvbFg]
-    at ($(tl072_out) + (-6mm, 0)$) {AD8056};
-  %
-  % --- Internal wiring inside Module 1E ----------------------------------
-  \draw[pmvb bus]
-    (m1e_pico) --
-    node[pmvb bus width]{$\times 12$}
-    (m1e_dac);
-  %
-  % MCP4922 -> TL072 + input. Four-segment routing: DOWN, LEFT, DOWN, RIGHT
-  % so the wire enters the op-amp's + (non-inverting) input from the LEFT
-  % side with the final horizontal segment landing at tl072_p.y.
-  %   lc0 = south + (0, -3mm)         - short DOWN drop from MCP4922 south
-  %   lc1 = lc0   + (-12mm, 0)         - top-left corner after LEFT segment
-  %   lc2 = (lc1.x, tl072_p.y)         - bottom-left corner before final RIGHT
-  \coordinate (lc0) at ($(m1e_dac.south) + (0, -3mm)$);
-  \coordinate (lc1) at ($(lc0) + (-12mm, 0)$);
-  \coordinate (lc2) at (lc1 |- tl072_p);
-  \draw[pmvb analog]
-    (m1e_dac.south) --
-    (lc0) --
-    (lc1) --
-    node[left]{\pmvblabel{0--$V_{REF}$}}
-    (lc2) --
-    (tl072_p);
-  %
-  % --- BNC output connector, OUTSIDE Module 1E box -----------------------
-  % Place BNC at fixed offset right of m1e.east (12mm clearance), at the
-  % same y as tl072_out so the output wire is straight horizontal.
-  \coordinate (bnc_pos) at ($(m1e.east) + (12mm, 0)$);
-  \node[pmvb connector] (bnc)
-    at (bnc_pos |- tl072_out) {BNC};
+
+  % ---------------------------------------------------------------------
+  % Top row: sample clock generator + external 10 MHz reference input
+  % ---------------------------------------------------------------------
+  \node[pmvb ic, minimum width=36mm, minimum height=16mm]
+    (clk) at (8.8, 3.4) {};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=5mm]clk.center) {Sample clock generator};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=1mm]clk.center) {Pico PIO + DMA};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-2mm]clk.center) {30 to 50 MSPS};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-5mm]clk.center) {locks to ext.\ 10 MHz};
+
+  % External reference input
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
+    (extref) at (4.6, 3.4) {Ext.\ 10\,MHz ref};
+  \draw[pmvb digital] (extref) -- (clk.west);
+
+  % ---------------------------------------------------------------------
+  % Main signal-flow row, left to right
+  % ---------------------------------------------------------------------
+
+  % Trigger IN annotation
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east, align=right]
+    (trigin) at (-0.4, 0) {Trigger IN\\(GP17)};
+
+  % Address generator
+  \node[pmvb ic, minimum width=30mm, minimum height=18mm]
+    (addr) at (1.6, 0) {};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=6mm]addr.center) {Address};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=3mm]addr.center) {generator};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-1mm]addr.center) {Pico firmware:};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-4mm]addr.center) {DDS phase accum};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-7mm]addr.center) {or DMA counter};
+
+  % Waveform memory
+  \node[pmvb ic, minimum width=34mm, minimum height=18mm]
+    (mem) at (5.5, 0) {};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=6mm]mem.center) {Waveform memory};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=2mm]mem.center) {Pico SRAM up to};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-1mm]mem.center) {{$\sim$}256\,K samples,};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-4mm]mem.center) {or DDS on the fly,};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-7mm]mem.center) {or 4\,MB flash stream};
+
+  % DAC
+  \node[pmvb ic, minimum width=26mm, minimum height=18mm]
+    (dac) at (9.4, 0) {};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=6mm]dac.center) {DAC};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=2mm]dac.center) {AD9742};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-1mm]dac.center) {12-bit};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-4mm]dac.center) {parallel I-out};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-7mm]dac.center) {30 to 50 MSPS};
+
+  % Reconstruction filter
+  \node[pmvb ic, minimum width=32mm, minimum height=18mm]
+    (lpf) at (13.0, 0) {};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=6mm]lpf.center) {Reconstruction};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=3mm]lpf.center) {filter};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-1mm]lpf.center) {5th-order Butterworth,};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-4mm]lpf.center) {two per-leg L-C-L-C-L};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-7mm]lpf.center) {ladders, $\sim$12\,MHz};
+
+  % Signal conditioning
+  \node[pmvb ic, minimum width=36mm, minimum height=18mm]
+    (cond) at (17.0, 0) {};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=6mm]cond.center) {Signal conditioning};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=2mm]cond.center) {AD8056 diff-to-SE,};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-1mm]cond.center) {gain 20, $\pm$10\,V;};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-4mm]cond.center) {SP3T: 50\,$\Omega$ /};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-7mm]cond.center) {high-Z / 10\,k$\Omega$};
+
+  % BNC output
+  \node[pmvb connector, right=8mm of cond.east] (bnc) {BNC};
   \node[pmvb annotation, below=0.5mm of bnc] {OUT};
-  %
-  % --- Output arrow from TL072 apex to BNC: straight horizontal ----------
-  \draw[pmvb analog]
-    (tl072_out) --
-    node[above=0.5mm]{\pmvblabel{$\pm$10\,V}}
+
+  % ---------------------------------------------------------------------
+  % Bottom row: microprocessor / SCPI interface
+  % ---------------------------------------------------------------------
+  \node[pmvb ic, minimum width=42mm, minimum height=16mm]
+    (cpu) at (5.5, -3.7) {};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=5mm]cpu.center) {Microprocessor};
+  \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
+    at ([yshift=2mm]cpu.center) {/ SCPI interface};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-2mm]cpu.center) {Pico USB-TMC,};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-5mm]cpu.center) {SCPI command parser};
+
+  % USB-TMC into the microprocessor from below
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=north, align=center]
+    (usbtmc) at (5.5, -6.0) {USB-TMC\\to Pi 5 host};
+  \draw[pmvb bus] (usbtmc.north) -- (cpu.south);
+
+  % Sync OUT (GP16) from the microprocessor to the chassis trigger bus
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left]
+    (syncout) at (11.4, -3.7) {Sync OUT (GP16)\\to chassis trigger bus};
+  \draw[pmvb digital] (cpu.east) -- (syncout.west);
+
+  % ---------------------------------------------------------------------
+  % Signal-flow arrows
+  % ---------------------------------------------------------------------
+
+  % Trigger IN -> Address generator
+  \draw[pmvb digital] (trigin) -- (addr.west);
+
+  % Address -> Memory (control)
+  \draw[pmvb digital] (addr.east) -- (mem.west);
+
+  % Memory -> DAC (12-bit parallel data bus)
+  \draw[pmvb bus] (mem.east) -- node[pmvb bus width]{$\times 12$} (dac.west);
+
+  % DAC -> Filter (analog differential, shown single-ended for clarity)
+  \draw[pmvb analog] (dac.east) -- (lpf.west);
+
+  % Filter -> Conditioning
+  \draw[pmvb analog] (lpf.east) -- (cond.west);
+
+  % Conditioning -> BNC
+  \draw[pmvb analog] (cond.east)
+    -- node[above=0.5mm]{\pmvblabel{$\pm$10\,V}}
     (bnc.west);
-  %
-  % --- Trigger bus annotation below the module ---------------------------
-  \node[pmvb annotation, below=14mm of m1e]
-    (trig) {Optional: shared trigger bus\\to other modules};
-  \draw[pmvb optional] (m1e.south) -- (trig.north);
-  %
-  % --- Edges between subsystems ------------------------------------------
-  \draw[pmvb digital bi]
-    (pi5.east) -- node[above]{\pmvblabel{USB 3.0}} (hub.west);
-  %
-  % USB-TMC bus wire with stacked labels (\\ requires align=center).
-  \draw[pmvb bus]
-    (hub.east) --
-    node[above=0.5mm]{\pmvblabel{USB-TMC}}
-    node[below=0.5mm,
-         align=center,
-         font=\sffamily\scriptsize\itshape,
-         text=pmvbMuted]
-      {SCPI commands\\+ data}
-    (m1e.west);
-  %
-  % Caption is rendered in the design doc, not embedded in the SVG.
+
+  % Sample clock generator -> DAC (CLK)
+  \draw[pmvb digital] (clk.south)
+    -- node[right=0.5mm]{\pmvblabel{CLK}}
+    (dac.north);
+
+  % Microprocessor -> Address generator (control)
+  \draw[pmvb digital] (cpu.north -| addr.south) -- (addr.south);
+
+  % Microprocessor -> Waveform memory (control + sample loading)
+  \draw[pmvb digital] (cpu.north -| mem.south) -- (mem.south);
+
+  % ---------------------------------------------------------------------
+  % Bottom annotation
+  % ---------------------------------------------------------------------
+  \node[pmvb annotation, below=4mm of usbtmc]
+    {Textbook AWG block diagram (Tektronix / Keysight style),
+     mapped to the Module 1E realization.\\
+     Bold labels are the standard architectural roles;
+     italic muted text is the PMVB implementation that fills each role.\\
+     The Pico fills three roles at once (address generator, waveform memory,
+     microprocessor) using firmware on a single MCU.};
+
 \end{tikzpicture}
 \end{document}

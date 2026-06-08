@@ -2,7 +2,7 @@
 
 ## Module Design Document
 
-**Version:** 1.2 (May 2026, Option A + D5/D7 corrections)
+**Version:** 1.3 (May 2026, +AWG functional architecture figure)
 **Module ID:** 1E
 **Tier:** 1
 **Status:** In Design
@@ -87,9 +87,9 @@ The module exposes one auxiliary digital output that can be configured as a sync
 
 ## 2. Functional Block Diagram
 
-Module 1E is documented across three figures: a system-level view showing where the module sits in the PMVB chassis, the AD9742 internal block diagram (from the datasheet), and a typical-application schematic showing the parallel data path, current-to-voltage conversion, reconstruction filter, op-amp output stage, and impedance switching.
+Module 1E is documented across three figures: an AWG functional-architecture view mapping the standard arbitrary-waveform-generator block diagram (sample clock generator, address generator, waveform memory, DAC, reconstruction filter, signal conditioning) to the Pico + AD9742 + AD8056 realization; the AD9742 internal block diagram (from the datasheet); and a typical-application schematic showing the parallel data path, current-to-voltage conversion, reconstruction filter, op-amp output stage, and impedance switching.
 
-**Figure 1E-1: Module 1E system context (system block diagram)**
+**Figure 1E-1: Module 1E AWG functional architecture**
 
 <img src="../figures/modules/1e_system_context.svg"
      alt="Module 1E in the v1.0 PMVB chassis"
