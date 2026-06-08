@@ -25,7 +25,7 @@
   % Top row: sample clock generator + external 10 MHz reference input
   % ---------------------------------------------------------------------
   \node[pmvb ic, minimum width=36mm, minimum height=16mm]
-    (clk) at (9.4, 3.4) {};
+    (clk) at (1.6, 3.4) {};
   \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
     at ([yshift=5mm]clk.center) {Sample clock generator};
   \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
@@ -35,10 +35,10 @@
   \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
     at ([yshift=-5mm]clk.center) {locks to ext.\ 10 MHz};
 
-  % External reference input
-  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east]
-    (extref) at (4.6, 3.4) {Ext.\ 10\,MHz ref};
-  \draw[pmvb digital] (extref) -- (clk.west);
+  % External reference input (enters from above the clock generator)
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=south]
+    (extref) at (1.6, 5.4) {Ext.\ 10\,MHz ref};
+  \draw[pmvb digital] (extref.south) -- (clk.north);
 
   % ---------------------------------------------------------------------
   % Main signal-flow row, left to right
@@ -170,10 +170,13 @@
     -- node[above=0.5mm]{\pmvblabel{$\pm$10\,V}}
     (bnc.west);
 
-  % Sample clock generator -> DAC (CLK)
+  % Sample clock generator -> Address generator (CLK).
+  % The DAC also receives this clock in the physical implementation
+  % (its CLOCK pin latches data on each edge), but the architectural
+  % diagram follows textbook convention: clock drives the address gen.
   \draw[pmvb digital] (clk.south)
     -- node[right=0.5mm]{\pmvblabel{CLK}}
-    (dac.north);
+    (addr.north);
 
   % Microprocessor -> Waveform memory (load samples + read status back via
   % the same path). Straight vertical line; label sits to the left of the
