@@ -232,7 +232,7 @@ Four foundational Tier 1 modules using the chassis from Phase 0. Each follows th
   - [x] Functional figures (system context, AD9742 datasheet embed, typical app)
   - [x] BOM verified at Digi-Key + Microcenter ($53)
   - [ ] BOM ordered
-  - [ ] PCB design (KiCad: AD9742 + AD8056 + reconstruction filter + 3× Coto 9007 reeds + Pico)
+  - [~] PCB design (KiCad: AD9742 + AD8056 + reconstruction filter + 3× Coto 9007 reeds + Pico): design package + parts checklist + KiCad build guide in `hardware/modules/1E/`; KiCad schematic capture and layout pending
   - [ ] PCB fab + assembly
   - [ ] Firmware (SCPI YAML for sine/square/triangle/ramp/noise/multitone/ARB/sweep + PIO+DMA streaming at 30-50 MSPS)
   - [ ] Bring-up checklist (visual → power → DC → swept sine → THD → spectral purity → impedance switch)
@@ -415,7 +415,7 @@ Continuous work that spans phases.
 - [x] TikZ figure pipeline with `pmvb-figures.sty` (FMCW dark theme)
 - [x] Pandoc-rendered HTML for SDD and chassis arch doc, served via GitHub Pages
 - [x] Parametric DXF + STL generator for chassis fabrication (`tools/fabrication/`)
-- [ ] KiCad project template + symbol/footprint library for per-module PCBs
+- [~] PCB toolchain in `hardware/`: per-module design package + Component Search Engine parts checklist + KiCad build guide + shared board-outline DXF generator. Schematic capture and layout in KiCad GUI; 5 custom parts per module fetched via CSE.
 - [x] Pico SDK build environment (CMake + arm-none-eabi-gcc) for firmware development (SDK 2.2.0 at `/opt/pico-sdk`; `PICO_BOARD=pico2_w` reference)
 - [ ] Tang Primer 25K HDL toolchain (Gowin EDA + open-source flow as backup)
 

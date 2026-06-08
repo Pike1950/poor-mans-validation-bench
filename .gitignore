@@ -100,3 +100,17 @@ Reference Photos/
 # figure author; not part of the published doc tree)
 docs/figures/STYLE_GUIDE.md
 docs/figures/BUILD.md
+
+# --- hardware/ PCB toolchain ---
+# SKiDL run artifacts - regenerated on every `python module_*.py` netlist build.
+# (The shared part library lives in hardware/library/, deliberately not named
+# 'lib' so it is not caught by the Python 'lib/' build-artifact rule above.)
+hardware/**/*.erc
+hardware/**/*.log
+hardware/**/skidl_REPL.*
+hardware/**/*_lib_sklib.py
+hardware/**/__pycache__/
+
+# Vendor datasheets kept locally next to the module docs as reference;
+# third-party material, not redistributed through the public repo.
+docs/modules/**/*.pdf
