@@ -175,11 +175,11 @@
     -- node[right=0.5mm]{\pmvblabel{CLK}}
     (dac.north);
 
-  % Microprocessor -> Address generator (control)
-  \draw[pmvb digital] (cpu.north -| addr.south) -- (addr.south);
-
-  % Microprocessor -> Waveform memory (control + sample loading)
-  \draw[pmvb digital] (cpu.north -| mem.south) -- (mem.south);
+  % Microprocessor <-> Waveform memory (load samples / read status,
+  % matching the textbook AWG block diagram convention).
+  % Drawn as L-shape from cpu.north up to mem.south with a labeled link.
+  \draw[pmvb digital bi] (cpu.north) -| node[pos=0.25, above]
+    {\pmvblabel{load samples / status}} (mem.south);
 
   % ---------------------------------------------------------------------
   % Bottom annotation
