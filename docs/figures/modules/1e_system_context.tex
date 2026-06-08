@@ -126,7 +126,7 @@
   % Bottom row: microprocessor / SCPI interface
   % ---------------------------------------------------------------------
   \node[pmvb ic, minimum width=42mm, minimum height=16mm]
-    (cpu) at (3.5, -3.7) {};
+    (cpu) at (5.5, -3.7) {};
   \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
     at ([yshift=5mm]cpu.center) {Microprocessor};
   \node[font=\sffamily\bfseries\scriptsize, text=pmvbFg]
@@ -138,7 +138,7 @@
 
   % USB-TMC into the microprocessor from below
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=north, align=center]
-    (usbtmc) at (3.5, -6.0) {USB-TMC\\to Pi 5 host};
+    (usbtmc) at (5.5, -6.0) {USB-TMC\\to Pi 5 host};
   \draw[pmvb bus] (usbtmc.north) -- (cpu.south);
 
   % Sync OUT (GP16) from the microprocessor to the chassis trigger bus
@@ -176,12 +176,12 @@
     (dac.north);
 
   % Microprocessor -> Waveform memory (load samples + read status back via
-  % the same path). Unidirectional arrowhead lands at mem.south so the path
-  % is unambiguous; the label carries the bidirectional intent.
+  % the same path). Straight vertical line; label sits to the left of the
+  % line to avoid overlapping the arrow shaft.
   \draw[pmvb digital] (cpu.north)
-    -- node[above]{\pmvblabel{load samples / status}}
-    (cpu.north -| mem.south)
-    -- (mem.south);
+    -- node[midway, anchor=east, xshift=-2mm]
+       {\pmvblabel{load samples / status}}
+    (mem.south);
 
   % ---------------------------------------------------------------------
   % Bottom annotation
