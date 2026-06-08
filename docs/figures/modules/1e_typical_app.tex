@@ -3,7 +3,7 @@
 % =============================================================================
 % Pico 2 W -> AD9742 (12 data bits + clock) -> 25-ohm termination -> 5th-order
 % Butterworth reconstruction filter -> 1k input resistor -> AD8056 op-amp ->
-% SP3T impedance switch (50/600/10k) -> BNC.
+% SP3T impedance switch (50/high-Z/10k) -> BNC.
 %
 % Design representation note: the AD9742 has two complementary current outputs
 % (IOUTA, IOUTB) and the AD8056 is wired as a differential-to-single-ended
@@ -229,7 +229,7 @@
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
     at ($(sp3t.west) + (2mm,  0.7)$) {50\,$\Omega$};
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
-    at ($(sp3t.west) + (2mm,  0.0)$) {600\,$\Omega$};
+    at ($(sp3t.west) + (2mm,  0.0)$) {high-Z};
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west]
     at ($(sp3t.west) + (2mm, -0.7)$) {10\,k$\Omega$};
   %
