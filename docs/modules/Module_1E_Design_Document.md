@@ -131,13 +131,21 @@ Two phenomena combine to create the output spectrum:
 1. **Sampling** copies the baseband spectrum to every multiple of f_sample (positive and negative). For a 10 MHz tone at f_sample = 50 MSPS, the spectrum contains the original 10 MHz plus images at 40 MHz, 60 MHz, 90 MHz, 110 MHz, and so on. These are not harmonics from any nonlinearity — they are a mathematical consequence of sampling.
 2. **Sample-and-hold (ZOH)** at the DAC output multiplies the spectrum by a sinc envelope (sin(πf/f_s) / (πf/f_s)). This naturally attenuates the higher images, but not enough on its own to clean up the output.
 
-**Figure 1E-3: DAC output spectrum and reconstruction filter**
+**Figure 1E-3: DAC output spectrum at 50 MSPS burst-rate (best case)**
 
-<img src="../figures/modules/1e_dac_spectrum.svg"
-     alt="DAC output spectrum showing baseband + images at multiples of f_sample, the ZOH sinc envelope, and the reconstruction filter response"
+<img src="../figures/modules/1e_dac_spectrum_50msps.svg"
+     alt="DAC output spectrum at 50 MSPS burst rate: baseband at 10 MHz, first image at 40 MHz attenuated by ~52 dB after the 5th-order Butterworth"
      style="width: 100%; height: auto; display: block; margin: 0 auto;">
 
-The reconstruction filter does the rest of the work. Module 1E uses a 5th-order Butterworth lowpass with ~12 MHz cutoff, implemented as two per-leg L-C-L-C-L ladders (one on the IOUTA path, one on IOUTB). For the worst-case 10 MHz output, the first image at 40 MHz gets attenuated by ~52 dB after the filter (the dot in the green post-filter envelope in the figure). At lower output frequencies the first image moves further into the stop band, so image rejection improves to 60–80 dB.
+The reconstruction filter does the rest of the work. Module 1E uses a 5th-order Butterworth lowpass with ~12 MHz cutoff, implemented as two per-leg L-C-L-C-L ladders (one on the IOUTA path, one on IOUTB). For the 50 MSPS burst-rate case (Figure 1E-3 above), the worst-case 10 MHz output has its first image at 40 MHz, attenuated by ~52 dB after the filter (the dot in the green post-filter envelope). At lower output frequencies the first image moves further into the stop band, so image rejection improves to 60–80 dB.
+
+**Figure 1E-4: DAC output spectrum at 30 MSPS sustained-rate floor (worst case)**
+
+<img src="../figures/modules/1e_dac_spectrum_30msps.svg"
+     alt="DAC output spectrum at 30 MSPS sustained rate: baseband at 10 MHz, first image now at 20 MHz attenuated by only ~22 dB, ZOH sinc droops harder"
+     style="width: 100%; height: auto; display: block; margin: 0 auto;">
+
+Figure 1E-4 shows the same configuration at the 30 MSPS continuous-operation floor. The first image now lands at 20 MHz instead of 40 MHz (much closer to the 12 MHz filter cutoff), so the Butterworth only knocks it down by ~22 dB instead of ~52 dB. The ZOH sinc envelope also droops harder, -1.65 dB at the 10 MHz output instead of -0.58 dB, since the signal is now 1/3 of f_sample rather than 1/5. This is the regime to plan for under any sustained-run condition where the firmware can't hold the 50 MSPS burst rate; the SCPI status query in section 1.2 lets the host see which regime it's currently operating in.
 
 The filter cutoff is the upper-bandwidth limit of the module. Pushing it higher would let the output reach beyond 10 MHz but at the cost of less attenuation of the first image (which would sit closer to the cutoff). The 5th-order Butterworth + 12 MHz cutoff is sized so that 10 MHz output is at the -3 dB point and the first image is comfortably in the stop band.
 
@@ -223,9 +231,9 @@ See the PCB design package (`hardware/modules/1E/Module_1E_PCB_Design_Package.md
 
 ## 3. Functional figures
 
-The AD9742's internal block diagram (from the datasheet) and a typical-application schematic showing the full Pico-to-BNC signal chain. Figure 1E-1 (AWG functional architecture) is in section 1.1; figures 1E-2 (current-mode DAC operation) and 1E-3 (DAC output spectrum) are in sections 1.4 and 1.5 respectively.
+The AD9742's internal block diagram (from the datasheet) and a typical-application schematic showing the full Pico-to-BNC signal chain. Figure 1E-1 (AWG functional architecture) is in section 1.1; Figure 1E-2 (current-mode DAC operation) is in section 1.4; Figures 1E-3 and 1E-4 (DAC output spectrum at 50 MSPS and 30 MSPS) are in section 1.5.
 
-**Figure 1E-4: AD9742 internal functional block diagram**
+**Figure 1E-5: AD9742 internal functional block diagram**
 
 <img src="../figures/modules/1e_ad9742_internal.svg"
      alt="AD9742 internal block diagram, redrawn from datasheet Rev. C"
@@ -233,7 +241,7 @@ The AD9742's internal block diagram (from the datasheet) and a typical-applicati
 
 *Source: AD9742 datasheet (Rev. C), page 1. Analog Devices Inc. Used under fair-use citation for technical reference.*
 
-**Figure 1E-5: Module 1E typical application schematic**
+**Figure 1E-6: Module 1E typical application schematic**
 
 <img src="../figures/modules/1e_typical_app.svg"
      alt="Pico 2 W → AD9742 → reconstruction filter → AD8056 → 50/high-Z/10kΩ relay → BNC"
