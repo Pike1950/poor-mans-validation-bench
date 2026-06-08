@@ -113,6 +113,8 @@ The AD9742 is a 12-bit current-output DAC. Internally it is an array of segmente
      alt="Conceptual view of AD9742 current-mode operation: PMOS source array, code-driven switching to IOUTA/IOUTB, load resistors and FSADJ"
      style="width: 100%; height: auto; display: block; margin: 0 auto;">
 
+The "segmented" part of segmented PMOS current sources deserves a closer look, because it's why the AD9742 can hit its dynamic-performance specs. Rather than building 12 binary-weighted current sources (where the MSB is 2048 times the LSB), the AD9742 splits the 12 bits across three tiers: the 5 MSBs are 31 unary-decoded segments at I_FS/32 each (~625 µA), the 4 middle bits are 15 unary-decoded sub-segments at 1/16 of an MSB segment each (~39 µA), and the 3 LSBs are binary-weighted fractions of a middle-bit segment. That's 49 nominal current sources for 12 bits of resolution. The reason for the complexity is glitch performance at the MSB transition. A pure binary-weighted DAC has to turn one giant current source ON while turning many small ones OFF when the code rolls from 0x7FF to 0x800, and any mismatch shows up as a code-correlated voltage glitch that's visible on a spectrum analyzer as harmonic distortion. Unary segmentation makes the transition monotonic by construction: code N+1 just turns on one additional sub-current of the same nominal value as all the others. The bottom 3 LSBs stay binary-weighted because the glitch penalty at that magnitude is below the part's noise floor.
+
 Four parameters set the operating point:
 
 - **I_FS** is set by the external FSADJ resistor: I_FS = 32 × 1.2 V / R_FSADJ. We use R_FSADJ = 1.91 kΩ for I_FS ≈ 20 mA. Valid I_FS range per the AD9742 datasheet is roughly 2 mA to 20 mA for spec'd performance; below 2 mA the current sources lose matching, above 20 mA the part is outside characterized operating conditions.
@@ -121,6 +123,8 @@ Four parameters set the operating point:
 - **MODE pin** is a data-format strap: tied to DCOM (GND) selects straight binary, tied to DVDD selects twos complement. This module ties MODE to GND, so Pico firmware emits straight-binary sample codes. NOT a parallel/serial mode select.
 
 The differential voltage at the filter input swings ±I_FS × R_load = ±0.5 V (1 V peak-to-peak) across the full 12-bit code range. That 1 V_pp differential signal is what the downstream filter and difference amp scale to the final ±10 V single-ended output.
+
+Concrete code-to-output mapping for the worst-case extremes: code 0x000 routes all 20 mA to IOUTB (V_A = 0 V, V_B = 0.5 V, differential = -0.5 V); code 0xFFF routes all to IOUTA (differential = +0.5 V); code 0x800 (midscale) splits the current evenly across the segments (V_A = V_B = 0.25 V, differential = 0 V). Bipolar AWG signals are written in straight binary with midscale at 0x800 so the zero-crossing of a sine corresponds to that code, peaks of the sine correspond to 0x000 and 0xFFF, and the differential output naturally swings symmetrically around 0 V. The 0.25 V common-mode bias on each leg gets rejected by the AD8056 difference amplifier's CMRR (section 1.6).
 
 ### 1.5 Reconstruction filter
 

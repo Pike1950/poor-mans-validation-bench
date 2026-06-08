@@ -28,14 +28,16 @@
   % ---------------------------------------------------------------------
   % Segmented current source array
   % ---------------------------------------------------------------------
-  \node[pmvb ic, minimum width=70mm, minimum height=18mm]
-    (csa) at (4, 4.5) {};
+  \node[pmvb ic, minimum width=70mm, minimum height=22mm]
+    (csa) at (4, 4.7) {};
   \node[font=\sffamily\bfseries\small, text=pmvbFg]
-    at ([yshift=4mm]csa.center) {Segmented PMOS current source array};
+    at ([yshift=7mm]csa.center) {Segmented PMOS current source array};
   \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
-    at ([yshift=-1mm]csa.center) {top 9 bits: unary-decoded (one source per code)};
+    at ([yshift=2mm]csa.center) {5 MSBs (bits 11--7): 31 unary segments, each $\approx I_{FS}/32 \approx 625$\,$\mu$A};
   \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
-    at ([yshift=-4mm]csa.center) {bottom 3 bits: binary-weighted ${\cdot}$ total = $I_{FS} \approx 20$\,mA};
+    at ([yshift=-2mm]csa.center) {4 middle bits (6--3): 15 unary sub-segments, each $= 1/16$ of an MSB ($\approx 39$\,$\mu$A)};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+    at ([yshift=-6mm]csa.center) {3 LSBs (2--0): binary-weighted fractions of a middle segment $\cdot$ 49 sources total $= I_{FS} \approx 20$\,mA};
 
   \draw[pmvb digital] (avdd.south) -- (csa.north);
 
