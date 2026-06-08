@@ -28,23 +28,23 @@
   % ---------------------------------------------------------------------
   % Segmented current source array
   % ---------------------------------------------------------------------
-  \node[pmvb ic, minimum width=70mm, minimum height=22mm]
+  \node[pmvb ic, minimum width=90mm, minimum height=22mm]
     (csa) at (4, 4.7) {};
   \node[font=\sffamily\bfseries\small, text=pmvbFg]
     at ([yshift=7mm]csa.center) {Segmented PMOS current source array};
   \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
-    at ([yshift=2mm]csa.center) {5 MSBs (bits 11--7): 31 unary segments, each $\approx I_{FS}/32 \approx 625$\,$\mu$A};
+    at ([yshift=2mm]csa.center) {5 MSBs (bits 11--7): $I_{FS}$ controlled in 32 coarse steps (625\,$\mu$A each)};
   \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
-    at ([yshift=-2mm]csa.center) {4 middle bits (6--3): 15 unary sub-segments, each $= 1/16$ of an MSB ($\approx 39$\,$\mu$A)};
+    at ([yshift=-2mm]csa.center) {4 middle bits (6--3): each coarse step refined to 16 medium steps (39\,$\mu$A each)};
   \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted]
-    at ([yshift=-6mm]csa.center) {3 LSBs (2--0): binary-weighted fractions of a middle segment $\cdot$ 49 sources total $= I_{FS} \approx 20$\,mA};
+    at ([yshift=-6mm]csa.center) {3 LSBs (2--0): each medium step refined to 8 fine steps (4.9\,$\mu$A each $=$ LSB)};
 
   \draw[pmvb digital] (avdd.south) -- (csa.north);
 
   % ---------------------------------------------------------------------
   % 12-bit code switching fabric
   % ---------------------------------------------------------------------
-  \node[pmvb ic, minimum width=70mm, minimum height=14mm]
+  \node[pmvb ic, minimum width=90mm, minimum height=14mm]
     (sw) at (4, 2.0) {};
   \node[font=\sffamily\bfseries\small, text=pmvbFg]
     at ([yshift=3mm]sw.center) {12-bit code switching fabric};
@@ -57,12 +57,12 @@
 
   % DB0..DB11 entering from the left
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east, align=right]
-    (dbin) at (-2.0, 2.4) {DB0--DB11\\(parallel data from Pico)};
+    (dbin) at (-2.5, 2.4) {DB0--DB11\\(parallel data from Pico)};
   \draw[pmvb bus] (dbin.east) -- node[pmvb bus width]{$\times 12$} (sw.west |- dbin);
 
   % CLOCK pin entering from the left, below the bus
   \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=east, align=right]
-    (clkin) at (-2.0, 1.5) {CLOCK\\(Pico GP12)};
+    (clkin) at (-2.5, 1.5) {CLOCK\\(Pico GP12)};
   \draw[pmvb digital] (clkin.east) -- (sw.west |- clkin);
 
   % ---------------------------------------------------------------------
@@ -103,9 +103,9 @@
   % ---------------------------------------------------------------------
   % FSADJ branch on the right side (separate column, no overlap)
   % ---------------------------------------------------------------------
-  \coordinate (fsadj_pin)   at ($(csa.east) + (0, 0)$);
-  \coordinate (fsadj_corner) at (10.5, 4.5);
-  \coordinate (fsadj_R_bot) at (10.5, 2.5);
+  \coordinate (fsadj_pin)    at ($(csa.east) + (0, 0)$);
+  \coordinate (fsadj_corner) at (11.0, 4.7);
+  \coordinate (fsadj_R_bot)  at (11.0, 2.5);
 
   \draw[pmvb digital] (fsadj_pin) -- (fsadj_corner);
   \node[font=\sffamily\scriptsize\bfseries, text=pmvbFg, anchor=south]
