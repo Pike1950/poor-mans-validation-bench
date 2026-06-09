@@ -95,9 +95,25 @@ Sustained update rate caps out around 50 MSPS for short bursts but drops to 30 t
 
 ### 1.3 Address generator and waveform memory
 
-Two operating modes share the same DAC streaming path:
+Two operating modes share the same DAC streaming path: DDS mode for parametric waveforms (sines, sweeps, multitones, squares, triangles, ramps) and ARB mode for arbitrary sample tables. The mode is selected by SCPI command (`SOUR:FUNC SIN` selects DDS-sine, `SOUR:DATA <samples>` loads ARB).
 
-**DDS mode** (the common case): no waveform table at all. The address generator is a phase accumulator running in Pico firmware on the second core. Each PIO clock tick increments the accumulator by a phase step proportional to the target output frequency, and the high bits of the accumulator index a tiny in-firmware lookup (sine, triangle, square, ramp) to produce the next sample value. Samples are pushed to the DAC at the full PIO clock rate without buffer pressure. This is how single-tone sine, swept sine, multitone, square, triangle, ramp, and modulated-carrier waveforms get generated. Frequency resolution is effectively continuous, limited only by the phase accumulator's bit width (typically 32 bits, microhertz-class resolution).
+**DDS mode (Numerically Controlled Oscillator).** No waveform table of the output signal exists; instead, Pico Core 1 runs a Numerically Controlled Oscillator (NCO) in firmware that synthesizes samples on the fly. The NCO has three pieces:
+
+1. A **phase accumulator**, a 32-bit `uint32_t` register in Pico SRAM advanced by a constant value (the **frequency tuning word**, FTW) on every sample tick. It wraps at 2^32, which is the digital equivalent of phase going from 0 to 2π and back. Figure 1E-2 shows the textbook NCO internals: an FTW register feeds an adder whose output latches into the phase register, with the phase register output feeding back to the adder via a 32-bit bus.
+2. A **waveform lookup table**, a 1024-entry × 12-bit array of precomputed amplitude values for the selected shape (sine, triangle, square, or ramp). The top 10 bits of the phase accumulator index this table.
+3. The downstream **PIO + DMA → DAC chain** from section 1.2, which clocks the LUT output out to the AD9742 at the sustained sample rate.
+
+**Figure 1E-2: Phase accumulator (textbook DDS view)**
+
+<img src="../figures/modules/1e_phase_accumulator.svg"
+     alt="Phase accumulator: FTW register feeds an adder whose output latches into the Phase register, clocked by f_CLK, with the Phase register output feeding back to the adder via a 32-bit bus. Top 10 bits of the accumulator address the waveform LUT."
+     style="width: 100%; height: auto; display: block; margin: 0 auto;">
+
+The output frequency is set by the FTW: f_out = FTW × f_sample / 2^32, inverted as FTW = round(f_out × 2^32 / f_sample). At 50 MSPS, the smallest FTW change of 1 LSB corresponds to a frequency step of f_sample / 2^32 ≈ 11.6 mHz, so any target frequency is hit within ±5.8 mHz of the request. This is where the "microhertz-class frequency resolution" claim comes from.
+
+The reason for the 32-bit accumulator (rather than indexing the LUT directly with a 10-bit counter) is exactly that resolution. A 10-bit phase counter alone would only reach 1024 discrete output frequencies; the 22-bit fractional part below the LUT-index bits gives a smooth phase ramp between table entries even though those finer bits are thrown away at lookup time. The discarded precision shows up as a small spurious tone called **phase truncation noise** at roughly 6 × M dB below carrier (where M is the number of bits kept). At M = 10 that's about 60 dB spur-free dynamic range, which sits below the 12-bit DAC's quantization floor of 74 dB, so phase truncation doesn't dominate the spectrum.
+
+Core 0 sits outside the NCO loop, parsing incoming SCPI commands (`SOUR:FREQ`, `SOUR:FUNC`, `OUTP`) and writing updated FTW or LUT-pointer values to shared SRAM locations. Core 1 picks up those values on the next sample tick. This lets the host change frequency, waveform shape, or amplitude without halting the sample stream, which enables continuous frequency sweeps and parameter modulation.
 
 **Arbitrary waveform (ARB) mode**: the waveform sample table sits in Pico SRAM (520 KB total, of which up to ~256K 16-bit samples can be a single waveform), and the address generator is a DMA channel walking the table in a loop. Played-out duration at 50 MSPS is about 5 ms per loop iteration. For waveforms longer than SRAM, the firmware can stream from the Pico's 4 MB external flash via XIP DMA (caps at roughly 2 M 16-bit samples = ~40 ms at 50 MSPS), with the trade that flash bandwidth is the new ceiling and continuous flash reads compete with code execution.
 
@@ -107,7 +123,7 @@ The same firmware can also generate noise (linear-feedback PRNG) and modulated c
 
 The AD9742 is a 12-bit current-output DAC. Internally it is an array of segmented PMOS current sources whose total sums to the full-scale current I_FS. The 12-bit input code routes each segment to either of two output pins (IOUTA or IOUTB), with the constraint that the sum I_A + I_B always equals I_FS. The difference I_A − I_B varies linearly with the input code, and that is where the signal lives.
 
-**Figure 1E-2: AD9742 current-mode DAC operation (simplified)**
+**Figure 1E-3: AD9742 current-mode DAC operation (simplified)**
 
 <img src="../figures/modules/1e_dac_current_mode.svg"
      alt="Conceptual view of AD9742 current-mode operation: PMOS source array, code-driven switching to IOUTA/IOUTB, load resistors and FSADJ"
@@ -135,21 +151,21 @@ Two phenomena combine to create the output spectrum:
 1. **Sampling** copies the baseband spectrum to every multiple of f_sample (positive and negative). For a 10 MHz tone at f_sample = 50 MSPS, the spectrum contains the original 10 MHz plus images at 40 MHz, 60 MHz, 90 MHz, 110 MHz, and so on. These are not harmonics from any nonlinearity — they are a mathematical consequence of sampling.
 2. **Sample-and-hold (ZOH)** at the DAC output multiplies the spectrum by a sinc envelope (sin(πf/f_s) / (πf/f_s)). This naturally attenuates the higher images, but not enough on its own to clean up the output.
 
-**Figure 1E-3: DAC output spectrum at 50 MSPS burst-rate (best case)**
+**Figure 1E-4: DAC output spectrum at 50 MSPS burst-rate (best case)**
 
 <img src="../figures/modules/1e_dac_spectrum_50msps.svg"
      alt="DAC output spectrum at 50 MSPS burst rate: baseband at 10 MHz, first image at 40 MHz attenuated by ~52 dB after the 5th-order Butterworth"
      style="width: 100%; height: auto; display: block; margin: 0 auto;">
 
-The reconstruction filter does the rest of the work. Module 1E uses a 5th-order Butterworth lowpass with ~12 MHz cutoff, implemented as two per-leg L-C-L-C-L ladders (one on the IOUTA path, one on IOUTB). For the 50 MSPS burst-rate case (Figure 1E-3 above), the worst-case 10 MHz output has its first image at 40 MHz, attenuated by ~52 dB after the filter (the dot in the green post-filter envelope). At lower output frequencies the first image moves further into the stop band, so image rejection improves to 60–80 dB.
+The reconstruction filter does the rest of the work. Module 1E uses a 5th-order Butterworth lowpass with ~12 MHz cutoff, implemented as two per-leg L-C-L-C-L ladders (one on the IOUTA path, one on IOUTB). For the 50 MSPS burst-rate case (Figure 1E-4 above), the worst-case 10 MHz output has its first image at 40 MHz, attenuated by ~52 dB after the filter (the dot in the green post-filter envelope). At lower output frequencies the first image moves further into the stop band, so image rejection improves to 60–80 dB.
 
-**Figure 1E-4: DAC output spectrum at 30 MSPS sustained-rate floor (worst case)**
+**Figure 1E-5: DAC output spectrum at 30 MSPS sustained-rate floor (worst case)**
 
 <img src="../figures/modules/1e_dac_spectrum_30msps.svg"
      alt="DAC output spectrum at 30 MSPS sustained rate: baseband at 10 MHz, first image now at 20 MHz attenuated by only ~22 dB, ZOH sinc droops harder"
      style="width: 100%; height: auto; display: block; margin: 0 auto;">
 
-Figure 1E-4 shows the same configuration at the 30 MSPS continuous-operation floor. The first image now lands at 20 MHz instead of 40 MHz (much closer to the 12 MHz filter cutoff), so the Butterworth only knocks it down by ~22 dB instead of ~52 dB. The ZOH sinc envelope also droops harder, -1.65 dB at the 10 MHz output instead of -0.58 dB, since the signal is now 1/3 of f_sample rather than 1/5. This is the regime to plan for under any sustained-run condition where the firmware can't hold the 50 MSPS burst rate; the SCPI status query in section 1.2 lets the host see which regime it's currently operating in.
+Figure 1E-5 shows the same configuration at the 30 MSPS continuous-operation floor. The first image now lands at 20 MHz instead of 40 MHz (much closer to the 12 MHz filter cutoff), so the Butterworth only knocks it down by ~22 dB instead of ~52 dB. The ZOH sinc envelope also droops harder, -1.65 dB at the 10 MHz output instead of -0.58 dB, since the signal is now 1/3 of f_sample rather than 1/5. This is the regime to plan for under any sustained-run condition where the firmware can't hold the 50 MSPS burst rate; the SCPI status query in section 1.2 lets the host see which regime it's currently operating in.
 
 The filter cutoff is the upper-bandwidth limit of the module. Pushing it higher would let the output reach beyond 10 MHz but at the cost of less attenuation of the first image (which would sit closer to the cutoff). The 5th-order Butterworth + 12 MHz cutoff is sized so that 10 MHz output is at the -3 dB point and the first image is comfortably in the stop band.
 
@@ -235,9 +251,9 @@ See the PCB design package (`hardware/modules/1E/Module_1E_PCB_Design_Package.md
 
 ## 3. Functional figures
 
-The AD9742's internal block diagram (from the datasheet) and a typical-application schematic showing the full Pico-to-BNC signal chain. Figure 1E-1 (AWG functional architecture) is in section 1.1; Figure 1E-2 (current-mode DAC operation) is in section 1.4; Figures 1E-3 and 1E-4 (DAC output spectrum at 50 MSPS and 30 MSPS) are in section 1.5.
+The AD9742's internal block diagram (from the datasheet) and a typical-application schematic showing the full Pico-to-BNC signal chain. Figure 1E-1 (AWG functional architecture) is in section 1.1; Figure 1E-2 (phase accumulator) is in section 1.3; Figure 1E-3 (current-mode DAC operation) is in section 1.4; Figures 1E-4 and 1E-5 (DAC output spectrum at 50 MSPS and 30 MSPS) are in section 1.5.
 
-**Figure 1E-5: AD9742 internal functional block diagram**
+**Figure 1E-6: AD9742 internal functional block diagram**
 
 <img src="../figures/modules/1e_ad9742_internal.svg"
      alt="AD9742 internal block diagram, redrawn from datasheet Rev. C"
@@ -245,7 +261,7 @@ The AD9742's internal block diagram (from the datasheet) and a typical-applicati
 
 *Source: AD9742 datasheet (Rev. C), page 1. Analog Devices Inc. Used under fair-use citation for technical reference.*
 
-**Figure 1E-6: Module 1E typical application schematic**
+**Figure 1E-7: Module 1E typical application schematic**
 
 <img src="../figures/modules/1e_typical_app.svg"
      alt="Pico 2 W → AD9742 → reconstruction filter → AD8056 → 50/high-Z/10kΩ relay → BNC"

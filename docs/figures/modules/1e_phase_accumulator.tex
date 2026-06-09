@@ -1,0 +1,127 @@
+% =============================================================================
+% Figure 1E-3: Phase accumulator internals (textbook DDS view)
+% =============================================================================
+% Zoom-in on the phase accumulator that runs in Pico Core 1 firmware. Shows the
+% canonical NCO building blocks: FTW register, adder (with chevron notch on the
+% input side separating the two summed operands), and the phase register with
+% its feedback loop. The phase register is clocked by f_CLK (the same sample
+% clock driving the DAC).
+%
+% Modeled on the Analog Devices DDS Tutorial figure and standard textbook NCO
+% diagrams (Frequency Register -> Adder -> Phase Register with feedback).
+%
+% Compile:  pdflatex 1e_phase_accumulator.tex
+% Convert:  pdftocairo -svg 1e_phase_accumulator.pdf
+% =============================================================================
+\documentclass[border=8pt]{standalone}
+%
+\input{../style/pmvb-figures.sty}
+%
+\begin{document}
+\begin{tikzpicture}[pmvb figure]
+
+  % =========================================================================
+  % f_CLK input (directly above phase register, straight vertical arrow)
+  % =========================================================================
+  \node[font=\sffamily\scriptsize, text=pmvbAmber, anchor=south]
+    (fclk) at (8.4, 5.0) {$f_{CLK}$};
+
+  % =========================================================================
+  % FTW register on the left
+  % =========================================================================
+  \node[pmvb ic, minimum width=28mm, minimum height=22mm]
+    (ftw) at (1.5, 1.5) {};
+  \node[font=\sffamily\bfseries\small, text=pmvbFg, align=center]
+    at ([yshift=5mm]ftw.center) {FTW};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted, align=center]
+    at ([yshift=-4mm]ftw.center) {32-bit\\frequency\\register};
+
+  % =========================================================================
+  % Adder (pentagon with chevron notch on left input side)
+  % Clockwise from top-left: top-left -> top-right -> bottom-right ->
+  % bottom-left -> notch-bottom -> notch-tip -> notch-top -> cycle.
+  % =========================================================================
+  \draw[fill=pmvbGreenFill, draw=pmvbGreen, line width=0.5mm, rounded corners=1mm]
+    (4.4, 3.0)   % top-left
+    -- (5.8, 2.2) % top-right (narrower output side)
+    -- (5.8, 0.8) % bottom-right
+    -- (4.4, 0.0) % bottom-left
+    -- (4.4, 1.0) % notch bottom (left edge)
+    -- (4.9, 1.5) % notch tip (points into body)
+    -- (4.4, 2.0) % notch top (left edge)
+    -- cycle;
+
+  % Plus sign centered in the body (slightly right of x-midpoint because the
+  % chevron notch removes mass from the left side)
+  \node[font=\sffamily\bfseries\Large, text=pmvbFg]
+    at (5.2, 1.5) {$+$};
+
+  \coordinate (add_in_top) at (4.4, 2.5);
+  \coordinate (add_in_bot) at (4.4, 0.5);
+  \coordinate (add_out)    at (5.8, 1.5);
+
+  % =========================================================================
+  % FTW -> Adder TOP input (right -> up -> right) as a 32-bit bus
+  % =========================================================================
+  \draw[pmvb bus]
+    (ftw.east) -- ++(0.7, 0)
+    |- node[pmvb bus width, pos=0.5]{32}
+    (add_in_top);
+
+  % =========================================================================
+  % Phase register on the right
+  % =========================================================================
+  \node[pmvb ic, minimum width=28mm, minimum height=22mm]
+    (phr) at (8.4, 1.5) {};
+  \node[font=\sffamily\bfseries\small, text=pmvbFg, align=center]
+    at ([yshift=4mm]phr.center) {Phase};
+  \node[font=\sffamily\bfseries\small, text=pmvbFg, align=center]
+    at ([yshift=0mm]phr.center) {register};
+  \node[font=\sffamily\scriptsize\itshape, text=pmvbMuted, align=center]
+    at ([yshift=-5mm]phr.center) {32-bit\\accumulator};
+
+  % =========================================================================
+  % Adder output -> Phase register input (32-bit bus)
+  % =========================================================================
+  \draw[pmvb bus]
+    (add_out) -- node[pmvb bus width]{32} (phr.west);
+
+  % =========================================================================
+  % f_CLK -> Phase register clock input (straight vertical)
+  % =========================================================================
+  \draw[pmvb digital] (fclk.south) -- (phr.north);
+
+  % =========================================================================
+  % Phase output: top 10 bits to LUT (bus)
+  % =========================================================================
+  \node[font=\sffamily\scriptsize, text=pmvbFg, anchor=west, align=left]
+    (phout) at (11.6, 1.5) {top 10 bits\\\itshape to waveform LUT};
+  \draw[pmvb bus]
+    (phr.east) -- node[pmvb bus width]{10} (phout.west);
+
+  % =========================================================================
+  % Feedback (32-bit bus):
+  %   Phase register CENTER BOTTOM -> down -> left -> up to BOTTOM input of adder
+  % =========================================================================
+  \draw[pmvb bus]
+    (phr.south)
+    -- ++(0, -1.0)
+    -- node[pos=0.5, below=1.5mm, font=\sffamily\scriptsize\itshape, text=pmvbMuted]
+       {feedback}
+       node[pos=0.5, pmvb bus width]{32}
+       (3.7, -0.6)
+    -- (3.7, 0.5)
+    -- (add_in_bot);
+
+  % =========================================================================
+  % Caption-style annotation below
+  % =========================================================================
+  \node[pmvb annotation, align=center, text width=14cm, anchor=north]
+    at (6.5, -2.4)
+    {Each clock tick, the adder produces (Phase $+$ FTW) and latches the result
+     back into the Phase register, advancing the accumulator by FTW per cycle.\\[1mm]
+     Top 10 bits of the 32-bit accumulator index the waveform LUT; the lower
+     22 bits provide sub-LUT-entry phase precision for fine frequency control.};
+
+\end{tikzpicture}
+\end{document}
