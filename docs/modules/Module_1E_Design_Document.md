@@ -2,7 +2,7 @@
 
 ## Module Design Document
 
-**Version:** 1.7 (June 2026, reconstruction filter values from completed D2 singly-terminated Butterworth synthesis in sections 1.5 / 4 / 8; AVDD/DVDD ferrite beads FB1/FB2 added to BOM per D4)
+**Version:** 1.8 (June 2026, Figure 1E-6 reconstruction filter response (singly- vs doubly-terminated) added in section 1.5; former Figures 1E-6/1E-7 renumbered to 1E-7/1E-8)
 **Module ID:** 1E
 **Tier:** 1
 **Status:** In Design
@@ -173,6 +173,14 @@ The filter cutoff is the upper-bandwidth limit of the module. Pushing it higher 
 
 Component values come from a completed 5th-order Butterworth synthesis (PCB design package finding D2), run as a singly-terminated design for the actual per-leg impedances: a 25 Ω DAC source termination driving the op-amp's high-impedance (≈1 kΩ) input. That 40:1 source/load ratio rules out a doubly-terminated ladder, so each leg uses a singly-terminated L-C-L-C-L Butterworth with series inductors 0.22 µH / 0.68 µH / 0.22 µH and shunt capacitors 820 pF. Simulated response is -3 dB at ≈11 MHz with ≈51 dB image rejection at 40 MHz (50 MSPS) and ≈26 dB at 20 MHz (30 MSPS); the ≈1.5 dB passband droop to 10 MHz is removed by the stored frequency-response calibration of section 9.4.
 
+Figure 1E-6 shows why the termination model matters. All three curves are the same physical circuit (25 Ω source, ~1 kΩ load); only the L/C values differ. The two doubly-terminated designs ripple 6 to 11 dB across the passband because the real 40:1 source/load ratio is not the matched condition they assume, while the singly-terminated design the board uses stays smooth.
+
+**Figure 1E-6: Reconstruction filter response, singly- vs doubly-terminated design**
+
+<img src="../figures/modules/1e_filter_response.svg"
+     alt="Reconstruction filter magnitude response: three 5th-order Butterworth designs in the same 25 ohm source / 1 kohm load circuit. The two doubly-terminated designs (50 ohm and 158 ohm) ripple 6 to 11 dB across the passband; the singly-terminated design the board uses stays smooth with about 1.5 dB droop to 10 MHz."
+     style="width: 100%; height: auto; display: block; margin: 0 auto;">
+
 ### 1.6 Op-amp output stage
 
 The AD8056 is a dual high-speed voltage-feedback op-amp (300 MHz GBW, 1400 V/µs slew rate). Channel A operates as a difference amplifier; channel B is unused and terminated to prevent oscillation (+IN to GND, -IN tied to its own output).
@@ -251,9 +259,9 @@ See the PCB design package (`hardware/modules/1E/Module_1E_PCB_Design_Package.md
 
 ## 3. Functional figures
 
-The AD9742's internal block diagram (from the datasheet) and a typical-application schematic showing the full Pico-to-BNC signal chain. Figure 1E-1 (AWG functional architecture) is in section 1.1; Figure 1E-2 (phase accumulator) is in section 1.3; Figure 1E-3 (current-mode DAC operation) is in section 1.4; Figures 1E-4 and 1E-5 (DAC output spectrum at 50 MSPS and 30 MSPS) are in section 1.5.
+The AD9742's internal block diagram (from the datasheet) and a typical-application schematic showing the full Pico-to-BNC signal chain. Figure 1E-1 (AWG functional architecture) is in section 1.1; Figure 1E-2 (phase accumulator) is in section 1.3; Figure 1E-3 (current-mode DAC operation) is in section 1.4; Figures 1E-4 and 1E-5 (DAC output spectrum at 50 MSPS and 30 MSPS) and Figure 1E-6 (reconstruction filter response) are in section 1.5.
 
-**Figure 1E-6: AD9742 internal functional block diagram**
+**Figure 1E-7: AD9742 internal functional block diagram**
 
 <img src="../figures/modules/1e_ad9742_internal.svg"
      alt="AD9742 internal block diagram, redrawn from datasheet Rev. C"
@@ -261,7 +269,7 @@ The AD9742's internal block diagram (from the datasheet) and a typical-applicati
 
 *Source: AD9742 datasheet (Rev. C), page 1. Analog Devices Inc. Used under fair-use citation for technical reference.*
 
-**Figure 1E-7: Module 1E typical application schematic**
+**Figure 1E-8: Module 1E typical application schematic**
 
 <img src="../figures/modules/1e_typical_app.svg"
      alt="Pico 2 W → AD9742 → reconstruction filter → AD8056 → 50/high-Z/10kΩ relay → BNC"

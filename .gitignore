@@ -117,4 +117,4 @@ docs/modules/**/*.pdf
 
 # Matplotlib-generated PNG previews (the .svg is the committed deliverable;
 # .png regenerates from the .py script for local preview).
-docs/figures/modules/*_spectrum.png
+docs/figures/modules/*.png
