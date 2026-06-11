@@ -2,7 +2,7 @@
 
 ## Module Design Document
 
-**Version:** 1.5 (June 2026, Figure 1E-1 CLK routed to address generator; section 1 prose reconciled)
+**Version:** 1.6 (June 2026, op-amp gain network reconciled to gain of 20 / R_fb = R_ref = 20 kΩ in sections 4 and 5; NCO walkthrough + Figure 1E-2 phase accumulator added in section 1.3, figures renumbered)
 **Module ID:** 1E
 **Tier:** 1
 **Status:** In Design
@@ -290,10 +290,10 @@ The AD8056 channel A is configured as a difference amplifier:
 
 - IN+ receives the filtered IOUTA signal through R_in1 (1 kΩ)
 - IN− receives the filtered IOUTB signal through R_in2 (1 kΩ)
-- Feedback resistor R_fb (10 kΩ) sets the differential gain to 10
-- Reference resistor (10 kΩ) at IN+ to ground sets the common-mode rejection
+- Feedback resistor R_fb (20 kΩ) sets the differential gain to 20
+- Reference resistor R_ref (20 kΩ) at IN+ to ground sets the common-mode rejection
 
-Differential gain of 10 takes the 1 V differential filter output to 10 V single-ended. Adjustment to the gain network shifts the output range; for ±10 V output, the gain is 20 (factoring in the differential signal centered at midscale).
+The differential gain R_fb / R_in = 20 takes the 1 V_pp differential filter output to 20 V_pp = ±10 V single-ended, matching the module output spec. Scaling the R_fb / R_in ratio shifts the output range.
 
 ### Op-amp supply
 
@@ -388,8 +388,8 @@ Firmware enforces mutually exclusive relay energizing.
 | AD8056 Pin | Function | Connects to |
 |---|---|---|
 | 1 | OUT (channel A) | reconstruction filter output → impedance-switching relay matrix |
-| 2 | IN− (channel A) | filter IOUTB output through R_in2 (1 kΩ) and feedback R_fb (10 kΩ) |
-| 3 | IN+ (channel A) | filter IOUTA output through R_in1 (1 kΩ); R_ref (10 kΩ) to GND for CMRR |
+| 2 | IN− (channel A) | filter IOUTB output through R_in2 (1 kΩ) and feedback R_fb (20 kΩ) |
+| 3 | IN+ (channel A) | filter IOUTA output through R_in1 (1 kΩ); R_ref (20 kΩ) to GND for CMRR |
 | 4 | V− | −12 V from chassis TX300 |
 | 5 | IN+ (channel B) | unused; tied to GND |
 | 6 | IN− (channel B) | unused; tied to OUT (channel B) |
