@@ -1,10 +1,9 @@
 # Module 1E PCB Design Package
 
-**Module:** 1E Function Generator / AWG **Version:** v0.3 (May 2026)
-**Parent docs:** [Module 1E Design Document v1.1](../../../docs/modules/Module_1E_Design_Document.html),
+**Module:** 1E Function Generator / AWG **Version:** v0.4 (June 2026)
+**Parent docs:** [Module 1E Design Document v1.7](../../../docs/modules/Module_1E_Design_Document.html),
 PMVB System Design Document section 7.5.5
-**Status:** engineering decisions resolved; KiCad project setup and schematic
-capture pending (you, in KiCad GUI). See `Module_1E_KiCad_Build_Guide.md`.
+**Status:** all findings D1-D7 resolved (incl. the D2 filter synthesis and the D6 Phoenix P/N); KiCad project setup and schematic capture pending (you, in KiCad GUI). See `Module_1E_KiCad_Build_Guide.md`.
 
 This package is the bridge between the Module 1E Design Document (theory,
 block diagram, BOM) and a laid-out KiCad board. It carries the engineering
@@ -39,7 +38,7 @@ resolved below with a decision baked into this spec. Every one is a fair target
 for a second opinion; the rationale is given so the decision can be revisited
 deliberately.
 
-### D1 - Op-amp gain is 20, not 10
+### D1 - Op-amp gain is 20, not 10 (RESOLVED)
 
 The design document lists the AD8056 difference-amp network as R_in = 1 k and
 R_fb = 10 k, a differential gain of 10. It also specifies a +/-10 V output and
@@ -50,10 +49,9 @@ updates the resistor values.
 
 **Decision:** gain = 20. R_in1 = R_in2 = 1 k (R4, R5), R_fb = R_ref = 20 k
 (R6, R7). This reaches the spec'd +/-10 V. If the real intent was +/-5 V,
-change R6 and R7 to 10 k and update the design document specification table
-instead.
+change R6 and R7 to 10 k and \1\n\n**Resolved (June 2026):** the design document (v1.6+) now specifies R_fb = R_ref = 20 k / gain 20 in sections 1.6, 4, and 5, matching this decision.
 
-### D2 - Reconstruction filter is two per-leg ladders (topology needs a real design pass)
+### D2 - Reconstruction filter is two per-leg ladders (RESOLVED)
 
 The design document text describes a single 5th-order L-C-L-C-L Butterworth
 ladder. The BOM quantities tell a different story: 6 inductors ("three per
@@ -64,12 +62,7 @@ is one 5th-order ladder; six and four is two of them, one per differential leg.
 IOUTA path (L1-L3 + C2-C3) and one on the IOUTB path (L4-L6 + C4-C5). This
 keeps the differential path balanced into the difference amplifier.
 
-**Open:** the component values (L = 1 uH, C = 470 pF) are carried over from the
-design document and are *not* a verified filter synthesis. A genuine pass is
-needed: a 50 ohm ladder terminated in the 25 ohm DAC terminations is an
-impedance mismatch, and the cutoff, ripple, and image-rejection targets
-(~12 MHz, +/-0.5 dB, ~50 dB at 40 MHz) should drive the values. This is the
-single biggest open analog item. See section 4.
+**Resolved (June 2026):** a numerical 5th-order Butterworth synthesis was run against the real per-leg terminations. Source = the 25 ohm DAC termination; load = the op-amp's ~1 kohm input resistor (R4/R5), a 40:1 ratio that rules out a doubly-terminated ladder (it shows 6-11 dB of passband ripple). Each leg is therefore a **singly-terminated** 5th-order Butterworth: series inductors **0.22 uH / 0.68 uH / 0.22 uH** and shunt capacitors **820 pF** per leg (board total 4x 0.22 uH + 2x 0.68 uH + 4x 820 pF). Verified response: -3 dB at ~11 MHz, image rejection ~51 dB at 40 MHz (50 MSPS) and ~26 dB at 20 MHz (30 MSPS) - both meet spec; passband droop to 10 MHz is ~1.5 dB (worst ~2.3 dB at +/-5% parts), removed by the stored frequency-response calibration (design doc section 9.4). The cleaner doubly-terminated alternative (add a 25 ohm shunt load per leg for ~+/-0.5 dB flatness) was rejected: it halves the signal and needs op-amp gain 40, which drops the AD8056 closed-loop bandwidth to ~7.5 MHz, below the 10 MHz band. Values now carried in design doc sections 1.5/4/8.
 
 ### D3 - Reed-relay coils run from the Phoenix +5 V rail
 
@@ -128,27 +121,20 @@ The CSE-fetched AD9742 symbol must carry this datasheet-correct pinout; verify
 it after the Library Loader import per step 6 of the build guide. Section 7.2
 of the build guide is the authoritative per-pin wiring contract.
 
-**Action required:** patch the AD9742 pin table in the Module 1E Design
-Document itself so the two documents agree.
+**Resolved:** the design document pin table (section 5) now carries this datasheet-correct pinout, so the two documents agree.
 
-### D6 - Phoenix header is right-angle, not the straight part the chassis BOM lists
+### D6 - Phoenix header is right-angle = 1803293 (RESOLVED)
 
 The chassis architecture document mounts the module-side Phoenix header on the
 PCB top edge "pointing upward (+Z)", with the back-wall harness plug dropping
 "down onto this header from above". The host PCB mounts vertically (in the
 chassis Y-Z plane). For a plug to mate from +Z onto a header on a vertical PCB,
 the header must be a **right-angle** board header (mating axis in the plane of
-the PCB). A straight (-G) header, which the chassis BOM lists as Phoenix
-1803293, mates perpendicular to the PCB, i.e. from the chassis X direction.
+the PCB). (The naming here is counterintuitive and was misread in the first draft: 1803293 / MC 1,5/4-G-3,81 is in fact the **right-angle** part; the straight vertical variant is MCV 1,5/4-G-3,81 / 1803442.)
 
-**Decision:** the schematic uses the right-angle MC 1,5/4-3,81 board header
-family. The exact Phoenix P/N is still to confirm (see parts checklist entry).
+**Decision (RESOLVED June 2026):** use Phoenix **MC 1,5/4-G-3,81, order no. 1803293** - verified via TME / Digi-Key / Octopart to be the right-angle / horizontal header (spatial orientation "angled 90 deg"), 8 A / 160 V, 4-pos 3.81 mm, THT. Mates with the harness plug MC 1,5/4-ST-3,81 (1803594). Digi-Key 277-1208-ND, ~$1.51 single-qty, in stock. The chassis BOM already lists 1803293, so no BOM part change is needed.
 
-**Action required:** confirm the exact Phoenix right-angle P/N and update the
-chassis BOM, or, if the harness actually mates from the side (chassis +X),
-revert to the straight 1803293 and correct the chassis document's "from above"
-wording. This must be settled before the footprint is locked, because all 14
-module PCBs inherit it (see section 6).
+**Action remaining:** correct the chassis document's description of 1803293 from "straight" to "right-angle (angled 90 deg)" - the listed part number is already correct, only the orientation wording was wrong. The footprint can now be locked; all 14 module PCBs inherit it (see section 6).
 
 ### D7 - Output impedance modes: drop 600 ohm, add high-Z (low-impedance source)
 
@@ -265,16 +251,11 @@ is sufficient.
 
 These are the points worth working through before or during schematic capture.
 
-1. **Reconstruction filter synthesis (D2).** Run a real 5th-order Butterworth
-   design for the actual source/load impedances. Decide whether each leg sees
-   25 ohm (its own termination) or 50 ohm (differential), pick the topology
-   (T or Pi), and recompute L and C. This drives passband flatness and image
-   rejection, both of which are spec line items.
+1. **Reconstruction filter synthesis (D2) - resolved.** Singly-terminated 5th-order Butterworth for the 25 ohm source / ~1 kohm load: per-leg series 0.22/0.68/0.22 uH, shunt 820 pF. -3 dB ~11 MHz; image rejection ~51 dB at 40 MHz, ~26 dB at 20 MHz; ~1.5 dB passband droop handled by the section 9.4 calibration. Values in design doc sections 1.5/4/8.
 2. **AD9742 pinout (D5) - resolved.** Verified against the AD9742 datasheet
    Rev. C; the build guide and parts checklist carry the correct pin map.
    Only remaining action: patch the design document's own pin table to match.
-3. **Phoenix header style (D6).** Right-angle vs straight, and the exact P/N.
-   Blocks the Phoenix footprint and the chassis BOM.
+3. **Phoenix header style (D6) - resolved.** Right-angle = Phoenix 1803293 (MC 1,5/4-G-3,81), Digi-Key 277-1208-ND ~$1.51; it is already the chassis BOM part. The footprint can be locked.
 4. **PCB outline and mounting (section 5).** The 120 x 62 mm outline and the
    4x M2.5 hole pattern are a proposal. They must be co-designed with the v10
    module-body STL, which does not yet define PCB mounting bosses.
@@ -419,13 +400,6 @@ against.
 
 ## 10. Status and next steps
 
-Done: engineering decisions D1 through D5 resolved (D6 still open on the
-Phoenix P/N); shared PCB outline and floorplan generated; Phoenix interface
-spec drafted; parts checklist and KiCad build guide authored; design-document
-inconsistencies caught.
+Done: all engineering findings D1 through D7 resolved, including the D2 filter synthesis and the D6 Phoenix P/N (1803293, right-angle); shared PCB outline and floorplan generated; Phoenix interface spec drafted; parts checklist and KiCad build guide authored; design-document inconsistencies caught and patched (gain, pinout, high-Z, filter values, ferrite beads).
 
-Next, in rough order: settle D6 (Phoenix P/N); do the reconstruction-filter
-synthesis (D2); confirm the PCB outline and mounting against the v10 module
-body; fetch the five custom parts; build the KiCad project per the guide;
-capture the schematic; lay out the board. Per the README tracker, this closes
-"PCB design" and feeds into "PCB fab + assembly".
+Next, in rough order: confirm the PCB outline and mounting against the v10 module body; settle the Pico mount (headers vs direct-solder) and the J3 trigger-bus connector; fetch the five custom parts; build the KiCad project per the guide; capture the schematic; lay out the board. Per the README tracker, this closes "PCB design" and feeds into "PCB fab + assembly".

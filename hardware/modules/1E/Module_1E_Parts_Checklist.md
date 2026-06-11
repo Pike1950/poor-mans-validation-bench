@@ -78,35 +78,37 @@ matching subfolder of `lib/PMVB_1E/`.
 - **MPN:** `9007-05-01`
 - **CSE:** <https://componentsearchengine.com/part-view/9007-05-01/Coto%20Technology>
 - **Fetch:** symbol + footprint + 3D STEP.
-- **Notes:** Three instances (K1, K2, K3) for the 50 ohm / 600 ohm / 10 kohm
+- **Notes:** Three instances (K1, K2, K3) for the 50 ohm / high-Z / 10 kohm
   impedance switch. Verify the four pin positions (two coil, two contact)
   against the Coto datasheet after import.
 
-### 5. Phoenix Contact MC 1,5/4 right-angle pluggable PCB header
+### 5. Phoenix Contact MC 1,5/4-G-3,81 right-angle pluggable PCB header (1803293)
 
 - **Manufacturer:** Phoenix Contact
-- **MPN:** TO CONFIRM. The chassis BOM lists Phoenix `1803293` (straight
-  vertical MC 1,5/4-G-3,81), but per D6 of the design package the mating
-  geometry requires the right-angle variant. Candidates to check on
-  Phoenix's site: MCV 1,5/4-G-3,81 (1898484) or the angled board header in
-  the MC 1,5 family.
-- **CSE:** <https://componentsearchengine.com/part-view/(MPN once
-  confirmed)/Phoenix%20Contact>
-- **Fetch:** symbol + footprint + 3D STEP.
-- **Notes:** BLOCKED on the D6 resolution. Until the P/N is settled, you can
-  start the schematic with the generic 4-position MC 1,5 symbol from KiCad's
-  `Connector_Phoenix_MC` library as a placeholder; just remember to swap the
-  footprint once the right-angle P/N is confirmed.
+- **MPN:** `1803293` (MC 1,5/4-G-3,81). RESOLVED per D6: this is the
+  right-angle / horizontal header (spatial orientation "angled 90 deg"),
+  verified via TME / Digi-Key / Octopart. Counterintuitive naming: the
+  *straight* vertical variant is MCV 1,5/4-G-3,81 (1803442); the no-V
+  1803293 is the right-angle one - and it is already the chassis BOM part.
+- **Distributor:** Digi-Key 277-1208-ND, ~$1.51 single-qty, in stock. Mates
+  with the harness plug MC 1,5/4-ST-3,81 (1803594).
+- **CSE:** <https://componentsearchengine.com/part-view/1803293/Phoenix%20Contact>
+- **Fetch:** symbol + footprint (right-angle, 3.81 mm pitch, 4-pos) + 3D STEP.
+- **Notes:** 8 A / 160 V, far inside the +/-12 V / few-hundred-mA budget. The
+  right-angle and vertical footprints are NOT interchangeable, so lock the
+  1803293 (right-angle) footprint before layout. You can start the schematic
+  with the generic 4-position MC 1,5 symbol as a placeholder.
 
-### Optional: Coilcraft 0805LS-102XJRC - 1 uH chip wirewound inductor
+### Optional: Coilcraft 0805 chip wirewound inductors (filter L)
 
 - **Manufacturer:** Coilcraft
-- **MPN:** `0805LS-102XJRC`
-- **CSE:** <https://componentsearchengine.com/part-view/0805LS-102XJRC/Coilcraft>
+- **Values:** 0.22 uH (L1/L5, 4 off) and 0.68 uH (L3, 2 off) per the D2
+  synthesis. Confirm the exact P/N for each value on the Coilcraft 0805
+  family page or at Digi-Key.
 - **Fetch:** optional. The generic KiCad `L_0805_2012Metric` footprint is
-  physically compatible. Fetch the Coilcraft model only if you want the
-  exact pad geometry + 3D appearance for the six filter inductors
-  (L1 through L6) and a tidier BOM export.
+  physically compatible with the six filter inductors (L1 through L6). Fetch
+  the Coilcraft models only if you want exact pad geometry + 3D + a tidier
+  BOM export.
 
 ---
 
@@ -121,8 +123,9 @@ with KiCad and need no CSE step.
 | 12 | Resistor 0805 (1 % or 0.1 %) | `Device:R` | `Resistor_SMD:R_0805_2012Metric` |
 | 9  | Capacitor 0603 (0.1 uF X7R) | `Device:C` | `Capacitor_SMD:C_0603_1608Metric` |
 | 4  | Capacitor 0805 (10 uF X5R bulk) | `Device:C` | `Capacitor_SMD:C_0805_2012Metric` |
-| 4  | Capacitor 0603 (470 pF C0G filter) | `Device:C` | `Capacitor_SMD:C_0603_1608Metric` |
-| 6  | Inductor 0805 (1 uH filter L) | `Device:L` | `Inductor_SMD:L_0805_2012Metric` |
+| 4  | Capacitor 0603 (820 pF C0G filter) | `Device:C` | `Capacitor_SMD:C_0603_1608Metric` |
+| 4  | Inductor 0805 (0.22 uH filter L1/L5) | `Device:L` | `Inductor_SMD:L_0805_2012Metric` |
+| 2  | Inductor 0805 (0.68 uH filter L3) | `Device:L` | `Inductor_SMD:L_0805_2012Metric` |
 | 2  | Ferrite bead 0805 (~600 ohm @ 100 MHz) | `Device:FerriteBead` | `Inductor_SMD:L_0805_2012Metric` |
 | 3  | 2N3904 NPN BJT (relay driver) | `Transistor_BJT:2N3904` | `Package_TO_SOT_THT:TO-92_Inline` |
 | 3  | 1N4148 small-signal diode (flyback) | `Diode:1N4148` | `Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal` |

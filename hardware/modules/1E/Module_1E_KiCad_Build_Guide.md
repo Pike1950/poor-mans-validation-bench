@@ -155,8 +155,8 @@ nets it uses, and any wiring notes you have to honor.
   C1 (0.1 uF REFIO); C6, C7 (0.1 uF AVDD, DVDD bypass);
   C8 (10 uF X5R 0805 bulk at +3V3 entry);
   C16, C17 (second 0.1 uF AVDD, DVDD bypass);
-  L1, L2, L3 (1 uH filter A series); L4, L5, L6 (1 uH filter B series);
-  C2, C3 (470 pF C0G filter A shunt); C4, C5 (470 pF C0G filter B shunt).
+  L1, L3 (0.22 uH filter A outer series), L2 (0.68 uH filter A mid series); L4, L6 (0.22 uH filter B outer series), L5 (0.68 uH filter B mid series);
+  C2, C3 (820 pF C0G filter A shunt); C4, C5 (820 pF C0G filter B shunt).
 - **Hierarchical labels IN:** `DB0`..`DB11`, `DAC_CLK`, `+3V3` (passive).
 - **Hierarchical labels OUT:** `FILT_A`, `FILT_B`.
 - **Power:** `GND`, `+3V3` -> local FB1/FB2 -> `AVDD`/`DVDD` (local nets,

@@ -2,7 +2,7 @@
 
 ## Module Design Document
 
-**Version:** 1.6 (June 2026, op-amp gain network reconciled to gain of 20 / R_fb = R_ref = 20 kΩ in sections 4 and 5; NCO walkthrough + Figure 1E-2 phase accumulator added in section 1.3, figures renumbered)
+**Version:** 1.7 (June 2026, reconstruction filter values from completed D2 singly-terminated Butterworth synthesis in sections 1.5 / 4 / 8; AVDD/DVDD ferrite beads FB1/FB2 added to BOM per D4)
 **Module ID:** 1E
 **Tier:** 1
 **Status:** In Design
@@ -171,7 +171,7 @@ The filter cutoff is the upper-bandwidth limit of the module. Pushing it higher 
 
 **Images vs harmonics.** Images live at f_sample ± f_signal and its multiples (sampling artifacts; the recon filter removes them). Harmonics live at 2 × f_signal, 3 × f_signal, etc. (nonlinearity artifacts from the DAC's INL/DNL, op-amp THD; the recon filter does not remove them when they fall in the passband). At high output frequencies the filter does double duty, killing images AND knocking down out-of-band harmonics; at low output frequencies (audio band), harmonics in the passband are governed entirely by the linearity of the DAC and op-amp.
 
-Component values (L = 1 µH, C = 470 pF) are placeholders; the as-built values need a proper synthesis pass against the actual 25 Ω source impedance and ≈1 kΩ load impedance at the op-amp input (well above the 50 Ω the design originally assumed). See PCB design package finding D2.
+Component values come from a completed 5th-order Butterworth synthesis (PCB design package finding D2), run as a singly-terminated design for the actual per-leg impedances: a 25 Ω DAC source termination driving the op-amp's high-impedance (≈1 kΩ) input. That 40:1 source/load ratio rules out a doubly-terminated ladder, so each leg uses a singly-terminated L-C-L-C-L Butterworth with series inductors 0.22 µH / 0.68 µH / 0.22 µH and shunt capacitors 820 pF. Simulated response is -3 dB at ≈11 MHz with ≈51 dB image rejection at 40 MHz (50 MSPS) and ≈26 dB at 20 MHz (30 MSPS); the ≈1.5 dB passband droop to 10 MHz is removed by the stored frequency-response calibration of section 9.4.
 
 ### 1.6 Op-amp output stage
 
@@ -277,10 +277,10 @@ The AD9742 produces complementary differential currents at IOUTA and IOUTB. Full
 
 ### Reconstruction filter
 
-A 5th-order Butterworth low-pass filter sits between the DAC's differential output and the op-amp input. Cutoff at ~12 MHz, characteristic impedance 50 Ω. Standard ladder topology (L–C–L–C–L) with the values:
+A 5th-order Butterworth low-pass filter sits between the DAC's differential output and the op-amp input. It is synthesized as two identical per-leg ladders (one per differential leg), singly-terminated for the 25 Ω per-leg DAC termination into the op-amp's high-impedance (≈1 kΩ) input, -3 dB at ≈11 MHz (PCB design package finding D2). Standard ladder topology (L–C–L–C–L) with the values:
 
-- L1 = L3 = L5 ≈ 1.0 µH (Coilcraft 0805LS-102XJRC, ±5 %)
-- C2 = C4 ≈ 470 pF (Murata GCM1885C1H471JA16D, C0G ±5 %)
+- Series inductors L1 = L5 ≈ 0.22 µH and L3 ≈ 0.68 µH, 0805 wirewound (e.g. Coilcraft 0805 family; confirm exact P/N)
+- Shunt capacitors C2 = C4 ≈ 820 pF, C0G 0603 ±5 % (e.g. Murata GCM/GRM C0G; confirm exact P/N)
 
 Tabulated normalized Butterworth values are in the Analog Devices DAC application note AN-282 and equivalents; tolerances on these passives directly affect passband ripple, so 5 % C0G capacitors and ±5 % wirewound chip inductors are the minimum specifications. Better tolerances (1 % caps, 2 % inductors) produce flatter passband response if budget permits.
 
@@ -519,11 +519,13 @@ Cross-referenced to Digi-Key (primary; Mouser was not accessible during this aud
 | Precision resistor 50 Ω 1 % 0805 | Yageo RC0805FR-0750RL | Digi-Key | (verify direct) | 1 | ~$0.10 | 50 Ω output Z |
 | Precision resistor 10 kΩ 1 % 0805 | Yageo RC0805FR-0710KL | Digi-Key | RC0805FR-0710KL | 1 | ~$0.10 | 10 kΩ output Z |
 | FSADJ resistor 1.91 kΩ 0.1 % 0805 | Vishay TNPW08051K91BEEA | Digi-Key | (verify direct) | 1 | (verify direct) | sets AD9742 full-scale current |
-| Reconstruction filter inductor 1 µH 0805 ±5 % | Coilcraft 0805LS-102XJRC | Digi-Key | (search direct) | 6 | $2.01 | three per channel; one channel built initially |
-| Reconstruction filter cap 470 pF C0G 0603 ±5 % | Murata GCM1885C1H471JA16D | Digi-Key | (search direct) | 4 | (verify direct) | two per channel |
+| Reconstruction filter inductor 0.22 µH 0805 (L1/L5 per leg) | 0805 wirewound, Coilcraft 0805 family | Digi-Key | (search direct) | 4 | (verify direct) | singly-terminated Butterworth (finding D2) |
+| Reconstruction filter inductor 0.68 µH 0805 (L3 per leg) | 0805 wirewound, Coilcraft 0805 family | Digi-Key | (search direct) | 2 | (verify direct) | singly-terminated Butterworth (finding D2) |
+| Reconstruction filter cap 820 pF C0G 0603 ±5 % | Murata GCM/GRM C0G 0603 | Digi-Key | (search direct) | 4 | (verify direct) | two per leg (finding D2) |
 | Op-amp gain network resistors 1 % 0805 | Yageo RC0805FR-07 series | Digi-Key | (verify direct) | 4 | ~$0.10 | R_in1, R_in2, R_fb, R_ref |
 | Bypass cap 0.1 µF X7R 0603 50 V | Yageo CC0603KRX7R9BB104 | Digi-Key | 311-1366-1-ND (or equiv) | 10 | $0.08 | per IC supply pin |
 | Bulk cap 10 µF X5R 0805 10 V | Yageo CC0805KKX5R8BB106 (or Murata GRM21BR71A106KA73L) | Digi-Key | (search direct) | 4 | (verify direct) | DAC, op-amp, +12V, -12V supply rails |
+| Ferrite bead 0805 ~600 Ω @ 100 MHz (FB1, FB2) | 0805 ferrite bead | Digi-Key | (search direct) | 2 | (verify direct) | AVDD/DVDD supply filtering from Pico 3V3 (finding D4) |
 | BNC panel-mount jack 50 Ω | Amphenol RF 031-5538 | Digi-Key | 031-5538 | 1 | (verify direct) | front-panel output |
 | 3D-printed enclosure | n/a | n/a | n/a | 1 | ~$1 | PETG print, ~10 g |
 | Hookup wire, headers, perfboard or custom PCB | various | various | various | n/a | TBD | full schematic in KiCad; PCB fab quote pending |
