@@ -2,7 +2,7 @@
 
 ## Module Design Document
 
-**Version:** 1.8 (June 2026, Figure 1E-6 reconstruction filter response (singly- vs doubly-terminated) added in section 1.5; former Figures 1E-6/1E-7 renumbered to 1E-7/1E-8)
+**Version:** 1.9 (June 2026, DAC +3.3 V supply moved from the Pico to the chassis Phoenix rail (J1.5); power connector now 5-pin rear-edge blind-mate - see PCB package sections 3 and 6)
 **Module ID:** 1E
 **Tier:** 1
 **Status:** In Design
@@ -366,7 +366,7 @@ Firmware enforces mutually exclusive relay energizing.
 |---|---|---|
 | 39 | VSYS | 5 V from chassis (USB-bus-powered via Pi 5 USB hub) |
 | 38 | GND | shared chassis ground |
-| 36 | 3V3_OUT | for AD9742 AVDD/DVDD (after local LC filtering) |
+| 36 | 3V3_OUT | not connected (DAC +3.3 V now from chassis Phoenix J1.5, not the Pico) |
 
 ### AD9742 pinout summary
 
@@ -383,10 +383,10 @@ Firmware enforces mutually exclusive relay energizing.
 | 21 | IOUTB | 25 Ω termination to AGND; reconstruction filter leg B input |
 | 22 | IOUTA | 25 Ω termination to AGND; reconstruction filter leg A input |
 | 23 | RESERVED | **leave unconnected** (per AD9742 datasheet Rev. C, do not tie to common or supply) |
-| 24 | AVDD | +3.3 V from Pico (through ferrite bead filter to AVDD) |
+| 24 | AVDD | +3.3 V from chassis (Phoenix J1.5) through ferrite bead filter to AVDD |
 | 25 | MODE | data-format strap: tie to DCOM for straight binary (this module), or to DVDD for twos complement. NOT a parallel/serial mode select. |
 | 26 | DCOM | digital ground |
-| 27 | DVDD | +3.3 V from Pico (through separate ferrite bead filter to DVDD) |
+| 27 | DVDD | +3.3 V from chassis (Phoenix J1.5) through separate ferrite bead filter to DVDD |
 | 28 | CLOCK | Pico GP12, sample clock latched on rising edge |
 
 **Pinout source:** AD9742 datasheet Rev. C, Table 6 (28-Lead SOIC/TSSOP). The previous v1.1 of this table had pins 13–28 mis-assigned and listed pin 25 MODE as "tied to GND for parallel mode," which was a misreading; MODE is a data-format strap. See the PCB design package finding D5 (`hardware/modules/1E/Module_1E_PCB_Design_Package.md`) for the correction history.
@@ -533,7 +533,7 @@ Cross-referenced to Digi-Key (primary; Mouser was not accessible during this aud
 | Op-amp gain network resistors 1 % 0805 | Yageo RC0805FR-07 series | Digi-Key | (verify direct) | 4 | ~$0.10 | R_in1, R_in2, R_fb, R_ref |
 | Bypass cap 0.1 µF X7R 0603 50 V | Yageo CC0603KRX7R9BB104 | Digi-Key | 311-1366-1-ND (or equiv) | 10 | $0.08 | per IC supply pin |
 | Bulk cap 10 µF X5R 0805 10 V | Yageo CC0805KKX5R8BB106 (or Murata GRM21BR71A106KA73L) | Digi-Key | (search direct) | 4 | (verify direct) | DAC, op-amp, +12V, -12V supply rails |
-| Ferrite bead 0805 ~600 Ω @ 100 MHz (FB1, FB2) | 0805 ferrite bead | Digi-Key | (search direct) | 2 | (verify direct) | AVDD/DVDD supply filtering from Pico 3V3 (finding D4) |
+| Ferrite bead 0805 ~600 Ω @ 100 MHz (FB1, FB2) | 0805 ferrite bead | Digi-Key | (search direct) | 2 | (verify direct) | AVDD/DVDD supply filtering from chassis +3.3 V (Phoenix J1.5; findings D3/D4) |
 | BNC panel-mount jack 50 Ω | Amphenol RF 031-5538 | Digi-Key | 031-5538 | 1 | (verify direct) | front-panel output |
 | 3D-printed enclosure | n/a | n/a | n/a | 1 | ~$1 | PETG print, ~10 g |
 | Hookup wire, headers, perfboard or custom PCB | various | various | various | n/a | TBD | full schematic in KiCad; PCB fab quote pending |

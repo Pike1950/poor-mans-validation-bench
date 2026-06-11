@@ -109,12 +109,13 @@ hierarchical-label declaration needed for them.
 The root sheet `module_1e.kicad_sch` carries the project metadata, the
 power input, and the sheet symbols. Concrete contents:
 
-- **J1** Phoenix MC 1,5/4 right-angle header (placeholder symbol from
-  `Connector_Phoenix_MC` until D6 P/N is fetched).
+- **J1** Phoenix MC 1,5/5-G-3,81 right-angle header (1803303), on the rear
+  edge beside the USB for rearward blind-mate.
   - Pin 1 -> `+5V` power flag.
   - Pin 2 -> `+12V` power flag.
   - Pin 3 -> `-12V` power flag.
   - Pin 4 -> `GND` power flag.
+  - Pin 5 -> `+3V3` power flag (DAC supply; chassis 3.3 V rail).
 - Five hierarchical sheet symbols (Pico, DAC, OpAmp, OutputSwitch, Trigger).
 - No other components. All sub-sheet signals enter and exit via sheet pins.
 
@@ -128,12 +129,11 @@ nets it uses, and any wiring notes you have to honor.
 
 ### 7.1 Pico (`Pico.kicad_sch`)
 
-- **Symbols:** U1 (Raspberry Pi Pico 2 W); C15 0.1 uF X7R 0603 close to
-  Pico 3V3_OUT pin as local bypass.
+- **Symbols:** U1 (Raspberry Pi Pico 2 W). The former C15 3V3_OUT bypass
+  moves to the J1 +3V3 entry (DAC sheet), since the Pico no longer feeds the DAC.
 - **Hierarchical labels OUT** (Pico drives them):
   `DB0`, `DB1`, ..., `DB11`, `DAC_CLK`,
-  `RELAY_50`, `RELAY_HIZ`, `RELAY_10K`,
-  `SYNC_OUT`, `+3V3` (passive).
+  `RELAY_50`, `RELAY_HIZ`, `RELAY_10K`, `SYNC_OUT`.
 - **Hierarchical labels IN** (Pico receives):
   `TRIG_IN`.
 - **Power:** `GND` on all eight Pico GND pins (3, 8, 13, 18, 23, 28, 33, 38).
@@ -144,16 +144,16 @@ nets it uses, and any wiring notes you have to honor.
   - Pin mapping for signals (from the design doc section 4):
     GP0..GP11 = DB0..DB11, GP12 = DAC_CLK, GP13 = RELAY_50,
     GP14 = RELAY_HIZ, GP15 = RELAY_10K, GP16 = SYNC_OUT, GP17 = TRIG_IN.
-  - Pico is USB-powered; the module PCB does not feed it. Only the
-    Pico's `3V3_OUT` (pin 36) exits the Pico sheet to feed the DAC supply
-    island.
+  - Pico is USB-powered; the module PCB does not feed it. Its `3V3_OUT`
+    (pin 36) is left unconnected - the DAC supply island is now fed by `+3V3`
+    from J1 pin 5 (chassis 3.3 V), not the Pico.
 
 ### 7.2 DAC (`DAC.kicad_sch`)
 
 - **Symbols:** U2 (AD9742); FB1, FB2 (ferrite beads to AVDD, DVDD);
   R1 (1.91 k 0.1 % FSADJ); R2, R3 (25 ohm 0.1 % IOUTA/IOUTB terminations);
   C1 (0.1 uF REFIO); C6, C7 (0.1 uF AVDD, DVDD bypass);
-  C8 (10 uF X5R 0805 bulk at +3V3 entry);
+  C8 (10 uF X5R 0805 bulk) + C15 (0.1 uF) at the +3V3 entry (from J1 pin 5);
   C16, C17 (second 0.1 uF AVDD, DVDD bypass);
   L1, L3 (0.22 uH filter A outer series), L2 (0.68 uH filter A mid series); L4, L6 (0.22 uH filter B outer series), L5 (0.68 uH filter B mid series);
   C2, C3 (820 pF C0G filter A shunt); C4, C5 (820 pF C0G filter B shunt).

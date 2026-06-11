@@ -82,22 +82,20 @@ matching subfolder of `lib/PMVB_1E/`.
   impedance switch. Verify the four pin positions (two coil, two contact)
   against the Coto datasheet after import.
 
-### 5. Phoenix Contact MC 1,5/4-G-3,81 right-angle pluggable PCB header (1803293)
+### 5. Phoenix Contact MC 1,5/5-G-3,81 right-angle pluggable PCB header (1803303)
 
 - **Manufacturer:** Phoenix Contact
-- **MPN:** `1803293` (MC 1,5/4-G-3,81). RESOLVED per D6: this is the
-  right-angle / horizontal header (spatial orientation "angled 90 deg"),
-  verified via TME / Digi-Key / Octopart. Counterintuitive naming: the
-  *straight* vertical variant is MCV 1,5/4-G-3,81 (1803442); the no-V
-  1803293 is the right-angle one - and it is already the chassis BOM part.
-- **Distributor:** Digi-Key 277-1208-ND, ~$1.51 single-qty, in stock. Mates
-  with the harness plug MC 1,5/4-ST-3,81 (1803594).
-- **CSE:** <https://componentsearchengine.com/part-view/1803293/Phoenix%20Contact>
-- **Fetch:** symbol + footprint (right-angle, 3.81 mm pitch, 4-pos) + 3D STEP.
-- **Notes:** 8 A / 160 V, far inside the +/-12 V / few-hundred-mA budget. The
-  right-angle and vertical footprints are NOT interchangeable, so lock the
-  1803293 (right-angle) footprint before layout. You can start the schematic
-  with the generic 4-position MC 1,5 symbol as a placeholder.
+- **MPN:** `1803303` (MC 1,5/5-G-3,81). RESOLVED per D6: the 5-position
+  right-angle header (TME spec table "angled 90 deg", 5 pins, 8 A), now
+  carrying +3.3 V on pin 5 in addition to +5 V / +12 V / -12 V / GND. Same
+  "MC = right-angle" naming as the 4-pin; the straight variant is MCV.
+- **Distributor:** Digi-Key 277-1209-ND, ~$1.84 single-qty, in stock. Mates
+  with the harness plug MC 1,5/5-ST-3,81 (1803604, Digi-Key 277-1164-ND).
+- **CSE:** <https://componentsearchengine.com/part-view/1803303/Phoenix%20Contact>
+- **Fetch:** symbol + footprint (right-angle, 3.81 mm pitch, 5-pos) + 3D STEP.
+- **Notes:** mounts on the rear edge beside the USB for rearward blind-mate on
+  insertion. 8 A / 160 V. Start the schematic with the generic 5-position
+  MC 1,5 symbol as a placeholder; lock the 1803303 footprint before layout.
 
 ### Optional: Coilcraft 0805 chip wirewound inductors (filter L)
 

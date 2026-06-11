@@ -16,9 +16,10 @@ PCB-local coordinate frame (mm):
   X = chassis depth    0 = front edge (faceplate end)   120 = rear edge
   Y = chassis height   0 = bottom edge                   62 = top edge
 The PCB mounts vertically against the module-body cavity right wall; all
-components sit on the cavity-facing (left) copper. Connector positions follow
-chassis doc section 3.6. Outline size and connector zones are a v0 PROPOSAL
-to be co-designed with the v10 module-body STL - see the design package.
+components sit on the cavity-facing (left) copper. J1 Phoenix (5-position) sits
+at the rear edge beside the USB for rearward blind-mate on insertion. Outline
+size and PCB mounting are a proposal to co-design with the v10 module-body STL
+- see the design package.
 """
 
 import os
@@ -36,7 +37,7 @@ MOUNTS = [(MOUNT_INSET, MOUNT_INSET),
 
 # --- connector / block placement zones  (x0, y0, x1, y1, label) --------
 ZONES = [
-    (86.0, 49.0, 110.0, 62.0, "J1 Phoenix MC1,5/4\n(power, +Y mate)"),
+    (100.0, 34.0, 120.0, 54.0, "J1 Phoenix MC1,5/5\n(power, rear-edge blind-mate, +X)"),
     (62.0,  5.0, 113.0, 26.0, "U1 Pico 2 W\n(USB -> rear edge)"),
     (40.0, 30.0,  58.0, 48.0, "U2 AD9742 DAC\n+ recon filter"),
     (20.0, 30.0,  39.0, 50.0, "U3 AD8056\n+ gain network"),

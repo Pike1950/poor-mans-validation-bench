@@ -1,6 +1,6 @@
 # Module 1E PCB Design Package
 
-**Module:** 1E Function Generator / AWG **Version:** v0.4 (June 2026)
+**Module:** 1E Function Generator / AWG **Version:** v0.5 (June 2026)
 **Parent docs:** [Module 1E Design Document v1.7](../../../docs/modules/Module_1E_Design_Document.html),
 PMVB System Design Document section 7.5.5
 **Status:** all findings D1-D7 resolved (incl. the D2 filter synthesis and the D6 Phoenix P/N); KiCad project setup and schematic capture pending (you, in KiCad GUI). See `Module_1E_KiCad_Build_Guide.md`.
@@ -64,7 +64,7 @@ keeps the differential path balanced into the difference amplifier.
 
 **Resolved (June 2026):** a numerical 5th-order Butterworth synthesis was run against the real per-leg terminations. Source = the 25 ohm DAC termination; load = the op-amp's ~1 kohm input resistor (R4/R5), a 40:1 ratio that rules out a doubly-terminated ladder (it shows 6-11 dB of passband ripple). Each leg is therefore a **singly-terminated** 5th-order Butterworth: series inductors **0.22 uH / 0.68 uH / 0.22 uH** and shunt capacitors **820 pF** per leg (board total 4x 0.22 uH + 2x 0.68 uH + 4x 820 pF). Verified response: -3 dB at ~11 MHz, image rejection ~51 dB at 40 MHz (50 MSPS) and ~26 dB at 20 MHz (30 MSPS) - both meet spec; passband droop to 10 MHz is ~1.5 dB (worst ~2.3 dB at +/-5% parts), removed by the stored frequency-response calibration (design doc section 9.4). The cleaner doubly-terminated alternative (add a 25 ohm shunt load per leg for ~+/-0.5 dB flatness) was rejected: it halves the signal and needs op-amp gain 40, which drops the AD8056 closed-loop bandwidth to ~7.5 MHz, below the 10 MHz band. Values now carried in design doc sections 1.5/4/8.
 
-### D3 - Reed-relay coils run from the Phoenix +5 V rail
+### D3 - Reed-relay coils run from the Phoenix +5 V rail (RESOLVED)
 
 The design document specifies 5 V relay coils but does not say where the 5 V
 comes from. Two candidates: the Phoenix +5 V chassis rail, or the Pico's VBUS
@@ -73,11 +73,9 @@ comes from. Two candidates: the Phoenix +5 V chassis rail, or the Pico's VBUS
 **Decision:** Phoenix +5 V rail. It keeps the Pico's USB power budget clean
 (the Pico already streams DAC samples at 30-50 MSPS) and it matches the chassis
 architecture, where module power is delivered through the Phoenix connector.
-Consequence: Module 1E uses all four Phoenix pins (+5 V, +12 V, -12 V, GND),
-which is convenient because 1E is the board that locks the Phoenix interface
-spec for every other module.
+Consequence: Module 1E uses the Phoenix pins for +5 V, +12 V, -12 V, GND, and (as of the June 2026 revision) +3.3 V on a 5th pin for the DAC supply - so the connector is now the 5-position MC 1,5/5 (see D6 and section 6). 1E is the board that locks this interface for every other module.
 
-### D4 - AD9742 AVDD/DVDD fed through ferrite beads
+### D4 - AD9742 AVDD/DVDD fed through ferrite beads (RESOLVED)
 
 The design document calls for "local LC filtering" on the 3.3 V feed from the
 Pico to the DAC's AVDD and DVDD pins, decoupled separately. The realization is
@@ -85,10 +83,9 @@ one ferrite bead per rail (FB1 to AVDD, FB2 to DVDD) plus 0.1 uF and 10 uF
 decoupling. Ferrite bead plus capacitor is the standard practical form of that
 LC filter.
 
-**Note:** FB1 and FB2 are not in the design document BOM. Add them
-(2x ferrite bead, 0805, ~600 ohm at 100 MHz).
+**Resolved:** FB1 and FB2 (2x ferrite bead, 0805, ~600 ohm at 100 MHz) are now in the design-doc BOM. The 3.3 V they filter now comes from the chassis Phoenix rail (J1.5), not the Pico - see D3.
 
-### D5 - AD9742 pinout corrected against the datasheet
+### D5 - AD9742 pinout corrected against the datasheet (RESOLVED)
 
 RESOLVED. The AD9742 datasheet (Rev. C, Table 6, 28-lead SOIC/TSSOP) confirms
 the Module 1E Design Document's AD9742 pin table is wrong. The data bus (pins
@@ -123,18 +120,13 @@ of the build guide is the authoritative per-pin wiring contract.
 
 **Resolved:** the design document pin table (section 5) now carries this datasheet-correct pinout, so the two documents agree.
 
-### D6 - Phoenix header is right-angle = 1803293 (RESOLVED)
+### D6 - Phoenix is 5-pin right-angle 1803303, rear blind-mate (RESOLVED)
 
-The chassis architecture document mounts the module-side Phoenix header on the
-PCB top edge "pointing upward (+Z)", with the back-wall harness plug dropping
-"down onto this header from above". The host PCB mounts vertically (in the
-chassis Y-Z plane). For a plug to mate from +Z onto a header on a vertical PCB,
-the header must be a **right-angle** board header (mating axis in the plane of
-the PCB). (The naming here is counterintuitive and was misread in the first draft: 1803293 / MC 1,5/4-G-3,81 is in fact the **right-angle** part; the straight vertical variant is MCV 1,5/4-G-3,81 / 1803442.)
+The host PCB mounts vertically (in the chassis Y-Z plane). The connector is a **right-angle** board header (mating axis in the plane of the PCB). Naming is counterintuitive: in this family "MC ...-G" (no V) is the right-angle part and "MCV ...-G" is the straight vertical one. Two June 2026 changes supersede the original 4-pin top-drop scheme: (1) the +3.3 V rail moved onto the connector, so it is now **5-position**; (2) the header moves from the top edge to the **rear edge** beside the USB, mating rearward so it blind-mates onto a fixed rear-of-slot plug as the blade slides in (one insertion motion instead of slide-then-drop). The right-angle orientation is still correct: mating rearward is in the plane of the vertical board.
 
-**Decision (RESOLVED June 2026):** use Phoenix **MC 1,5/4-G-3,81, order no. 1803293** - verified via TME / Digi-Key / Octopart to be the right-angle / horizontal header (spatial orientation "angled 90 deg"), 8 A / 160 V, 4-pos 3.81 mm, THT. Mates with the harness plug MC 1,5/4-ST-3,81 (1803594). Digi-Key 277-1208-ND, ~$1.51 single-qty, in stock. The chassis BOM already lists 1803293, so no BOM part change is needed.
+**Decision (RESOLVED June 2026):** use Phoenix **MC 1,5/5-G-3,81, order no. 1803303** - the 5-position right-angle header (TME spec table "angled 90 deg", 5 pins, 8 A / 160 V, 3.81 mm, THT), Digi-Key 277-1209-ND, ~$1.84 single-qty, in stock. Harness plug: MC 1,5/5-ST-3,81, Phoenix 1803604 (Digi-Key 277-1164-ND). Pin order 1-5 = +5 V, +12 V, -12 V, GND, +3.3 V. (The 4-position 1803293 was the prior choice, before the +3.3 V rail and the blind-mate change.)
 
-**Action remaining:** correct the chassis document's description of 1803293 from "straight" to "right-angle (angled 90 deg)" - the listed part number is already correct, only the orientation wording was wrong. The footprint can now be locked; all 14 module PCBs inherit it (see section 6).
+**Chassis follow-up (tracked separately):** update the chassis doc's back-wall harness to (a) carry a 5th rail (+3.3 V from the GeeekPi breakout), (b) use the 5-position parts (header 1803303, plug 1803604), and (c) change from per-slot plugs dropped from above to fixed forward-facing plugs at the rear of each slot for blind-mate. The module-side footprint can be locked now; all 14 module PCBs inherit it (see section 6).
 
 ### D7 - Output impedance modes: drop 600 ohm, add high-Z (low-impedance source)
 
@@ -191,13 +183,11 @@ level summary follows.
 | `+12V` | Phoenix J1.2 | AD8056 V+ (U3.8), decoupling C9/C11 |
 | `-12V` | Phoenix J1.3 | AD8056 V- (U3.4), decoupling C10/C12 |
 | `GND` | Phoenix J1.4 | common return |
-| `+3V3` | Pico 3V3_OUT (U1.36) | DAC supply island via FB1/FB2, bulk C8/C15 |
+| `+3V3` | Phoenix J1.5 (chassis ATX 3.3 V via GeeekPi D-1188 breakout) | DAC supply island via FB1/FB2, bulk C8/C15 |
 | `AVDD` | FB1 from +3V3 | AD9742 AVDD (U2.24), decoupling C6/C16 |
 | `DVDD` | FB2 from +3V3 | AD9742 DVDD (U2.27), decoupling C7/C17 |
 
-The Pico is powered over its own micro-USB; VSYS and VBUS are not connected on
-the PCB. The Pico's 3V3_OUT is the only Pico power pin used by the board, and
-it feeds the DAC supply island only.
+The Pico is powered over its own micro-USB; VSYS and VBUS are not connected on the PCB. The DAC's +3V3 now comes from the Phoenix connector (J1.5, the chassis 3.3 V rail via the GeeekPi breakout), so the Pico's 3V3_OUT no longer feeds the board and is left unconnected. This decouples the DAC analog supply from the Pico's switching regulator. The Pico drives the parallel data bus at its own internal 3.3 V while the DAC DVDD is the chassis 3.3 V; with common GND and both near 3.3 V the logic levels have ample margin.
 
 ### Signal chain
 
@@ -255,7 +245,7 @@ These are the points worth working through before or during schematic capture.
 2. **AD9742 pinout (D5) - resolved.** Verified against the AD9742 datasheet
    Rev. C; the build guide and parts checklist carry the correct pin map.
    Only remaining action: patch the design document's own pin table to match.
-3. **Phoenix header style (D6) - resolved.** Right-angle = Phoenix 1803293 (MC 1,5/4-G-3,81), Digi-Key 277-1208-ND ~$1.51; it is already the chassis BOM part. The footprint can be locked.
+3. **Phoenix connector (D6) - resolved.** 5-position right-angle MC 1,5/5-G-3,81 (1803303, Digi-Key 277-1209-ND ~$1.84), rear-edge blind-mate, +3.3 V added on pin 5. Module footprint can be locked; the chassis harness redesign is a tracked follow-up.
 4. **PCB outline and mounting (section 5).** The 120 x 62 mm outline and the
    4x M2.5 hole pattern are a proposal. They must be co-designed with the v10
    module-body STL, which does not yet define PCB mounting bosses.
@@ -298,7 +288,7 @@ plane split under the DAC, joined at one point near the DAC ACOM/DCOM pins.
 
 | Ref | Connector | Position | Mating direction |
 |-----|-----------|----------|------------------|
-| J1 | Phoenix MC 1,5/4 power | top edge, rear corner | +Z (from above) |
+| J1 | Phoenix MC 1,5/5 power | rear edge, beside the USB | rearward (chassis +Y), blind-mate on insertion |
 | U1 micro-USB | Pico USB | rear edge | +Y (rearward, to USB hub) |
 | J2 / faceplate | BNC output | front edge | -X (out the faceplate) |
 
@@ -311,26 +301,21 @@ PCB and the future custom 4-rail distribution PCB must conform to it.
 
 | Property | Value |
 |----------|-------|
-| Connector family | Phoenix Contact MC 1,5 series, 3.81 mm pitch, 4 position |
-| Module-side part | Right-angle pluggable PCB header (see D6; P/N to confirm) |
-| Harness-side part | MC 1,5/4-ST-3,81 cable plug, Phoenix 1803594 |
+| Connector family | Phoenix Contact MC 1,5 series, 3.81 mm pitch, 5 position |
+| Module-side part | MC 1,5/5-G-3,81 right-angle PCB header, Phoenix 1803303 (Digi-Key 277-1209-ND) |
+| Harness-side part | MC 1,5/5-ST-3,81 cable plug, Phoenix 1803604 (Digi-Key 277-1164-ND) |
 | Pin 1 | +5 V |
 | Pin 2 | +12 V |
 | Pin 3 | -12 V |
 | Pin 4 | GND |
-| PCB location | Top edge, rear corner, on the shared outline |
-| Mating axis | Chassis +Z (harness plug drops on from above) |
-| Keep-out | Per `module_pcb_outline.dxf`, top-rear zone; clear of the rear-top M2.5 mounting hole |
+| Pin 5 | +3.3 V |
+| PCB location | Rear edge, beside the Pico USB, on the shared outline |
+| Mating axis | Rearward (chassis +Y) - blind-mates onto a fixed rear-of-slot plug as the blade slides in |
+| Keep-out | Per `module_pcb_outline.dxf`, rear-edge zone beside the USB; clear of the rear M2.5 mounting holes |
 
-Pin order matches the chassis back-wall harness (chassis doc 4.4). A module
-that does not need a given rail still passes that pin through the connector for
-uniformity; Module 1E happens to use all four. The keep-out in the shared
-outline was moved clear of the rear-top mounting hole, which the first-draft
-placement overlapped.
+Pin order matches the chassis back-wall harness (chassis doc 4.4), with the new +3.3 V on pin 5 so the original four-rail order is unchanged. A module that does not need a given rail still passes that pin through for uniformity; Module 1E uses all five. **Chassis follow-up:** the rearward blind-mate means the back-wall harness must change from per-slot plugs dropped on from above to fixed forward-facing plugs at the rear of each slot (the 5-rail distribution backplane, pulled forward from v1.1). That chassis-side rework is tracked separately; this package and the module PCB are specified for it.
 
-**Locking criterion:** once D6 (header style and P/N) is settled and the
-footprint exists, this table and the keep-out in `module_pcb_outline.dxf` are
-frozen. Changing them later means re-spinning every module PCB.
+**Locking criterion:** D6 is settled (5-pin 1803303, rear-edge blind-mate); once the footprint exists, this table and the keep-out in `module_pcb_outline.dxf` are frozen. Changing them later means re-spinning every module PCB.
 
 ---
 
@@ -400,6 +385,6 @@ against.
 
 ## 10. Status and next steps
 
-Done: all engineering findings D1 through D7 resolved, including the D2 filter synthesis and the D6 Phoenix P/N (1803293, right-angle); shared PCB outline and floorplan generated; Phoenix interface spec drafted; parts checklist and KiCad build guide authored; design-document inconsistencies caught and patched (gain, pinout, high-Z, filter values, ferrite beads).
+Done: all engineering findings D1 through D7 resolved. Latest revision (June 2026): the DAC +3.3 V now comes from the chassis Phoenix rail, the connector is the 5-position right-angle MC 1,5/5-G-3,81 (1803303), and it relocates to the rear edge for blind-mate on insertion. Shared PCB outline + floorplan generated (J1 now rear-edge); interface spec at 5-pin; parts checklist and KiCad build guide authored; design-document inconsistencies patched (gain, pinout, high-Z, filter values, ferrite beads, power source).
 
-Next, in rough order: confirm the PCB outline and mounting against the v10 module body; settle the Pico mount (headers vs direct-solder) and the J3 trigger-bus connector; fetch the five custom parts; build the KiCad project per the guide; capture the schematic; lay out the board. Per the README tracker, this closes "PCB design" and feeds into "PCB fab + assembly".
+Next, in rough order: the chassis back-wall harness blind-mate redesign (5-rail, fixed rear-of-slot plugs) is tracked as a follow-up; co-design the PCB mounting bosses with the v10 module body; settle the Pico mount (headers vs direct-solder) and the J3 trigger-bus connector; fetch the five custom parts; build the KiCad project per the guide; capture the schematic; lay out the board. Per the README tracker, this closes "PCB design" and feeds into "PCB fab + assembly".

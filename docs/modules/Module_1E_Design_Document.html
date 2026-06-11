@@ -170,7 +170,7 @@ blockquote {
 </div>
 <h1 id="module-1e-function-generator-arbitrary-waveform-generator">Module 1E: Function Generator / Arbitrary Waveform Generator</h1>
 <h2 id="module-design-document">Module Design Document</h2>
-<p><strong>Version:</strong> 1.8 (June 2026, Figure 1E-6 reconstruction filter response (singly- vs doubly-terminated) added in section 1.5; former Figures 1E-6/1E-7 renumbered to 1E-7/1E-8) <strong>Module ID:</strong> 1E <strong>Tier:</strong> 1 <strong>Status:</strong> In Design <strong>Parent SDD section:</strong> 7.5.5 of the <a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document</a></p>
+<p><strong>Version:</strong> 1.9 (June 2026, DAC +3.3 V supply moved from the Pico to the chassis Phoenix rail (J1.5); power connector now 5-pin rear-edge blind-mate - see PCB package sections 3 and 6) <strong>Module ID:</strong> 1E <strong>Tier:</strong> 1 <strong>Status:</strong> In Design <strong>Parent SDD section:</strong> 7.5.5 of the <a href="../system-design/System_Design_Document.html#module-1e-function-generator-arbitrary-waveform-generator">PMVB System Design Document</a></p>
 <hr />
 <h2 id="table-of-contents">Table of Contents</h2>
 <ul>
@@ -456,7 +456,7 @@ blockquote {
 <tbody>
 <tr><td>39</td><td>VSYS</td><td>5 V from chassis (USB-bus-powered via Pi 5 USB hub)</td></tr>
 <tr><td>38</td><td>GND</td><td>shared chassis ground</td></tr>
-<tr><td>36</td><td>3V3_OUT</td><td>for AD9742 AVDD/DVDD (after local LC filtering)</td></tr>
+<tr><td>36</td><td>3V3_OUT</td><td>not connected (DAC +3.3 V now from chassis Phoenix J1.5, not the Pico)</td></tr>
 </tbody>
 </table>
 <h3 id="ad9742-pinout-summary">AD9742 pinout summary</h3>
@@ -474,10 +474,10 @@ blockquote {
 <tr><td>21</td><td>IOUTB</td><td>25 Ω termination to AGND; reconstruction filter leg B input</td></tr>
 <tr><td>22</td><td>IOUTA</td><td>25 Ω termination to AGND; reconstruction filter leg A input</td></tr>
 <tr><td>23</td><td>RESERVED</td><td><strong>leave unconnected</strong> (per AD9742 datasheet Rev. C, do not tie to common or supply)</td></tr>
-<tr><td>24</td><td>AVDD</td><td>+3.3 V from Pico (through ferrite bead filter to AVDD)</td></tr>
+<tr><td>24</td><td>AVDD</td><td>+3.3 V from chassis (Phoenix J1.5) through ferrite bead filter to AVDD</td></tr>
 <tr><td>25</td><td>MODE</td><td>data-format strap: tie to DCOM for straight binary (this module), or to DVDD for twos complement. NOT a parallel/serial mode select.</td></tr>
 <tr><td>26</td><td>DCOM</td><td>digital ground</td></tr>
-<tr><td>27</td><td>DVDD</td><td>+3.3 V from Pico (through separate ferrite bead filter to DVDD)</td></tr>
+<tr><td>27</td><td>DVDD</td><td>+3.3 V from chassis (Phoenix J1.5) through separate ferrite bead filter to DVDD</td></tr>
 <tr><td>28</td><td>CLOCK</td><td>Pico GP12, sample clock latched on rising edge</td></tr>
 </tbody>
 </table>
@@ -604,7 +604,7 @@ awg.write('OUTP ON')
 <tr><td>Op-amp gain network resistors 1% 0805</td><td>Yageo RC0805FR-07 series</td><td>Digi-Key</td><td>(verify direct)</td><td>4</td><td>~$0.10</td><td>R_in1, R_in2, R_fb, R_ref</td></tr>
 <tr><td>Bypass cap 0.1 µF X7R 0603 50 V</td><td>Yageo CC0603KRX7R9BB104</td><td>Digi-Key</td><td>311-1366-1-ND (or equiv)</td><td>10</td><td>$0.08</td><td>per IC supply pin</td></tr>
 <tr><td>Bulk cap 10 µF X5R 0805 10 V</td><td>Yageo CC0805KKX5R8BB106 (or Murata GRM21BR71A106KA73L)</td><td>Digi-Key</td><td>(search direct)</td><td>4</td><td>(verify direct)</td><td>DAC, op-amp, +12V, -12V supply rails</td></tr>
-<tr><td>Ferrite bead 0805 ~600 Ω @ 100 MHz (FB1, FB2)</td><td>0805 ferrite bead</td><td>Digi-Key</td><td>(search direct)</td><td>2</td><td>(verify direct)</td><td>AVDD/DVDD supply filtering from Pico 3V3 (finding D4)</td></tr>
+<tr><td>Ferrite bead 0805 ~600 Ω @ 100 MHz (FB1, FB2)</td><td>0805 ferrite bead</td><td>Digi-Key</td><td>(search direct)</td><td>2</td><td>(verify direct)</td><td>AVDD/DVDD supply filtering from chassis +3.3 V (Phoenix J1.5; findings D3/D4)</td></tr>
 <tr><td>BNC panel-mount jack 50 Ω</td><td>Amphenol RF 031-5538</td><td>Digi-Key</td><td>031-5538</td><td>1</td><td>(verify direct)</td><td>front-panel output</td></tr>
 <tr><td>3D-printed enclosure</td><td>n/a</td><td>n/a</td><td>n/a</td><td>1</td><td>~$1</td><td>PETG print, ~10 g</td></tr>
 <tr><td>Hookup wire, headers, perfboard or custom PCB</td><td>various</td><td>various</td><td>various</td><td>n/a</td><td>TBD</td><td>full schematic in KiCad; PCB fab quote pending</td></tr>
