@@ -118,3 +118,24 @@ docs/modules/**/*.pdf
 # Matplotlib-generated PNG previews (the .svg is the committed deliverable;
 # .png regenerates from the .py script for local preview).
 docs/figures/modules/*.png
+
+# --- KiCad (module PCB projects under hardware/modules/*/kicad/) ---
+# Commit the source (.kicad_pro / .kicad_sch / .kicad_pcb), the project
+# library tables, and lib/. Ignore the regenerated / per-workstation cruft.
+*.kicad_prl
+*-backups/
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*.kicad_pro-bak
+fp-info-cache
+*.net
+*.dsn
+*.ses
+~*.lck
+_autosave-*
+
+# The broad Python `lib/` rule (above) also catches the per-module KiCad
+# project libraries, which MUST be tracked so they travel with the repo.
+# Re-include every module's kicad/lib subtree:
+!hardware/modules/*/kicad/lib/
+!hardware/modules/*/kicad/lib/**
